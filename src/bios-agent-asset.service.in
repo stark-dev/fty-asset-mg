@@ -1,9 +1,17 @@
 [Unit]
 Description=bios-agent-asset service
-After=network.target
+After=malamute.service
+Requires=malamute.service
+PartOf=bios.target
 
 [Service]
 Type=simple
+User=bios
+EnvironmentFile=-/etc/default/bios
+EnvironmentFile=-/etc/sysconfig/bios
+EnvironmentFile=-/etc/default/bios__%n.conf
+EnvironmentFile=-/etc/sysconfig/bios__%n.conf
+EnvironmentFile=-/etc/bios/bios-db-ro
 Environment="prefix=@prefix@"
 ExecStart=@prefix@/bin/bios-agent-asset
 
