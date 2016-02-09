@@ -128,11 +128,14 @@ void
         zsys_debug ("type_id=%d, subtype_id=%d, parent_id=%d", type_id, subtype_id, parent_id);
 
         char *s_priority, *s_parent;
-        asprintf (&s_priority, "%u", (unsigned) priority);
-        asprintf (&s_parent, "%lu", (long) parent_id);  // TODO: map to name through DB
+        r = asprintf (&s_priority, "%u", (unsigned) priority);
+        assert (r != -1);
+        r = asprintf (&s_parent, "%lu", (long) parent_id);  // TODO: map to name through DB
+        assert (r != -1);
 
         char *subject;
-        asprintf (&subject, "%s.%s@%s", asset_type2str (type_id), asset_subtype2str (subtype_id), name);
+        r = asprintf (&subject, "%s.%s@%s", asset_type2str (type_id), asset_subtype2str (subtype_id), name);
+        assert ( r != -1);
 
         zhash_t *aux = zhash_new ();
         zhash_insert (aux, "priority", (void*) s_priority);
