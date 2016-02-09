@@ -109,7 +109,7 @@ void
         uint8_t priority;
         int8_t event_type;
 
-        bios_asset_extra_extract (ymsg,
+        int r = bios_asset_extra_extract (ymsg,
                 &name,
                 &ext,
                 &type_id,
@@ -119,28 +119,44 @@ void
                 &priority,
                 &event_type);
 
-        /*
+
         if (r != 0) {
             zsys_warning ("can't decode message from sender %s, subject %s : %d", bios_agent_sender (agent), bios_agent_subject (agent), r);
             continue;
-        }*/
+        }
         zsys_debug ("name=%s, status=%s", name, status);
         zsys_debug ("type_id=%d, subtype_id=%d, parent_id=%d", type_id, subtype_id, parent_id);
 
-        zmsg_t *msg = bios_proto_encode_asset (
-                NULL,
-                name,
-                "TODO",
-                ext);
-        char *subject;
-        asprintf (&subject, "TBD@%s", name);
-        mlm_client_send (client, subject, &msg);
-        zstr_free (&subject);
+        char *s_priority, *s_parent;
+        asprintf (&s_priority, "%u", (unsigned) priority);
+        asprintf (&s_parent, "%lu", (long) parent_id);  // TODO: map to name through DB
 
-        ymsg_destroy (&ymsg);
+        char *subject;
+        asprintf (&subject, "%s.%s@%s", asset_type2str (type_id), asset_subtype2str (subtype_id), name);
+
+        zhash_t *aux = zhash_new ();
+        zhash_insert (aux, "priority", (void*) s_priority);
+        zhash_insert (aux, "type", (void*) asset_type2str (type_id));
+        zhash_insert (aux, "subtype", (void*) asset_subtype2str (subtype_id));
+        zhash_insert (aux, "parent", (void*) s_parent);
+        zhash_insert (aux, "status", status);
+
+        zmsg_t *msg = bios_proto_encode_asset (
+                aux,
+                name,
+                asset_op2str (event_type),
+                ext);
+        mlm_client_send (client, subject, &msg);
+
+        zhash_destroy (&ext);
+        zhash_destroy (&aux);
+        zstr_free (&subject);
+        zstr_free (&s_parent);
+        zstr_free (&s_priority);
+
         zstr_free (&name);
         zstr_free (&status);
-        zhash_destroy (&ext);
+        ymsg_destroy (&ymsg);
     }
 
 exit:
@@ -201,6 +217,29 @@ bios_legacy_asset_server_test (bool verbose)
     bios_proto_t *bmsg = bios_proto_decode (&msg);
     assert (bmsg);
     bios_proto_print (bmsg);
+
+    assert (streq (mlm_client_subject (client), "group.genset@NAME"));
+    assert (streq (bios_proto_name (bmsg), "NAME"));
+    assert (streq (bios_proto_operation (bmsg), "create"));
+    assert (zhash_lookup (bios_proto_ext (bmsg), "key"));
+    assert (streq (
+                (char*) zhash_lookup (bios_proto_ext (bmsg), "key"),
+                "value"));
+    assert (streq (
+                (char*) zhash_lookup (bios_proto_aux (bmsg), "parent"),
+                "1"));
+    assert (streq (
+                (char*) zhash_lookup (bios_proto_aux (bmsg), "status"),
+                "active"));
+    assert (streq (
+                (char*) zhash_lookup (bios_proto_aux (bmsg), "type"),
+                "group"));
+    assert (streq (
+                (char*) zhash_lookup (bios_proto_aux (bmsg), "subtype"),
+                "genset"));
+    assert (streq (
+                (char*) zhash_lookup (bios_proto_aux (bmsg), "priority"),
+                "2"));
     bios_proto_destroy (&bmsg);
 
     mlm_client_destroy (&client);

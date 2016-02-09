@@ -33,7 +33,13 @@
 #include "../include/agent_asset.h"
 
 //  Internal API
+#include "asset_defs.h"
 #include "bios_legacy_asset_server.h"
+
+//  *** Draft method, defined for internal use only ***
+//  Self test of this class.
+AGENT_ASSET_EXPORT void
+    asset_defs_test (bool verbose);
 
 //  *** Draft method, defined for internal use only ***
 //  Self test of this class.

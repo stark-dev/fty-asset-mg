@@ -17,6 +17,7 @@ include_HEADERS = \
     include/agent_asset_library.h
 
 src_libagent_asset_la_SOURCES = \
+    src/asset_defs.cc \
     src/bios_legacy_asset_server.cc \
     src/platform.h
 
