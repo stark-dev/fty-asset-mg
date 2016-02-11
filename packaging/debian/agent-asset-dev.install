@@ -1,0 +1,3 @@
+debian/tmp/usr/include/*
+debian/tmp/usr/lib/*/libagent_asset.so
+debian/tmp/usr/lib/*/pkgconfig/libagent_asset.pc

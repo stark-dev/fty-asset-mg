@@ -60,9 +60,12 @@
 
 //  Opaque class structures to allow forward references
 //  These classes are stable or legacy and built in all releases
+typedef struct _bios_legacy_asset_server_t bios_legacy_asset_server_t;
+#define BIOS_LEGACY_ASSET_SERVER_T_DEFINED
 
 
 //  Public classes, each with its own header file
+#include "bios_legacy_asset_server.h"
 
 #endif
 /*

@@ -44,6 +44,43 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 %description
 agent-asset agent managing information about assets.
 
+%package -n libagent_asset0
+Group:          System/Libraries
+Summary:        agent managing information about assets
+
+%description -n libagent_asset0
+agent-asset agent managing information about assets.
+This package contains shared library.
+
+%post -n libagent_asset0 -p /sbin/ldconfig
+%postun -n libagent_asset0 -p /sbin/ldconfig
+
+%files -n libagent_asset0
+%defattr(-,root,root)
+%doc COPYING
+%{_libdir}/libagent_asset.so.*
+
+%package devel
+Summary:        agent managing information about assets
+Group:          System/Libraries
+Requires:       libagent_asset0 = %{version}
+Requires:       libsodium-devel
+Requires:       zeromq-devel
+Requires:       uuid-devel
+Requires:       czmq-devel
+Requires:       malamute-devel
+Requires:       core-devel
+Requires:       biosproto-devel
+
+%description devel
+agent-asset agent managing information about assets.
+This package contains development files.
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/*
+%{_libdir}/libagent_asset.so
+%{_libdir}/pkgconfig/libagent_asset.pc
 
 %prep
 %setup -q

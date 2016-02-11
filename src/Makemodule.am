@@ -6,7 +6,7 @@ program_libs = src/libagent_asset.la ${project_libs}
 
 # Programs need to link the c++ runtime if everything was compiled statically.
 if !ENABLE_SHARED
-program_libs += -lstdc++
+program_libs += -lstdc++ -lm
 endif
 
 lib_LTLIBRARIES += src/libagent_asset.la
@@ -14,6 +14,7 @@ pkgconfig_DATA = src/libagent_asset.pc
 
 include_HEADERS = \
     include/agent_asset.h \
+    include/bios_legacy_asset_server.h \
     include/agent_asset_library.h
 
 src_libagent_asset_la_SOURCES = \
@@ -47,10 +48,11 @@ bin_PROGRAMS += src/bios-agent-asset
 src_bios_agent_asset_CPPFLAGS = ${AM_CPPFLAGS}
 src_bios_agent_asset_LDADD = ${program_libs}
 src_bios_agent_asset_SOURCES = src/bios_agent_asset.cc
-if WITH_SYSTEMD
+if WITH_SYSTEMD_UNITS
 src_bios_agent_asset_servicedir = @prefix@/lib/systemd/system
+src_bios_agent_asset_configdir = $(sysconfdir)/agent-asset
 src_bios_agent_asset_service_DATA = src/bios-agent-asset.service
-endif
+endif #WITH_SYSTEMD_UNITS
 endif #ENABLE_BIOS_AGENT_ASSET
 
 if ENABLE_AGENT_ASSET_SELFTEST
