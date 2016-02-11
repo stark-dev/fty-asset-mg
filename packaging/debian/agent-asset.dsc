@@ -14,7 +14,7 @@ Build-Depends: bison, debhelper (>= 8),
     uuid-dev,
     libczmq-dev,
     libmlm-dev,
-    libbiosapi-dev,
+    core-dev,
     libbiosproto-dev,
     dh-autoreconf
 
