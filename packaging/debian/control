@@ -33,11 +33,31 @@ Build-Depends: bison, debhelper (>= 8),
     uuid-dev,
     libczmq-dev,
     libmlm-dev,
-    core-dev,
+    libbiosapi-dev,
     libbiosproto-dev,
     dh-autoreconf,
     systemd
 
+Package: libagent-asset0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: agent-asset
+ This package contains shared library for agent-asset: agent managing information about assets
+
+Package: agent-asset-dev
+Architecture: all
+Section: libdevel
+Depends:
+    libsodium-dev,
+    libzmq4-dev,
+    uuid-dev,
+    libczmq-dev,
+    libmlm-dev,
+    libbiosapi-dev,
+    libbiosproto-dev,
+    libagent-asset0 (= ${binary:Version})
+Description: development files for agent-asset
+ This package contains development files for agent-asset: agent managing information about assets
 
 Package: agent-asset
 Architecture: any

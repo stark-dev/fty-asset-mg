@@ -35,7 +35,6 @@ TESTS =
 
 EXTRA_DIST = \
     src/asset_defs.h \
-    src/bios_legacy_asset_server.h \
     src/agent_asset_classes.h
 
 include $(srcdir)/src/Makemodule.am

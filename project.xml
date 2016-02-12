@@ -29,8 +29,8 @@
     </use>
 
     <class name = "asset_defs" private = "1">Some fancy definitions related to assets</class>
-    <class name = "bios-legacy-asset-server" private="1">Server translating legacy configure messages to new protocl</class>
-    <main name = "bios-agent-asset" service = "1" no_config = "1" >
+    <class name = "bios-legacy-asset-server" state = "stable" >Server translating legacy configure messages to new protocol</class>
+    <main name = "bios-agent-asset" service = "1" >
         Agent managing assets
     </main>
 
