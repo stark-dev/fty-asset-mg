@@ -76,6 +76,8 @@ const char *asset_subtype2str (int asset_subtype)
             return "storage";
         case VIRTUAL:
             return "virtual";
+        case N_A:
+            return "N_A";
         default:
             return "unknown";
     };
@@ -94,6 +96,8 @@ const char *asset_op2str (int asset_op)
             return "delete";
         case UPDATE:
             return "update";
+        case GET:
+            return "get";
         case RETIRE:
             return "retire";
         default:
