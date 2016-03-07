@@ -28,8 +28,13 @@
         <use project = "malamute"/>
     </use>
 
+    <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec"/>
+    <use project = "tntdb" test="tntdb::Utf8Codec::Utf8Codec"/>
+
     <class name = "asset_defs" private = "1">Some fancy definitions related to assets</class>
+    <class name = "total_power" private = "1"> Calculation of total power for one asset</class>
     <class name = "bios-legacy-asset-server" state = "stable" >Server translating legacy configure messages to new protocol</class>
+    <class name = "bios-asset-server" state = "stable" >Asset server, that takes care about distribution of asset information across the system</class>
     <main name = "bios-agent-asset" service = "1" >
         Agent managing assets
     </main>

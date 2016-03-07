@@ -31,9 +31,10 @@
 
 //  External dependencies
 #include <malamute.h>
+#include <biosproto.h>
+#include <tntdb.h>
 #include <bios/bios_agent.h>
 #include <bios/agents.h>
-#include <biosproto.h>
 
 //  AGENT_ASSET version macros for compile-time API detection
 
@@ -47,9 +48,9 @@
     AGENT_ASSET_MAKE_VERSION(AGENT_ASSET_VERSION_MAJOR, AGENT_ASSET_VERSION_MINOR, AGENT_ASSET_VERSION_PATCH)
 
 #if defined (__WINDOWS__)
-#   if defined LIBAGENT_ASSET_STATIC
+#   if defined AGENT_ASSET_STATIC
 #       define AGENT_ASSET_EXPORT
-#   elif defined LIBAGENT_ASSET_EXPORTS
+#   elif defined AGENT_ASSET_EXPORTS
 #       define AGENT_ASSET_EXPORT __declspec(dllexport)
 #   else
 #       define AGENT_ASSET_EXPORT __declspec(dllimport)
@@ -62,10 +63,13 @@
 //  These classes are stable or legacy and built in all releases
 typedef struct _bios_legacy_asset_server_t bios_legacy_asset_server_t;
 #define BIOS_LEGACY_ASSET_SERVER_T_DEFINED
+typedef struct _bios_asset_server_t bios_asset_server_t;
+#define BIOS_ASSET_SERVER_T_DEFINED
 
 
 //  Public classes, each with its own header file
 #include "bios_legacy_asset_server.h"
+#include "bios_asset_server.h"
 
 #endif
 /*

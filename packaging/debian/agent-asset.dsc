@@ -10,13 +10,14 @@ Build-Depends: bison, debhelper (>= 8),
     automake,
     autoconf,
     libtool,
-    libsodium-dev,
     libzmq4-dev,
     uuid-dev,
     libczmq-dev,
     libmlm-dev,
     core-dev,
     libbiosproto-dev,
+    libcxxtools-dev,
+    libtntdb-dev,
     dh-autoreconf
 
 Package-List:
