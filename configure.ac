@@ -74,52 +74,6 @@ PREVIOUS_CFLAGS="${CFLAGS}"
 PREVIOUS_LIBS="${LIBS}"
 
 
-was_libsodium_check_lib_detected=no
-
-PKG_CHECK_MODULES([libsodium], [libsodium >= 0.0.0],
-    [
-        AC_DEFINE(HAVE_LIBSODIUM, 1, [The libsodium library is to be used.])
-    ],
-    [
-        AC_ARG_WITH([libsodium],
-            [
-                AS_HELP_STRING([--with-libsodium],
-                [Specify libsodium prefix])
-            ],
-            [search_libsodium="yes"],
-            [])
-
-        libsodium_synthetic_cflags=""
-        libsodium_synthetic_libs="-lsodium"
-
-        if test "x$search_libsodium" = "xyes"; then
-            if test -r "${with_libsodium}/include/sodium.h"; then
-                libsodium_synthetic_cflags="-I${with_libsodium}/include"
-                libsodium_synthetic_libs="-L${with_libsodium}/lib -lsodium"
-            else
-                AC_MSG_ERROR([${with_libsodium}/include/sodium.h not found. Please check libsodium prefix])
-            fi
-        fi
-
-        AC_CHECK_LIB([libsodium], [sodium_init],
-            [
-                CFLAGS="${libsodium_synthetic_cflags} ${CFLAGS}"
-                LDFLAGS="${libsodium_synthetic_libs} ${LDFLAGS}"
-                LIBS="${libsodium_synthetic_libs} ${LIBS}"
-
-                AC_SUBST([libsodium_CFLAGS],[${libsodium_synthetic_cflags}])
-                AC_SUBST([libsodium_LIBS],[${libsodium_synthetic_libs}])
-                was_libsodium_check_lib_detected=yes
-                AC_DEFINE(HAVE_LIBSODIUM, 1, [The libsodium library is to be used.])
-            ],
-            [])
-    ])
-
-if test "x$was_libsodium_check_lib_detected" = "xno"; then
-    CFLAGS="${libsodium_CFLAGS} ${CFLAGS}"
-    LIBS="${libsodium_LIBS} ${LIBS}"
-fi
-
 was_libzmq_check_lib_detected=no
 
 PKG_CHECK_MODULES([libzmq], [libzmq >= 0.0.0],
@@ -386,6 +340,94 @@ if test "x$was_biosproto_check_lib_detected" = "xno"; then
     LIBS="${biosproto_LIBS} ${LIBS}"
 fi
 
+was_cxxtools_check_lib_detected=no
+
+PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
+    [
+    ],
+    [
+        AC_ARG_WITH([cxxtools],
+            [
+                AS_HELP_STRING([--with-cxxtools],
+                [Specify cxxtools prefix])
+            ],
+            [search_cxxtools="yes"],
+            [])
+
+        cxxtools_synthetic_cflags=""
+        cxxtools_synthetic_libs="-lcxxtools"
+
+        if test "x$search_cxxtools" = "xyes"; then
+            if test -r "${with_cxxtools}/include/cxxtools.h"; then
+                cxxtools_synthetic_cflags="-I${with_cxxtools}/include"
+                cxxtools_synthetic_libs="-L${with_cxxtools}/lib -lcxxtools"
+            else
+                AC_MSG_ERROR([${with_cxxtools}/include/cxxtools.h not found. Please check cxxtools prefix])
+            fi
+        fi
+
+        AC_CHECK_LIB([cxxtools], [cxxtools::Utf8Codec::Utf8Codec],
+            [
+                CFLAGS="${cxxtools_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${cxxtools_synthetic_libs} ${LDFLAGS}"
+                LIBS="${cxxtools_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([cxxtools_CFLAGS],[${cxxtools_synthetic_cflags}])
+                AC_SUBST([cxxtools_LIBS],[${cxxtools_synthetic_libs}])
+                was_cxxtools_check_lib_detected=yes
+            ],
+            [AC_MSG_ERROR([cannot link with -lcxxtools, install cxxtools.])])
+    ])
+
+if test "x$was_cxxtools_check_lib_detected" = "xno"; then
+    CFLAGS="${cxxtools_CFLAGS} ${CFLAGS}"
+    LIBS="${cxxtools_LIBS} ${LIBS}"
+fi
+
+was_tntdb_check_lib_detected=no
+
+PKG_CHECK_MODULES([tntdb], [tntdb >= 0.0.0],
+    [
+    ],
+    [
+        AC_ARG_WITH([tntdb],
+            [
+                AS_HELP_STRING([--with-tntdb],
+                [Specify tntdb prefix])
+            ],
+            [search_tntdb="yes"],
+            [])
+
+        tntdb_synthetic_cflags=""
+        tntdb_synthetic_libs="-ltntdb"
+
+        if test "x$search_tntdb" = "xyes"; then
+            if test -r "${with_tntdb}/include/tntdb.h"; then
+                tntdb_synthetic_cflags="-I${with_tntdb}/include"
+                tntdb_synthetic_libs="-L${with_tntdb}/lib -ltntdb"
+            else
+                AC_MSG_ERROR([${with_tntdb}/include/tntdb.h not found. Please check tntdb prefix])
+            fi
+        fi
+
+        AC_CHECK_LIB([tntdb], [tntdb::Utf8Codec::Utf8Codec],
+            [
+                CFLAGS="${tntdb_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${tntdb_synthetic_libs} ${LDFLAGS}"
+                LIBS="${tntdb_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([tntdb_CFLAGS],[${tntdb_synthetic_cflags}])
+                AC_SUBST([tntdb_LIBS],[${tntdb_synthetic_libs}])
+                was_tntdb_check_lib_detected=yes
+            ],
+            [AC_MSG_ERROR([cannot link with -ltntdb, install tntdb.])])
+    ])
+
+if test "x$was_tntdb_check_lib_detected" = "xno"; then
+    CFLAGS="${tntdb_CFLAGS} ${CFLAGS}"
+    LIBS="${tntdb_LIBS} ${LIBS}"
+fi
+
 CFLAGS="${PREVIOUS_CFLAGS}"
 LIBS="${PREVIOUS_LIBS}"
 
@@ -583,7 +625,7 @@ AC_SUBST([pkgconfigdir])
 
 
 # enable specific system integration features
-AC_ARG_WITH([systemd],
+AC_ARG_WITH([systemd-units],
     AS_HELP_STRING([--with-systemd-units],
     [Build and install with systemd units integration [default=no].]),
     [with_systemd_units=$withval],

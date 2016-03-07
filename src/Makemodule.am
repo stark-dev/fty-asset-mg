@@ -15,11 +15,14 @@ pkgconfig_DATA = src/libagent_asset.pc
 include_HEADERS = \
     include/agent_asset.h \
     include/bios_legacy_asset_server.h \
+    include/bios_asset_server.h \
     include/agent_asset_library.h
 
 src_libagent_asset_la_SOURCES = \
     src/asset_defs.cc \
+    src/total_power.cc \
     src/bios_legacy_asset_server.cc \
+    src/bios_asset_server.cc \
     src/platform.h
 
 src_libagent_asset_la_CPPFLAGS = ${AM_CPPFLAGS}
@@ -48,9 +51,9 @@ bin_PROGRAMS += src/bios-agent-asset
 src_bios_agent_asset_CPPFLAGS = ${AM_CPPFLAGS}
 src_bios_agent_asset_LDADD = ${program_libs}
 src_bios_agent_asset_SOURCES = src/bios_agent_asset.cc
+src_bios_agent_asset_configdir = $(sysconfdir)/agent-asset
 if WITH_SYSTEMD_UNITS
 src_bios_agent_asset_servicedir = @prefix@/lib/systemd/system
-src_bios_agent_asset_configdir = $(sysconfdir)/agent-asset
 src_bios_agent_asset_service_DATA = src/bios-agent-asset.service
 endif #WITH_SYSTEMD_UNITS
 endif #ENABLE_BIOS_AGENT_ASSET

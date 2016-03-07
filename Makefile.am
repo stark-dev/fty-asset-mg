@@ -13,16 +13,18 @@ AM_CXXFLAGS = \
     -std=c++11
 
 AM_CPPFLAGS = \
-    ${libsodium_CFLAGS} \
     ${libzmq_CFLAGS} \
     ${uuid_CFLAGS} \
     ${czmq_CFLAGS} \
     ${malamute_CFLAGS} \
     ${core_CFLAGS} \
     ${biosproto_CFLAGS} \
+    ${cxxtools_CFLAGS} \
+    ${tntdb_CFLAGS} \
+    -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${uuid_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${core_LIBS} ${biosproto_LIBS}
+project_libs = ${libzmq_LIBS} ${uuid_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${core_LIBS} ${biosproto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS}
 
 SUBDIRS = doc
 DIST_SUBDIRS = doc
@@ -35,6 +37,7 @@ TESTS =
 
 EXTRA_DIST = \
     src/asset_defs.h \
+    src/total_power.h \
     src/agent_asset_classes.h
 
 include $(srcdir)/src/Makemodule.am

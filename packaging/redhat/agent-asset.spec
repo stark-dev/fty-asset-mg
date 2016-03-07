@@ -32,13 +32,14 @@ BuildRequires:  libtool
 BuildRequires:  pkg-config
 BuildRequires:  systemd-devel
 BuildRequires:  gcc-c++
-BuildRequires:  libsodium-devel
 BuildRequires:  zeromq-devel
 BuildRequires:  uuid-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
 BuildRequires:  core-devel
 BuildRequires:  biosproto-devel
+BuildRequires:  cxxtools-devel
+BuildRequires:  tntdb-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
@@ -64,13 +65,14 @@ This package contains shared library.
 Summary:        agent managing information about assets
 Group:          System/Libraries
 Requires:       libagent_asset0 = %{version}
-Requires:       libsodium-devel
 Requires:       zeromq-devel
 Requires:       uuid-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
 Requires:       core-devel
 Requires:       biosproto-devel
+Requires:       cxxtools-devel
+Requires:       tntdb-devel
 
 %description devel
 agent-asset agent managing information about assets.

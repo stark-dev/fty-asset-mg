@@ -61,11 +61,24 @@ int main (int argc, char *argv [])
     zstr_sendx (la_server, "CONNECT", endpoint, NULL);
     zstr_sendx (la_server, "CONSUMER", bios_get_stream_main (),"^configure.*", NULL);
     zstr_sendx (la_server, "PRODUCER", "ASSETS", NULL);
-
+    
+    zactor_t *asset_server = zactor_new (bios_asset_server, (void*) "asset-agent");
+    if (verbose)
+        zstr_send (asset_server, "VERBOSE");
+    zstr_sendx (asset_server, "CONNECT", endpoint, NULL);
+    zsock_wait (asset_server);
     //  Accept and print any message back from server
     //  copy from src/malamute.c under MPL license
+    zpoller_t *poller = zpoller_new (la_server, asset_server, NULL);
     while (true) {
-        char *message = zstr_recv (la_server);
+        void *which = zpoller_wait (poller, -1);
+        char *message = NULL;
+        if ( which == la_server) {
+            message = zstr_recv (la_server);
+        }
+        else if ( which == asset_server) {
+            message = zstr_recv (asset_server);
+        }
         if (message) {
             puts (message);
             free (message);
@@ -75,7 +88,8 @@ int main (int argc, char *argv [])
             break;
         }
     }
-
+    zpoller_destroy (&poller);
+    zactor_destroy (&asset_server);
     zactor_destroy (&la_server);
     return 0;
 }

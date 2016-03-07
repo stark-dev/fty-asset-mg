@@ -37,7 +37,9 @@ typedef struct {
 static test_item_t
 all_tests [] = {
     { "asset_defs", asset_defs_test },
+    { "total_power", total_power_test },
     { "bios_legacy_asset_server", bios_legacy_asset_server_test },
+    { "bios_asset_server", bios_asset_server_test },
     {0, 0}          //  Sentinel
 };
 
@@ -95,7 +97,7 @@ main (int argc, char **argv)
         else
         if (streq (argv [argn], "--number")
         ||  streq (argv [argn], "-n")) {
-            puts ("2");
+            puts ("4");
             return 0;
         }
         else
@@ -103,7 +105,9 @@ main (int argc, char **argv)
         ||  streq (argv [argn], "-l")) {
             puts ("Available tests:");
             puts ("    asset_defs");
+            puts ("    total_power");
             puts ("    bios_legacy_asset_server");
+            puts ("    bios_asset_server");
             return 0;
         }
         else

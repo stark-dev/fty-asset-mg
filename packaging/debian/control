@@ -28,13 +28,14 @@ Build-Depends: bison, debhelper (>= 8),
     automake,
     autoconf,
     libtool,
-    libsodium-dev,
     libzmq4-dev,
     uuid-dev,
     libczmq-dev,
     libmlm-dev,
     core-dev,
     libbiosproto-dev,
+    libcxxtools-dev,
+    libtntdb-dev,
     dh-autoreconf,
     systemd
 
@@ -48,13 +49,14 @@ Package: agent-asset-dev
 Architecture: all
 Section: libdevel
 Depends:
-    libsodium-dev,
     libzmq4-dev,
     uuid-dev,
     libczmq-dev,
     libmlm-dev,
-    libbiosapi-dev,
+    core-dev,
     libbiosproto-dev,
+    libcxxtools-dev,
+    libtntdb-dev,
     libagent-asset0 (= ${binary:Version})
 Description: development files for agent-asset
  This package contains development files for agent-asset: agent managing information about assets
