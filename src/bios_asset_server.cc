@@ -233,7 +233,7 @@ bios_asset_server_test (bool verbose)
     printf (" * bios_asset_server: ");
 // Everything is commented out because: need to have a proper database
 // --> move it out of "make check"
-    //  @selftest
+/*    //  @selftest
     static const char* endpoint = "inproc://bios-asset-server-test";
 
     // malamute broker
@@ -338,7 +338,7 @@ bios_asset_server_test (bool verbose)
     zactor_destroy (&la_server);
     
     zactor_destroy (&server);
-//*/
+*/
     //  @end
     printf ("OK\n");
 }
