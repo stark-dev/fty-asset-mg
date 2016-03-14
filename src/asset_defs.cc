@@ -74,6 +74,10 @@ const char *asset_subtype2str (int asset_subtype)
             return "switch";
         case STORAGE:
             return "storage";
+        case ROUTER:
+            return "router";
+        case RACKCONTROLLER:
+            return "rack controller";
         case VIRTUAL:
             return "virtual";
         case N_A:
