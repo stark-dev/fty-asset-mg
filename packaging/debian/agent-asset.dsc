@@ -18,7 +18,9 @@ Build-Depends: bison, debhelper (>= 8),
     libbiosproto-dev,
     libcxxtools-dev,
     libtntdb-dev,
-    dh-autoreconf
+    dh-autoreconf,
+    systemd,
+    dh-systemd
 
 Package-List:
  libagent-asset0 deb net optional arch=any
