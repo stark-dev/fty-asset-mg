@@ -410,6 +410,7 @@ PKG_CHECK_MODULES([tntdb], [tntdb >= 0.0.0],
             fi
         fi
 
+        AC_LANG_PUSH([C++])
         AC_CHECK_LIB([tntdb], [tntdb::Blob::Blob],
             [
                 CFLAGS="${tntdb_synthetic_cflags} ${CFLAGS}"
@@ -422,6 +423,7 @@ PKG_CHECK_MODULES([tntdb], [tntdb >= 0.0.0],
             ],
             [AC_MSG_ERROR([cannot link with -ltntdb, install tntdb.])])
     ])
+        AC_LANG_POP([C++])
 
 if test "x$was_tntdb_check_lib_detected" = "xno"; then
     CFLAGS="${tntdb_CFLAGS} ${CFLAGS}"
