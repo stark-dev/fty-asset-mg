@@ -8,7 +8,7 @@ override_dh_auto_test:
 	echo "Skipped for now"
 
 override_dh_auto_configure:
-	dh_auto_configure -- --with-systemd
+	dh_auto_configure -- --with-systemd-units
 
 #MVY: hack to turn off weird error: no dependency information found for /usr/lib/libbiosapi.so.0 I can't fix atm
 override_dh_shlibdeps:
