@@ -410,7 +410,7 @@ PKG_CHECK_MODULES([tntdb], [tntdb >= 0.0.0],
             fi
         fi
 
-        AC_CHECK_LIB([tntdb], [tntdb::Utf8Codec::Utf8Codec],
+        AC_CHECK_LIB([tntdb], [tntdb::Blob::Blob],
             [
                 CFLAGS="${tntdb_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${tntdb_synthetic_libs} ${LDFLAGS}"

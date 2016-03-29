@@ -29,7 +29,7 @@
     </use>
 
     <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec"/>
-    <use project = "tntdb" test="tntdb::Utf8Codec::Utf8Codec"/>
+    <use project = "tntdb" test="tntdb::Blob::Blob"/>
 
     <class name = "asset_defs" private = "1">Some fancy definitions related to assets</class>
     <class name = "total_power" private = "1"> Calculation of total power for one asset</class>
