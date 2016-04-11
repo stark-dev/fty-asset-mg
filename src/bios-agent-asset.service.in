@@ -14,6 +14,7 @@ EnvironmentFile=-/etc/default/bios__%n.conf
 EnvironmentFile=-/etc/bios/bios-db-rw
 Environment="prefix=@prefix@"
 ExecStart=@prefix@/bin/bios-agent-asset
+Restart=always
 
 [Install]
 WantedBy=bios.target
