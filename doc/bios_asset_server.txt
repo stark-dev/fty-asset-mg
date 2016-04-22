@@ -1,0 +1,163 @@
+bios_asset_server(3)
+====================
+
+NAME
+----
+bios_asset_server - Server translating legacy configure messages to new protocl
+
+SYNOPSIS
+--------
+----
+//  Asset server, that takes care about distribution of
+//                                      asset information across the system
+AGENT_ASSET_EXPORT void
+    bios_asset_server (zsock_t *pipe, void *args);
+
+//  Self test of this class
+AGENT_ASSET_EXPORT void
+    bios_asset_server_test (bool verbose);
+----
+
+DESCRIPTION
+-----------
+
+bios_asset_server - Asset server, that takes care about distribution of
+                                  asset information across the system
+
+ ASSET PROTOCOL
+ ## Topology request
+
+ power topology request:
+     subject: "TOPOLOGY"
+     message: is a multipart message A/B
+             A = "TOPOLOGY_POWER" - mandatory
+             B = "asset_name" - mandatory
+
+ power topology reply in "OK" case:
+     subject: "TOPOLOGY"
+     message: is a multipart message A/B/D/C1/.../CN
+             A = "TOPOLOGY_POWER" - mandatory
+             B = "asset_name" - mandatory
+             D = "OK" - mandatory
+             Ci = "asset_name" of power source - not mandatory
+                 if there are no power devices
+                  -> message is A/B/D
+
+ power topology reply in "ERROR" case:
+     subject: "TOPOLOGY"
+     message: is a multipart message A/B/D/E
+             A = "TOPOLOGY_POWER" - mandatory
+             B = "asset_name" - mandatory
+             D = "ERROR" - mandatory
+             E = "ASSET_NOT_FOUND"/"INTERNAL_ERROR" - mandatory
+
+EXAMPLE
+-------
+.From bios_asset_server_test method
+----
+static const char* endpoint = "inproc://bios-asset-server-test";
+
+// malamute broker
+zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
+assert ( server != NULL );
+if (verbose) {
+    zstr_send (server, "VERBOSE");
+}
+
+zstr_sendx (server, "BIND", endpoint, NULL);
+
+// NOT legacy assets
+zactor_t *la_server = zactor_new (bios_asset_server, (void*)"AGENT_ASSET");
+if (verbose) {
+    zstr_send (la_server, "VERBOSE");
+}
+zstr_sendx (la_server, "CONNECT", endpoint, NULL);
+zsock_wait (la_server);
+
+mlm_client_t *client = mlm_client_new ();
+mlm_client_connect (client, endpoint, 5000, "topology-peer");
+// scenario name
+std::string scenario;
+// all topology messages has the same topic
+static const char* topic = "TOPOLOGY";
+
+// ====================================================    
+scenario = "scenario 1";
+zsys_info ("# %s:", scenario.c_str());
+//      prepare and send request message
+zmsg_t *msg = zmsg_new();
+zmsg_addstr (msg, "TOPOLOGY_POWER");
+zmsg_addstr (msg, "RACK1-LAB");
+mlm_client_sendto (client, "AGENT_ASSET", topic, NULL, 5000, &msg);
+
+//      wait for a responce from asset agent
+zpoller_t *poller = zpoller_new (mlm_client_msgpipe(client), NULL);
+void *which = zpoller_wait (poller, 1000);
+assert ( which != NULL );
+zpoller_destroy (&poller);
+
+//      receive a responce
+msg = mlm_client_recv (client);
+
+//      check the response
+assert ( zmsg_size (msg) == 5 );
+std::vector <std::string> expectedMessageGeneral = 
+    {"TOPOLOGY_POWER", "RACK1-LAB", "OK"};
+for ( int i = 0 ; i < 3 ; i++ ) {
+    char *somestring = zmsg_popstr (msg);
+    assert ( expectedMessageGeneral.at(i) == somestring );
+    free (somestring);
+}
+std::set <std::string> expectedMessageDevices = 
+    {"UPS1-LAB", "UPS2-LAB"};
+for ( int i = 3 ; i < 5 ; i++ ) {
+    char *somestring = zmsg_popstr (msg);
+    assert ( expectedMessageDevices.count(somestring) == 1 );
+    free (somestring);
+}
+//       crear 
+zmsg_destroy (&msg);
+expectedMessageGeneral.clear(); 
+zsys_info ("### %s: OK", scenario.c_str());
+
+
+// ====================================================    
+scenario = "scenario 2";
+zsys_info ("# %s:", scenario.c_str());
+//      prepare and send request message
+msg = zmsg_new();
+zmsg_addstr (msg, "TOPOLOGY_POWER");
+zmsg_addstr (msg, "NOTFOUNDASSET");
+mlm_client_sendto (client, "AGENT_ASSET", topic, NULL, 5000, &msg);
+
+//      wait for a responce from asset agent
+poller = zpoller_new (mlm_client_msgpipe(client), NULL);
+which = zpoller_wait (poller, 1000);
+assert ( which != NULL );
+zpoller_destroy (&poller);
+
+//      receive a responce
+msg = mlm_client_recv (client);
+//      check the response
+assert ( zmsg_size (msg) == 4 );
+expectedMessageGeneral = 
+    {"TOPOLOGY_POWER", "NOTFOUNDASSET", "ERROR", "ASSET_NOT_FOUND"};
+for ( int i = 0 ; i < 4 ; i++ ) {
+    char *somestring = zmsg_popstr (msg);
+    assert ( expectedMessageGeneral.at(i) == somestring );
+    free (somestring);
+}
+
+//       crear 
+zmsg_destroy (&msg);
+expectedMessageGeneral.clear(); 
+zsys_info ("### %s: OK", scenario.c_str());
+
+
+// selftest should clear after itself
+mlm_client_destroy (&client);
+zactor_destroy (&la_server);
+
+zactor_destroy (&server);
+*/
+----

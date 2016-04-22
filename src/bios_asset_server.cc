@@ -24,6 +24,32 @@
     bios_asset_server - Asset server, that takes care about distribution of
                                       asset information across the system
 @discuss
+     ASSET PROTOCOL
+     ## Topology request
+
+     power topology request:
+         subject: "TOPOLOGY"
+         message: is a multipart message A/B
+                 A = "TOPOLOGY_POWER" - mandatory
+                 B = "asset_name" - mandatory
+
+     power topology reply in "OK" case:
+         subject: "TOPOLOGY"
+         message: is a multipart message A/B/D/C1/.../CN
+                 A = "TOPOLOGY_POWER" - mandatory
+                 B = "asset_name" - mandatory
+                 D = "OK" - mandatory
+                 Ci = "asset_name" of power source - not mandatory
+                     if there are no power devices
+                      -> message is A/B/D
+
+     power topology reply in "ERROR" case:
+         subject: "TOPOLOGY"
+         message: is a multipart message A/B/D/E
+                 A = "TOPOLOGY_POWER" - mandatory
+                 B = "asset_name" - mandatory
+                 D = "ERROR" - mandatory
+                 E = "ASSET_NOT_FOUND"/"INTERNAL_ERROR" - mandatory
 @end
 */
 
@@ -166,34 +192,6 @@ void
         if ( verbose ) {
             zsys_debug("Got message '%s'", topic.c_str());
         }
-        // What is going on???
-        //
-        // Some mailbox message comes:
-        //  * get topology request -> retrieve information from db -> reply
-        //
-        //  power topology request:
-        //      subject: "TOPOLOGY"
-        //      message: is a multipart message A/B
-        //              A = "TOPOLOGY_POWER" - mandatory
-        //              B = "asset_name" - mandatory
-        //
-        //  power topology reply in "OK" case:
-        //      subject: "TOPOLOGY"
-        //      message: is a multipart message A/B/D/C1/.../CN
-        //              A = "TOPOLOGY_POWER" - mandatory
-        //              B = "asset_name" - mandatory
-        //              D = "OK" - mandatory
-        //              Ci = "asset_name" of power source - not mandatory
-        //                  if there are no power devices 
-        //                   -> message is A/B/D
-        //
-        //  power topology reply in "ERROR" case:
-        //      subject: "TOPOLOGY"
-        //      message: is a multipart message A/B/D/E
-        //              A = "TOPOLOGY_POWER" - mandatory
-        //              B = "asset_name" - mandatory
-        //              D = "ERROR" - mandatory
-        //              E = "ASSET_NOT_FOUND"/"INTERNAL_ERROR" - mandatory
 
         // Some stream message comes:
         //  * INSERT/UPDATE/GET/DELETE/RETIRE -> TODO
