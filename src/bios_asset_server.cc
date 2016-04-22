@@ -50,6 +50,25 @@
                  B = "asset_name" - mandatory
                  D = "ERROR" - mandatory
                  E = "ASSET_NOT_FOUND"/"INTERNAL_ERROR" - mandatory
+
+    ## ASSET protocol
+    REQ:
+        subject: "ASSET"
+        message:
+                A = "ASSET_ALL"
+                B = "list/of/asset/attributes"
+
+    REP:
+        subject: "ASSET"
+        message:
+                A = "ASSET_ALL"
+                B = "OK/ERROR"
+        for ERROR:
+                C = "error message"
+        for OK:
+                reply will be encoded as frame tuple
+                [asset_name]    - name of asset
+                [zhash_pack]    - frame with packged zhash containing the values
 @end
 */
 
