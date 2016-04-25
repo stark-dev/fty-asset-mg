@@ -54,22 +54,25 @@
     ## ASSET protocol
     REQ:
         subject: "ASSET"
-        message:
-                A: string = "GET_ASSET"
-                B: strings = list of asset names
-                C: strings = list of asset attributes
+        Message is a multipart string message:
+
+        * GET/<asset name>/<asset attribute 1>/.../<asset attribute N>
+
+        where:
+            <asset name>         = Name identifying the requested asset
+ (OPTIONAL) <asset attributes X> = Request only attribute X.   
+                                   None specified requests all asset attributes.
 
     REP:
         subject: "ASSET"
-        message:
-                A = "GET_ASSET"
-                B = "OK/ERROR"
-        for ERROR:
-                C = "error message"
-        for OK:
-                reply will be encoded as frame tuple
-                [asset_name:string]    - name of asset
-                [zhash_pack:hash]      - frame with packed zhash containing the values
+        Message is a multipart message:
+
+        * OK/[zhash_pack:hash]
+        * ERROR/<reason>
+
+        where:
+            [zhash_pack:hash] = Frame with encoded zhash containing the values
+            <reason>          = Error message/code
 @end
 */
 
