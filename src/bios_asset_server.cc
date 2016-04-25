@@ -55,20 +55,21 @@
     REQ:
         subject: "ASSET"
         message:
-                A = "ASSET_ALL"
-                B = "list/of/asset/attributes"
+                A: string = "GET_ASSET"
+                B: strings = list of asset names
+                C: strings = list of asset attributes
 
     REP:
         subject: "ASSET"
         message:
-                A = "ASSET_ALL"
+                A = "GET_ASSET"
                 B = "OK/ERROR"
         for ERROR:
                 C = "error message"
         for OK:
                 reply will be encoded as frame tuple
-                [asset_name]    - name of asset
-                [zhash_pack]    - frame with packged zhash containing the values
+                [asset_name:string]    - name of asset
+                [zhash_pack:hash]      - frame with packed zhash containing the values
 @end
 */
 
