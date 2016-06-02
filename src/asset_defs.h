@@ -63,7 +63,8 @@ enum asset_operation
     DELETE,
     UPDATE,
     GET,
-    RETIRE
+    RETIRE,
+    INVENTORY
 };
 
 //  translate numeric ID to const char*
@@ -74,6 +75,17 @@ const char *asset_subtype2str (int asset_subtype);
 
 //  translate numeric ID to const char*
 const char *asset_op2str (int asset_op);
+
+uint32_t
+    type_to_typeid
+        (const std::string &type);
+uint32_t
+    subtype_to_subtypeid
+        (const std::string &subtype);
+
+uint32_t
+    str2operation
+        (const std::string &operation);
 //  @end
 
 #ifdef __cplusplus

@@ -59,9 +59,9 @@ int main (int argc, char *argv [])
     if (verbose)
         zstr_send (la_server, "VERBOSE");
     zstr_sendx (la_server, "CONNECT", endpoint, NULL);
-    zstr_sendx (la_server, "CONSUMER", bios_get_stream_main (),"^configure.*", NULL);
-    zstr_sendx (la_server, "PRODUCER", "ASSETS", NULL);
-    
+    zstr_sendx (la_server, "PRODUCER", bios_get_stream_main (), NULL);
+    zstr_sendx (la_server, "CONSUMER", "ASSETS", ".*", NULL);
+
     zactor_t *asset_server = zactor_new (bios_asset_server, (void*) "asset-agent");
     if (verbose)
         zstr_send (asset_server, "VERBOSE");

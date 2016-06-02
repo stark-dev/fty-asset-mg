@@ -36,7 +36,7 @@ void
 
     bios_agent_t *agent;
     mlm_client_t *client = mlm_client_new ();
-    zpoller_t *poller = zpoller_new (pipe, NULL);
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(client),  NULL);
 
     zsock_signal (pipe, 0);
     while (!zsys_interrupted) {
@@ -68,17 +68,15 @@ void
                     zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
                 }
                 agent = bios_agent_new (endpoint, "legacy-assets-agent");
-                if (!agent)
-                {
+                if (!agent) {
                     zsys_error ("%s: can't connect to malamute endpoint (bios-agent) '%s'", name, endpoint);
                 }
-                zpoller_add (poller, bios_agent_msgpipe (agent));
                 zstr_free (&endpoint);
             }
             else
             if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
-                int rv = mlm_client_set_producer (client, stream);
+                int rv = bios_agent_set_producer (agent, stream);
                 if (rv == -1) {
                     zsys_error ("%s: can't set producer on stream '%s'", name, stream);
                 }
@@ -88,7 +86,7 @@ void
             if (streq (cmd, "CONSUMER")) {
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
-                int rv = bios_agent_set_consumer (agent, stream, pattern);
+                int rv = mlm_client_set_consumer (client, stream, pattern);
                 if (rv == -1) {
                     zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
                 }
@@ -102,64 +100,58 @@ void
             continue;
         }
 
-        ymsg_t *ymsg = bios_agent_recv (agent);
-        char *name, *status;
-        zhash_t *ext;
-        uint32_t type_id, subtype_id, parent_id;
-        uint8_t priority;
-        int8_t event_type;
-
-        int r = bios_asset_extra_extract (ymsg,
-                &name,
-                &ext,
-                &type_id,
-                &subtype_id,
-                &parent_id,
-                &status,
-                &priority,
-                &event_type);
-
-
-        if (r != 0) {
-            zsys_warning ("can't decode message from sender %s, subject %s : %d", bios_agent_sender (agent), bios_agent_subject (agent), r);
+        zmsg_t *msg = mlm_client_recv (client);
+        if ( !msg ) {
+            zsys_error ("mlm_client_recv failed");
             continue;
         }
-        zsys_debug ("name=%s, status=%s", name, status);
-        zsys_debug ("type_id=%d, subtype_id=%d, parent_id=%d", type_id, subtype_id, parent_id);
+        bios_proto_t *bmsg = bios_proto_decode (&msg);
+        if ( !bmsg ) {
+            zsys_error ("bios_proto_decode failed");
+            zmsg_destroy (&msg);
+            continue;
+        }
+        if ( bios_proto_id (bmsg) != BIOS_PROTO_ASSET ) {
+            zsys_error ("NOT ASSET MESSAGE detected on ASSET strema!");
+            bios_proto_destroy (&bmsg);
+            continue;
+        }
+        zhash_t *aux = bios_proto_aux (bmsg);
+        char *priority = NULL;
+        char *type = NULL;
+        char *subtype = NULL;
+        char *parent = NULL;
+        char *status = NULL;
+        if ( aux != NULL ) {
+            // if we have additional information
+            priority = (char *) zhash_lookup (aux, "priority");
+            type = (char *) zhash_lookup (aux, "type");
+            subtype = (char *) zhash_lookup (aux, "subtype");
+            parent = (char *) zhash_lookup (aux, "parent");
+            status = (char *) zhash_lookup (aux, "status");
+        }
 
-        char *s_priority, *s_parent;
-        r = asprintf (&s_priority, "%u", (unsigned) priority);
-        assert (r != -1);
-        r = asprintf (&s_parent, "%lu", (long) parent_id);  // TODO: map to name through DB
-        assert (r != -1);
+        zhash_t *ext = bios_proto_get_ext(bmsg);
+        ymsg_t *newmsg = bios_asset_extra_encode(
+                bios_proto_name(bmsg),
+                &ext,
+                (type == NULL ? 0 : type_to_typeid(type)),
+                (subtype == NULL ? 0 : subtype_to_subtypeid(subtype)),
+                (parent == NULL ? 0 : atoi(parent)),
+                (status == NULL ? "": status),
+                (priority == NULL ? 0 : atoi(priority)),
+                str2operation(bios_proto_operation(bmsg))
+            );
+
+        zsys_debug ("name=%s, status=%s", name, status);
+        zsys_debug ("type=%s, subtype=%s, parent_id=%s", type, subtype, parent);
 
         char *subject;
-        r = asprintf (&subject, "%s.%s@%s", asset_type2str (type_id), asset_subtype2str (subtype_id), name);
+        int r = asprintf (&subject, "configure@%s", name);
         assert ( r != -1);
-
-        zhash_t *aux = zhash_new ();
-        zhash_insert (aux, "priority", (void*) s_priority);
-        zhash_insert (aux, "type", (void*) asset_type2str (type_id));
-        zhash_insert (aux, "subtype", (void*) asset_subtype2str (subtype_id));
-        zhash_insert (aux, "parent", (void*) s_parent);
-        zhash_insert (aux, "status", status);
-
-        zmsg_t *msg = bios_proto_encode_asset (
-                aux,
-                name,
-                asset_op2str (event_type),
-                ext);
-        mlm_client_send (client, subject, &msg);
-
-        zhash_destroy (&ext);
-        zhash_destroy (&aux);
+        r = bios_agent_send (agent, subject, &newmsg);
         zstr_free (&subject);
-        zstr_free (&s_parent);
-        zstr_free (&s_priority);
-
-        zstr_free (&name);
-        zstr_free (&status);
-        ymsg_destroy (&ymsg);
+        bios_proto_destroy (&bmsg);
     }
 
 exit:
@@ -171,6 +163,54 @@ exit:
 
 //  --------------------------------------------------------------------------
 //  Self test of this class
+/*
+ * \brief Helper function for asset message sending
+ *
+ *  \param[in] verbose - if function should produce debug information or not
+ *  \param[in] producer - a client, that will publish ASSET message
+ *                  according parameters
+ *  \param[in] priority - priprity of the asset (or null if not specified)
+ *  \param[in] type - type of the asset (or null if not specified)
+ *  \param[in] subtype - subtype of the asset (or null if not specified)
+ *  \param[in] parent - id of the parent (or null if not specified)
+ *  \param[in] status - status of the asset
+ *  \param[in] ext - hash of ext attributes
+ *  \param[in] opearion - operation on the asset (mandatory)
+ *  \param[in] asset_name - name of the assset (mandatory)
+ */
+static void s_send_asset_message (
+    bool verbose,
+    mlm_client_t *producer,
+    const char *priority,
+    const char *type,
+    const char *subtype,
+    const char *parent,
+    const char *status,
+    zhash_t *ext,
+    const char *operation,
+    const char *asset_name)
+{
+    assert (operation);
+    assert (asset_name);
+    assert (status);
+    zhash_t *aux = zhash_new ();
+    if ( priority )
+        zhash_insert (aux, "priority", (void *)priority);
+    if ( type )
+        zhash_insert (aux, "type", (void *)type);
+    if ( subtype )
+        zhash_insert (aux, "subtype", (void *)subtype);
+    if ( parent )
+        zhash_insert (aux, "parent", (void *)parent);
+    zhash_insert (aux, "status", (void *)status);
+    zmsg_t *msg = bios_proto_encode_asset (aux, asset_name, operation, ext);
+    assert (msg);
+    int rv = mlm_client_send (producer, asset_name, &msg);
+    assert ( rv == 0 );
+    if ( verbose )
+        zsys_info ("asset message was send");
+    zhash_destroy (&aux);
+}
 
 void
 bios_legacy_asset_server_test (bool verbose)
@@ -183,8 +223,6 @@ bios_legacy_asset_server_test (bool verbose)
     // malamute broker
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     assert ( server != NULL );
-    if (verbose)
-        zstr_send (server, "VERBOSE");
     zstr_sendx (server, "BIND", endpoint, NULL);
 
     // legacy assets
@@ -192,58 +230,45 @@ bios_legacy_asset_server_test (bool verbose)
     if (verbose)
         zstr_send (la_server, "VERBOSE");
     zstr_sendx (la_server, "CONNECT", endpoint, NULL);
-    zstr_sendx (la_server, "CONSUMER", bios_get_stream_main (),"^configure.*", NULL);
-    zstr_sendx (la_server, "PRODUCER", "ASSETS", NULL);
+    zstr_sendx (la_server, "PRODUCER", bios_get_stream_main (), NULL);
+    zstr_sendx (la_server, "CONSUMER", "ASSETS", ".*", NULL);
 
-    bios_agent_t *agent = bios_agent_new (endpoint, "rest-api");
-    bios_agent_set_producer (agent, bios_get_stream_main ());
+    bios_agent_t *agent = bios_agent_new (endpoint, "autoconfig");
+    bios_agent_set_consumer (agent, bios_get_stream_main(), "^configure@");
 
     mlm_client_t *client = mlm_client_new ();
-    mlm_client_connect (client, endpoint, 5000, "asset-reader");
-    mlm_client_set_consumer (client, "ASSETS", ".*");
+    mlm_client_connect (client, endpoint, 5000, "asset-producer");
+    mlm_client_set_producer (client, "ASSETS");
 
     zhash_t *ext = zhash_new ();
-    zhash_insert (ext, "key", (void*) "value");
-    const char *name = "NAME";
-    uint32_t type_id = 1;
-    uint32_t subtype_id = 2;
-    uint32_t parent_id = 1;
-    const char *status = "active";
-    uint8_t priority = 2;
-    int8_t operation = 1;
-    ymsg_t * ymsg = bios_asset_extra_encode
-        (name, &ext, type_id, subtype_id, parent_id, status, priority, operation);
-    assert (ymsg);
-    bios_agent_send (agent, "configure@NAME", &ymsg);
+    zhash_autofree(ext);
+    zhash_insert (ext, "qqq", (void*)"wq");
+    s_send_asset_message (verbose, client, "5", "rack", "N_A", "223", "active", ext, "create", "ASSET_NN");
+    zhash_destroy (&ext);
+    ymsg_t *msg = bios_agent_recv (agent);
+    assert ( msg );
+    char *device_name = NULL;
+    uint32_t type_id = 0;
+    uint32_t subtype_id = 0;
+    uint32_t parent_id = 0;
+    char *status = NULL;
+    uint8_t priority = 0;
+    int8_t operation = 0;
 
-    zmsg_t *msg = mlm_client_recv (client);
-    bios_proto_t *bmsg = bios_proto_decode (&msg);
-    assert (bmsg);
-    bios_proto_print (bmsg);
-
-    assert (streq (mlm_client_subject (client), "group.genset@NAME"));
-    assert (streq (bios_proto_name (bmsg), "NAME"));
-    assert (streq (bios_proto_operation (bmsg), "create"));
-    assert (zhash_lookup (bios_proto_ext (bmsg), "key"));
-    assert (streq (
-                (char*) zhash_lookup (bios_proto_ext (bmsg), "key"),
-                "value"));
-    assert (streq (
-                (char*) zhash_lookup (bios_proto_aux (bmsg), "parent"),
-                "1"));
-    assert (streq (
-                (char*) zhash_lookup (bios_proto_aux (bmsg), "status"),
-                "active"));
-    assert (streq (
-                (char*) zhash_lookup (bios_proto_aux (bmsg), "type"),
-                "group"));
-    assert (streq (
-                (char*) zhash_lookup (bios_proto_aux (bmsg), "subtype"),
-                "genset"));
-    assert (streq (
-                (char*) zhash_lookup (bios_proto_aux (bmsg), "priority"),
-                "2"));
-    bios_proto_destroy (&bmsg);
+    int r = bios_asset_extra_extract (msg, &device_name, &ext, &type_id, &subtype_id, &parent_id, &status, &priority, &operation);
+    assert (r == 0 );
+    assert ( zhash_lookup (ext, "qqq") != NULL );
+    assert ( streq (device_name ,"ASSET_NN") );
+    assert ( streq (status ,"active") );
+    assert ( type_id == asset_type::RACK );
+    assert ( subtype_id == asset_subtype::N_A);
+    assert ( parent_id == 223);
+    assert ( priority == 5);
+    assert ( operation == asset_operation::INSERT);
+    ymsg_destroy (&msg);
+    zhash_destroy (&ext);
+    zstr_free (&device_name);
+    zstr_free (&status);
 
     mlm_client_destroy (&client);
     bios_agent_destroy (&agent);

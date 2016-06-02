@@ -27,6 +27,7 @@
 */
 
 #include "agent_asset_classes.h"
+#include <algorithm>
 
 //  Structure of our class
 
@@ -108,6 +109,103 @@ const char *asset_op2str (int asset_op)
             return "unknown";
     }
     return "make-gcc-happy"; // should not reach here
+}
+
+uint32_t
+    type_to_typeid
+        (const std::string &type)
+{
+    std::string t (type);
+    std::transform(t.begin(), t.end(), t.begin(), ::tolower);
+    if(t == "datacenter") {
+        return asset_type::DATACENTER;
+    } else if(t == "room") {
+        return asset_type::ROOM;
+    } else if(t == "row") {
+        return asset_type::ROW;
+    } else if(t == "rack") {
+        return asset_type::RACK;
+    } else if(t == "group") {
+        return asset_type::GROUP;
+    } else if(t == "device") {
+        return asset_type::DEVICE;
+    } else
+        return asset_type::TUNKNOWN;
+}
+
+uint32_t
+    subtype_to_subtypeid
+        (const std::string &subtype)
+{
+    std::string st(subtype);
+    std::transform(st.begin(), st.end(), st.begin(), ::tolower);
+    if(st == "ups") {
+        return asset_subtype::UPS;
+    }
+    else if(st == "genset") {
+        return asset_subtype::GENSET;
+    }
+    else if(st == "epdu") {
+        return asset_subtype::EPDU;
+    }
+    else if(st == "server") {
+        return asset_subtype::SERVER;
+    }
+    else if(st == "pdu") {
+        return asset_subtype::PDU;
+    }
+    else if(st == "feed") {
+        return asset_subtype::FEED;
+    }
+    else if(st == "sts") {
+        return asset_subtype::STS;
+    }
+    else if(st == "switch") {
+        return asset_subtype::SWITCH;
+    }
+    else if(st == "storage") {
+        return asset_subtype::STORAGE;
+    }
+    else if (st == "vm") {
+        return asset_subtype::VIRTUAL;
+    }
+    else if (st == "router") {
+        return asset_subtype::ROUTER;
+    }
+    else if (st == "rack controller") {
+        return asset_subtype::RACKCONTROLLER;
+    }
+    else if(st == "n_a") {
+        return asset_subtype::N_A;
+    }
+    else if(st == "") {
+        return asset_subtype::N_A;
+    }
+    else
+        return asset_subtype::SUNKNOWN;
+}
+
+
+uint32_t
+    str2operation
+        (const std::string &operation)
+{
+    std::string t (operation);
+    std::transform(t.begin(), t.end(), t.begin(), ::tolower);
+    if(t == "create") {
+        return asset_operation::INSERT;
+    } else if(t == "delete") {
+        return asset_operation::DELETE;
+    } else if(t == "retire") {
+        return asset_operation::RETIRE;
+    } else if(t == "inventory") {
+        return asset_operation::INVENTORY;
+    } else if(t == "update") {
+        return asset_operation::UPDATE;
+    } else if(t == "get") {
+        return asset_operation::GET;
+    }
+    return 0;
 }
 
 //  --------------------------------------------------------------------------
