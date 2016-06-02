@@ -175,6 +175,9 @@ uint32_t
     else if (st == "rack controller") {
         return asset_subtype::RACKCONTROLLER;
     }
+    else if (st == "sensor") {
+        return asset_subtype::SENSOR;
+    }
     else if(st == "n_a") {
         return asset_subtype::N_A;
     }
