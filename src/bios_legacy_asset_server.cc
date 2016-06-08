@@ -143,11 +143,11 @@ void
                 str2operation(bios_proto_operation(bmsg))
             );
 
-        zsys_debug ("name=%s, status=%s", name, status);
-        zsys_debug ("type=%s, subtype=%s, parent_id=%s", type, subtype, parent);
+        zsys_debug ("name=%s, status=%s", bios_proto_name(bmsg), status);
+        zsys_debug ("op=%s, type=%s, subtype=%s, parent_id=%s", bios_proto_operation(bmsg), type, subtype, parent);
 
         char *subject;
-        int r = asprintf (&subject, "configure@%s", name);
+        int r = asprintf (&subject, "configure@%s", bios_proto_name(bmsg));
         assert ( r != -1);
         r = bios_agent_send (agent, subject, &newmsg);
         zstr_free (&subject);
