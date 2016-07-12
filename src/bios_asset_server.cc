@@ -27,6 +27,7 @@
      ASSET PROTOCOL
      ## Topology request
 
+     ------------------------------------------------------------------------
      power topology request:
          subject: "TOPOLOGY"
          message: is a multipart message A/B
@@ -47,6 +48,29 @@
          subject: "TOPOLOGY"
          message: is a multipart message A/B/D/E
                  A = "TOPOLOGY_POWER" - mandatory
+                 B = "asset_name" - mandatory
+                 D = "ERROR" - mandatory
+                 E = "ASSET_NOT_FOUND"/"INTERNAL_ERROR" - mandatory
+
+     ------------------------------------------------------------------------
+     main power devices [draft]:    main power devices for defined container (dc-> (ups1, ups2)), intended for kpi-uptime
+         subject: "TOPOLOGY"
+         message: is a multipart message A/B
+                 A = "INPUT_POWER" - mandatory
+                 B = "asset_name" - mandatory
+
+     power topology reply in "OK" case:
+         subject: "TOPOLOGY"
+         message: is a multipart message A/B/D/C1/.../CN
+                 A = "INPUT_POWER" - mandatory
+                 B = "asset_name" - mandatory
+                 D = "OK" - mandatory
+                 Ci = "asset_name" of input power source
+
+     power topology reply in "ERROR" case:
+         subject: "TOPOLOGY"
+         message: is a multipart message A/B/D/E
+                 A = "INPUT_POWER" - mandatory
                  B = "asset_name" - mandatory
                  D = "ERROR" - mandatory
                  E = "ASSET_NOT_FOUND"/"INTERNAL_ERROR" - mandatory
