@@ -53,27 +53,6 @@
                  E = "ASSET_NOT_FOUND"/"INTERNAL_ERROR" - mandatory
 
      ------------------------------------------------------------------------
-     main power devices [draft]:    main power devices for defined container (dc-> (ups1, ups2)), intended for kpi-uptime
-         subject: "TOPOLOGY"
-         message: is a multipart message A/B
-                 A = "INPUT_POWER" - mandatory
-                 B = "asset_name" - mandatory
-
-     power topology reply in "OK" case:
-         subject: "TOPOLOGY"
-         message: is a multipart message A/B/D/C1/.../CN
-                 A = "INPUT_POWER" - mandatory
-                 B = "asset_name" - mandatory
-                 D = "OK" - mandatory
-                 Ci = "asset_name" of input power source
-
-     power topology reply in "ERROR" case:
-         subject: "TOPOLOGY"
-         message: is a multipart message A/B/D/E
-                 A = "INPUT_POWER" - mandatory
-                 B = "asset_name" - mandatory
-                 D = "ERROR" - mandatory
-                 E = "ASSET_NOT_FOUND"/"INTERNAL_ERROR" - mandatory
 
     ## ASSET protocol
     REQ:
@@ -97,6 +76,34 @@
         where:
             [zhash_pack:hash] = Frame with encoded zhash containing the values
             <reason>          = Error message/code
+     
+     ------------------------------------------------------------------------
+    *** DRAFT DRAFT DRAFT ***
+    ## ASSETS in container
+    REQ:
+        subject: "ASSETS_IN_CONTAINER"
+        Message is a multipart string message
+
+        * GET/<container name>/<type 1>/.../<type n>
+        
+        where:
+            <container name>        = Name of the container things belongs to that
+            <type X>                = Type or subtype to be returned. Possible values are
+                                      ups
+                                      TODO: add more
+                                      when empty, no filtering is done
+    REP:
+        subject: "ASSETS_IN_CONTAINER"
+        Message is a multipart message:
+
+        * OK/<asset 1>/<asset 2>
+        * ERROR/<reason>
+
+        where:
+            <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR
+     
+     *** DRAFT DRAFT DRAFT ***
+
 @end
 */
 
