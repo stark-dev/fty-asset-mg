@@ -27,6 +27,7 @@
      ASSET PROTOCOL
      ## Topology request
 
+     ------------------------------------------------------------------------
      power topology request:
          subject: "TOPOLOGY"
          message: is a multipart message A/B
@@ -51,6 +52,8 @@
                  D = "ERROR" - mandatory
                  E = "ASSET_NOT_FOUND"/"INTERNAL_ERROR" - mandatory
 
+     ------------------------------------------------------------------------
+
     ## ASSET protocol
     REQ:
         subject: "ASSET"
@@ -73,6 +76,34 @@
         where:
             [zhash_pack:hash] = Frame with encoded zhash containing the values
             <reason>          = Error message/code
+     
+     ------------------------------------------------------------------------
+    *** DRAFT DRAFT DRAFT ***
+    ## ASSETS in container
+    REQ:
+        subject: "ASSETS_IN_CONTAINER"
+        Message is a multipart string message
+
+        * GET/<container name>/<type 1>/.../<type n>
+        
+        where:
+            <container name>        = Name of the container things belongs to that
+            <type X>                = Type or subtype to be returned. Possible values are
+                                      ups
+                                      TODO: add more
+                                      when empty, no filtering is done
+    REP:
+        subject: "ASSETS_IN_CONTAINER"
+        Message is a multipart message:
+
+        * OK/<asset 1>/<asset 2>
+        * ERROR/<reason>
+
+        where:
+            <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR
+     
+     *** DRAFT DRAFT DRAFT ***
+
 @end
 */
 
