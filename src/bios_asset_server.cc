@@ -96,7 +96,8 @@
         subject: "ASSETS_IN_CONTAINER"
         Message is a multipart message:
 
-        * OK/<asset 1>/<asset 2>
+        * OK                         = empty container
+        * OK/<asset 1>/.../<asset N> = non-empty
         * ERROR/<reason>
 
         where:
