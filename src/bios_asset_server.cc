@@ -155,6 +155,26 @@ static void
     mlm_client_sendto (client, mlm_client_sender (client), "TOPOLOGY", NULL, 5000, &msg);
 }
 
+static void
+s_handle_subject_topology (mlm_client_t *client, zmsg_t *zmessage)
+{
+    char* command = zmsg_popstr (zmessage);
+    if ( streq (command, "TOPOLOGY_POWER") ) {
+        char* asset_name = zmsg_popstr (zmessage);
+        s_processTopology (client, asset_name);
+        zstr_free (&asset_name);
+    }
+    else
+        zsys_error ("Unknown command for subject=TOPOLOGY '%s'", command);
+    zstr_free (&command);
+}
+
+static void
+s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
+{
+    zsys_error ("ASSETS_IN_CONTAINER is not yet implemented");
+    assert (false);
+}
 
 void
     bios_asset_server (zsock_t *pipe, void *args)
@@ -243,29 +263,22 @@ void
         if ( zmessage == NULL ) {
             continue;
         }
-        std::string subject = mlm_client_subject(client);
-        if ( verbose ) {
-            zsys_debug("Got message '%s'", subject.c_str());
-        }
+        std::string subject = mlm_client_subject (client);
+        std::string command = mlm_client_command (client);
+        if ( verbose )
+            zsys_debug("Got message subject='%s', command='%s'", subject.c_str (), command.c_str ());
 
-        // Some stream message comes:
-        //  * INSERT/UPDATE/GET/DELETE/RETIRE -> TODO
-        //
-        // TODO rework message processing
-        if (is_bios_proto (zmessage)) {
+        if (command != "MAILBOX DELIVER") {
             // DO NOTHING for now
         }
         else {
-            char* command = zmsg_popstr (zmessage);
-            if ( streq (command, "TOPOLOGY_POWER") ) {
-                char* asset_name = zmsg_popstr (zmessage);
-                s_processTopology (client, asset_name);
-                zstr_free (&asset_name);
-            }
-            else {
-                zsys_error ("unexpected command '%s'", command);
-            }
-            zstr_free (&command);
+            if (subject == "TOPOLOGY")
+                s_handle_subject_topology (client, zmessage);
+            else
+            if (subject == "ASSETS_IN_CONTAINER")
+                s_handle_subject_assets_in_container (client, zmessage);
+            else
+                zsys_error ("unexpected subject '%s'", subject.c_str ());
         }
         zmsg_destroy (&zmessage);
     }
