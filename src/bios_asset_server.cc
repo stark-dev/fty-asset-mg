@@ -78,7 +78,6 @@
             <reason>          = Error message/code
      
      ------------------------------------------------------------------------
-    *** DRAFT DRAFT DRAFT ***
     ## ASSETS in container
     REQ:
         subject: "ASSETS_IN_CONTAINER"
@@ -102,8 +101,6 @@
 
         where:
             <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR
-     
-     *** DRAFT DRAFT DRAFT ***
 
 @end
 */
@@ -169,11 +166,70 @@ s_handle_subject_topology (mlm_client_t *client, zmsg_t *zmessage)
     zstr_free (&command);
 }
 
+//TODO: move somewhere else
+//  container_name - name of container
+//  filter - type and subtypes to filter - empty means no filtering
+//  assets [out] - list of assets
+int
+select_assets_in_container (
+        const std::string& container_name,
+        const std::set <std::string> filter,
+        std::vector <std::string>& assets)
+{
+    return -1;
+}
+
 static void
 s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
 {
-    zsys_error ("ASSETS_IN_CONTAINER is not yet implemented");
-    assert (false);
+
+    char* c_command = zmsg_popstr (msg);
+    if (! streq (c_command, "GET"))
+        zsys_error ("ASSETS_IN_CONTAINER: bad command '%s', expected GET", c_command);
+    zstr_free (&c_command);
+
+    std::string container_name;
+    char* c_container_name = zmsg_popstr (msg);
+    if (! c_container_name)
+        zsys_error ("ASSETS_IN_CONTAINER: container name is missing");
+    else
+        container_name = c_container_name;
+    zstr_free (&c_container_name);
+
+    std::set <std::string> filters;
+    char *filter = zmsg_popstr (msg);
+    while (filter) {
+        if (!streq (filter, "ups"))
+            zsys_info ("ASSETS_IN_CONTAINER: filter '%s' is not yet supported", filter);
+        else
+            filters.insert (filter);
+        zstr_free (&filter);
+        filter = zmsg_popstr (msg);
+    }
+    zstr_free (&filter);
+
+    std::vector <std::string> assets;
+    int rv = select_assets_in_container (container_name, filters, assets);
+
+    zmsg_t *reply = zmsg_new ();
+    if (rv == -1)
+    {
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "INTERNAL_ERROR");
+    }
+    else
+    if (rv == -2)
+    {
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "ASSET_NOT_FOUND");
+    }
+    else
+    {
+        zmsg_addstr (reply, "OK");
+        for (const auto& dev : assets)
+            zmsg_addstr (reply, dev.c_str ());
+    }
+    mlm_client_sendto (client, mlm_client_sender (client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
 }
 
 void
@@ -299,7 +355,7 @@ bios_asset_server_test (bool verbose)
     printf (" * bios_asset_server: ");
 // Everything is commented out because: need to have a proper database
 // --> move it out of "make check"
-/*    //  @selftest
+    //  @selftest
     static const char* endpoint = "inproc://bios-asset-server-test";
 
     // malamute broker
@@ -324,8 +380,10 @@ bios_asset_server_test (bool verbose)
     // scenario name
     std::string scenario;
     // all topology messages has the same subject
+
+    /*
     static const char* subject = "TOPOLOGY";
-    
+
     // ====================================================    
     scenario = "scenario 1";
     zsys_info ("# %s:", scenario.c_str());
@@ -397,14 +455,28 @@ bios_asset_server_test (bool verbose)
     zmsg_destroy (&msg);
     expectedMessageGeneral.clear(); 
     zsys_info ("### %s: OK", scenario.c_str());
+    */
 
+    // scenario3 ASSETS_IN_CONTAINER
+    mlm_client_sendtox (client, "AGENT_ASSET", "ASSETS_IN_CONTAINER", "GET", "DC007", NULL);
+
+    char *recv_subject, *reply, *reason;
+    mlm_client_recvx (client, &recv_subject, &reply, &reason, NULL);
+
+    assert (streq (recv_subject, "ASSETS_IN_CONTAINER"));
+    assert (streq (reply, "ERROR"));
+    assert (streq (reason, "INTERNAL_ERROR"));
+
+    zstr_free (&recv_subject);
+    zstr_free (&reply);
+    zstr_free (&reason);
 
     // selftest should clear after itself
     mlm_client_destroy (&client);
     zactor_destroy (&la_server);
     
     zactor_destroy (&server);
-*/
+
     //  @end
     printf ("OK\n");
 }
