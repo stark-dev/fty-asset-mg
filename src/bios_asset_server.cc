@@ -243,9 +243,9 @@ void
         if ( zmessage == NULL ) {
             continue;
         }
-        std::string topic = mlm_client_subject(client);
+        std::string subject = mlm_client_subject(client);
         if ( verbose ) {
-            zsys_debug("Got message '%s'", topic.c_str());
+            zsys_debug("Got message '%s'", subject.c_str());
         }
 
         // Some stream message comes:
@@ -310,8 +310,8 @@ bios_asset_server_test (bool verbose)
     mlm_client_connect (client, endpoint, 5000, "topology-peer");
     // scenario name
     std::string scenario;
-    // all topology messages has the same topic
-    static const char* topic = "TOPOLOGY";
+    // all topology messages has the same subject
+    static const char* subject = "TOPOLOGY";
     
     // ====================================================    
     scenario = "scenario 1";
@@ -320,7 +320,7 @@ bios_asset_server_test (bool verbose)
     zmsg_t *msg = zmsg_new();
     zmsg_addstr (msg, "TOPOLOGY_POWER");
     zmsg_addstr (msg, "RACK1-LAB");
-    mlm_client_sendto (client, "AGENT_ASSET", topic, NULL, 5000, &msg);
+    mlm_client_sendto (client, "AGENT_ASSET", subject, NULL, 5000, &msg);
 
     //      wait for a responce from asset agent
     zpoller_t *poller = zpoller_new (mlm_client_msgpipe(client), NULL);
@@ -360,7 +360,7 @@ bios_asset_server_test (bool verbose)
     msg = zmsg_new();
     zmsg_addstr (msg, "TOPOLOGY_POWER");
     zmsg_addstr (msg, "NOTFOUNDASSET");
-    mlm_client_sendto (client, "AGENT_ASSET", topic, NULL, 5000, &msg);
+    mlm_client_sendto (client, "AGENT_ASSET", subject, NULL, 5000, &msg);
 
     //      wait for a responce from asset agent
     poller = zpoller_new (mlm_client_msgpipe(client), NULL);
