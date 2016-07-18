@@ -186,6 +186,7 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
     assert (msg);
     if (zmsg_size (msg) < 2) {
         zsys_error ("ASSETS_IN_CONTAINER: incoming message have less than 2 frames");
+        return;
     }
 
     char* c_command = zmsg_popstr (msg);
