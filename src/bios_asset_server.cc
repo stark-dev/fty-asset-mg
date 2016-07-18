@@ -78,7 +78,6 @@
             <reason>          = Error message/code
      
      ------------------------------------------------------------------------
-    *** DRAFT DRAFT DRAFT ***
     ## ASSETS in container
     REQ:
         subject: "ASSETS_IN_CONTAINER"
@@ -96,13 +95,12 @@
         subject: "ASSETS_IN_CONTAINER"
         Message is a multipart message:
 
-        * OK/<asset 1>/<asset 2>
+        * OK                         = empty container
+        * OK/<asset 1>/.../<asset N> = non-empty
         * ERROR/<reason>
 
         where:
-            <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR
-     
-     *** DRAFT DRAFT DRAFT ***
+            <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR / BAD_COMMAND
 
 @end
 */
@@ -154,6 +152,99 @@ static void
     mlm_client_sendto (client, mlm_client_sender (client), "TOPOLOGY", NULL, 5000, &msg);
 }
 
+static void
+s_handle_subject_topology (mlm_client_t *client, zmsg_t *zmessage)
+{
+    char* command = zmsg_popstr (zmessage);
+    if ( streq (command, "TOPOLOGY_POWER") ) {
+        char* asset_name = zmsg_popstr (zmessage);
+        s_processTopology (client, asset_name);
+        zstr_free (&asset_name);
+    }
+    else
+        zsys_error ("Unknown command for subject=TOPOLOGY '%s'", command);
+    zstr_free (&command);
+}
+
+//TODO: move somewhere else
+//  container_name - name of container
+//  filter - type and subtypes to filter - empty means no filtering
+//  assets [out] - list of assets
+int
+select_assets_in_container (
+        const std::string& container_name,
+        const std::set <std::string>& filter,
+        std::vector <std::string>& assets)
+{
+    return -1;
+}
+
+static void
+s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
+{
+    assert (client);
+    assert (msg);
+    if (zmsg_size (msg) < 2) {
+        zsys_error ("ASSETS_IN_CONTAINER: incoming message have less than 2 frames");
+        return;
+    }
+
+    char* c_command = zmsg_popstr (msg);
+    zmsg_t *reply = zmsg_new ();
+
+    if (! streq (c_command, "GET")) {
+        zsys_error ("ASSETS_IN_CONTAINER: bad command '%s', expected GET", c_command);
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_COMMAND");
+    }
+    zstr_free (&c_command);
+
+    std::string container_name;
+    char* c_container_name = zmsg_popstr (msg);
+    container_name = c_container_name;
+    zstr_free (&c_container_name);
+
+    std::set <std::string> filters;
+    while (zmsg_size (msg) > 0) {
+        char *filter = zmsg_popstr (msg);
+        if (!streq (filter, "ups"))
+            zsys_info ("ASSETS_IN_CONTAINER: filter '%s' is not yet supported", filter);
+        else
+            filters.insert (filter);
+        zstr_free (&filter);
+    }
+
+    std::vector <std::string> assets;
+    int rv = 0;
+
+    // if there is no error msg prepared, call SQL
+    if (zmsg_size (msg) == 0)
+        rv = select_assets_in_container (container_name, filters, assets);
+
+    if (rv == -1)
+    {
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "INTERNAL_ERROR");
+    }
+    else
+    if (rv == -2)
+    {
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "ASSET_NOT_FOUND");
+    }
+    else
+    {
+        zmsg_addstr (reply, "OK");
+        for (const auto& dev : assets)
+            zmsg_addstr (reply, dev.c_str ());
+    }
+
+    // send the reply
+    rv = mlm_client_sendto (client, mlm_client_sender (client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
+    if (rv == -1)
+        zsys_error ("ASSETS_IN_CONTAINER: mlm_client_sendto failed");
+
+}
 
 void
     bios_asset_server (zsock_t *pipe, void *args)
@@ -242,29 +333,22 @@ void
         if ( zmessage == NULL ) {
             continue;
         }
-        std::string topic = mlm_client_subject(client);
-        if ( verbose ) {
-            zsys_debug("Got message '%s'", topic.c_str());
-        }
+        std::string subject = mlm_client_subject (client);
+        std::string command = mlm_client_command (client);
+        if ( verbose )
+            zsys_debug("Got message subject='%s', command='%s'", subject.c_str (), command.c_str ());
 
-        // Some stream message comes:
-        //  * INSERT/UPDATE/GET/DELETE/RETIRE -> TODO
-        //
-        // TODO rework message processing
-        if (is_bios_proto (zmessage)) {
+        if (command != "MAILBOX DELIVER") {
             // DO NOTHING for now
         }
         else {
-            char* command = zmsg_popstr (zmessage);
-            if ( streq (command, "TOPOLOGY_POWER") ) {
-                char* asset_name = zmsg_popstr (zmessage);
-                s_processTopology (client, asset_name);
-                zstr_free (&asset_name);
-            }
-            else {
-                zsys_error ("unexpected command '%s'", command);
-            }
-            zstr_free (&command);
+            if (subject == "TOPOLOGY")
+                s_handle_subject_topology (client, zmessage);
+            else
+            if (subject == "ASSETS_IN_CONTAINER")
+                s_handle_subject_assets_in_container (client, zmessage);
+            else
+                zsys_error ("unexpected subject '%s'", subject.c_str ());
         }
         zmsg_destroy (&zmessage);
     }
@@ -285,7 +369,7 @@ bios_asset_server_test (bool verbose)
     printf (" * bios_asset_server: ");
 // Everything is commented out because: need to have a proper database
 // --> move it out of "make check"
-/*    //  @selftest
+    //  @selftest
     static const char* endpoint = "inproc://bios-asset-server-test";
 
     // malamute broker
@@ -309,9 +393,11 @@ bios_asset_server_test (bool verbose)
     mlm_client_connect (client, endpoint, 5000, "topology-peer");
     // scenario name
     std::string scenario;
-    // all topology messages has the same topic
-    static const char* topic = "TOPOLOGY";
-    
+    // all topology messages has the same subject
+
+    /*
+    static const char* subject = "TOPOLOGY";
+
     // ====================================================    
     scenario = "scenario 1";
     zsys_info ("# %s:", scenario.c_str());
@@ -319,7 +405,7 @@ bios_asset_server_test (bool verbose)
     zmsg_t *msg = zmsg_new();
     zmsg_addstr (msg, "TOPOLOGY_POWER");
     zmsg_addstr (msg, "RACK1-LAB");
-    mlm_client_sendto (client, "AGENT_ASSET", topic, NULL, 5000, &msg);
+    mlm_client_sendto (client, "AGENT_ASSET", subject, NULL, 5000, &msg);
 
     //      wait for a responce from asset agent
     zpoller_t *poller = zpoller_new (mlm_client_msgpipe(client), NULL);
@@ -359,7 +445,7 @@ bios_asset_server_test (bool verbose)
     msg = zmsg_new();
     zmsg_addstr (msg, "TOPOLOGY_POWER");
     zmsg_addstr (msg, "NOTFOUNDASSET");
-    mlm_client_sendto (client, "AGENT_ASSET", topic, NULL, 5000, &msg);
+    mlm_client_sendto (client, "AGENT_ASSET", subject, NULL, 5000, &msg);
 
     //      wait for a responce from asset agent
     poller = zpoller_new (mlm_client_msgpipe(client), NULL);
@@ -383,14 +469,28 @@ bios_asset_server_test (bool verbose)
     zmsg_destroy (&msg);
     expectedMessageGeneral.clear(); 
     zsys_info ("### %s: OK", scenario.c_str());
+    */
 
+    // scenario3 ASSETS_IN_CONTAINER
+    mlm_client_sendtox (client, "AGENT_ASSET", "ASSETS_IN_CONTAINER", "GET", "DC007", NULL);
+
+    char *recv_subject, *reply, *reason;
+    mlm_client_recvx (client, &recv_subject, &reply, &reason, NULL);
+
+    assert (streq (recv_subject, "ASSETS_IN_CONTAINER"));
+    assert (streq (reply, "ERROR"));
+    assert (streq (reason, "INTERNAL_ERROR"));
+
+    zstr_free (&recv_subject);
+    zstr_free (&reply);
+    zstr_free (&reason);
 
     // selftest should clear after itself
     mlm_client_destroy (&client);
     zactor_destroy (&la_server);
     
     zactor_destroy (&server);
-*/
+
     //  @end
     printf ("OK\n");
 }
