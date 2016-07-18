@@ -100,7 +100,7 @@
         * ERROR/<reason>
 
         where:
-            <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR
+            <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR / BAD_COMMAND
 
 @end
 */
@@ -173,7 +173,7 @@ s_handle_subject_topology (mlm_client_t *client, zmsg_t *zmessage)
 int
 select_assets_in_container (
         const std::string& container_name,
-        const std::set <std::string> filter,
+        const std::set <std::string>& filter,
         std::vector <std::string>& assets)
 {
     return -1;
@@ -182,36 +182,44 @@ select_assets_in_container (
 static void
 s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
 {
+    assert (client);
+    assert (msg);
+    if (zmsg_size (msg) < 2) {
+        zsys_error ("ASSETS_IN_CONTAINER: incoming message have less than 2 frames");
+    }
 
     char* c_command = zmsg_popstr (msg);
-    if (! streq (c_command, "GET"))
+    zmsg_t *reply = zmsg_new ();
+
+    if (! streq (c_command, "GET")) {
         zsys_error ("ASSETS_IN_CONTAINER: bad command '%s', expected GET", c_command);
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_COMMAND");
+    }
     zstr_free (&c_command);
 
     std::string container_name;
     char* c_container_name = zmsg_popstr (msg);
-    if (! c_container_name)
-        zsys_error ("ASSETS_IN_CONTAINER: container name is missing");
-    else
-        container_name = c_container_name;
+    container_name = c_container_name;
     zstr_free (&c_container_name);
 
     std::set <std::string> filters;
-    char *filter = zmsg_popstr (msg);
-    while (filter) {
+    while (zmsg_size (msg) > 0) {
+        char *filter = zmsg_popstr (msg);
         if (!streq (filter, "ups"))
             zsys_info ("ASSETS_IN_CONTAINER: filter '%s' is not yet supported", filter);
         else
             filters.insert (filter);
         zstr_free (&filter);
-        filter = zmsg_popstr (msg);
     }
-    zstr_free (&filter);
 
     std::vector <std::string> assets;
-    int rv = select_assets_in_container (container_name, filters, assets);
+    int rv = 0;
 
-    zmsg_t *reply = zmsg_new ();
+    // if there is no error msg prepared, call SQL
+    if (zmsg_size (msg) == 0)
+        rv = select_assets_in_container (container_name, filters, assets);
+
     if (rv == -1)
     {
         zmsg_addstr (reply, "ERROR");
@@ -229,7 +237,12 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
         for (const auto& dev : assets)
             zmsg_addstr (reply, dev.c_str ());
     }
-    mlm_client_sendto (client, mlm_client_sender (client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
+
+    // send the reply
+    rv = mlm_client_sendto (client, mlm_client_sender (client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
+    if (rv == -1)
+        zsys_error ("ASSETS_IN_CONTAINER: mlm_client_sendto failed");
+
 }
 
 void
