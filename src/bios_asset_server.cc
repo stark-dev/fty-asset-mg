@@ -278,6 +278,7 @@ void
             }
 
             if (streq (cmd, "$TERM")) {
+                zsys_info ("Got $TERM");
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
