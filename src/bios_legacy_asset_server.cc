@@ -49,10 +49,12 @@ void
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
 
-            if (verbose)
-                zsys_debug ("%s: api command %s", cmd);
+            if ( verbose ) {
+                zsys_debug ("actor command=%s", cmd);
+            }
 
             if (streq (cmd, "$TERM")) {
+                zsys_info ("Got $TERM");
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
