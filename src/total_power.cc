@@ -1,21 +1,21 @@
 /*  =========================================================================
     total_power - Calculation of total power for one asset
 
-    Copyright (C) 2014 - 2015 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2015 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -70,10 +70,10 @@ inline bool operator<(const ShortAssetInfo& lhs, const ShortAssetInfo& rhs)
 /**
  *  \brief A connection string to the database
  */
-static std::string url = 
+static std::string url =
     std::string("mysql:db=box_utf8;user=") +
     ((getenv("DB_USER")   == NULL) ? "root" : getenv("DB_USER")) +
-    ((getenv("DB_PASSWD") == NULL) ? ""     : 
+    ((getenv("DB_PASSWD") == NULL) ? ""     :
     std::string(";password=") + getenv("DB_PASSWD"));
 
 
@@ -125,9 +125,9 @@ int
  *
  *  \param[in] conn - db connection
  *  \param[in] element_id - id of the container
- *  \param[out] links - links, where at least one end belongs to the 
+ *  \param[out] links - links, where at least one end belongs to the
  *                  devices in the container
- *  
+ *
  *  \return 0 on success (even if nothing was found)
  */
 int
@@ -144,14 +144,14 @@ int
 
 
 // ============================================================================
-// ===== Forward declaration of internal functions used for 
+// ===== Forward declaration of internal functions used for
 // =====               power device selection
 // Just to allow us to order functions as we like.
 
 /**
  *  \brief For the specified asset finds out the devices
  *        that are used for total power computation
- * 
+ *
  *  \param[in] assetId - id of the asset, for which we need to
  *                       determine devices for total power calculation
  *  \param[out] powerDevices - list of devices for the specified asset
@@ -173,7 +173,7 @@ static int
 /**
  *  \brief An implementation of the algorithm.
  *
- *  GOAL: Take the first "smart" devices in every powerchain that are 
+ *  GOAL: Take the first "smart" devices in every powerchain that are
  *        the closest to "feed".
  *
  *  If the found device is not smart, try to look at upper level. Repeat until
@@ -238,7 +238,7 @@ static void
 
 /**
  *  \brief For the specified asset it derives a set of powered devices
- *  
+ *
  *  From set of links derives set of elements that at least once were
  *              in a role of a destination device in a link.
  *  Link is: from to
@@ -270,7 +270,7 @@ static bool
     is_epdu (
         const ShortAssetInfo &device
     );
-// ======   End of Forward declaration of internal functions used for 
+// ======   End of Forward declaration of internal functions used for
 // =====               power device selection
 // ============================================================================
 
@@ -394,7 +394,7 @@ static std::vector<std::string>
         const std::set <std::pair<a_elmnt_id_t, a_elmnt_id_t> > &links
     )
 {
-    
+
     // the set of all border devices ("starting points")
     std::set <ShortAssetInfo> border_devices;
     // the set of all destination devices in selected links
@@ -447,7 +447,7 @@ static std::vector<std::string>
     while ( !border_devices.empty() ) {
         for ( auto &border_device: border_devices ) {
             if ( ( is_epdu(border_device) ) ||
-                 ( ( is_ups(border_device) ) && 
+                 ( ( is_ups(border_device) ) &&
                    ( !is_powering_other_rack (border_device, devices_in_container, links) ) ) )
             {
                 dvc.push_back(border_device.asset_name);
