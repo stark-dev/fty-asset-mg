@@ -81,7 +81,7 @@ std::string scenario;
 // all topology messages has the same topic
 static const char* topic = "TOPOLOGY";
 
-// ====================================================    
+// ====================================================
 scenario = "scenario 1";
 zsys_info ("# %s:", scenario.c_str());
 //      prepare and send request message
@@ -101,27 +101,27 @@ msg = mlm_client_recv (client);
 
 //      check the response
 assert ( zmsg_size (msg) == 5 );
-std::vector <std::string> expectedMessageGeneral = 
+std::vector <std::string> expectedMessageGeneral =
     {"TOPOLOGY_POWER", "RACK1-LAB", "OK"};
 for ( int i = 0 ; i < 3 ; i++ ) {
     char *somestring = zmsg_popstr (msg);
     assert ( expectedMessageGeneral.at(i) == somestring );
     free (somestring);
 }
-std::set <std::string> expectedMessageDevices = 
+std::set <std::string> expectedMessageDevices =
     {"UPS1-LAB", "UPS2-LAB"};
 for ( int i = 3 ; i < 5 ; i++ ) {
     char *somestring = zmsg_popstr (msg);
     assert ( expectedMessageDevices.count(somestring) == 1 );
     free (somestring);
 }
-//       crear 
+//       crear
 zmsg_destroy (&msg);
-expectedMessageGeneral.clear(); 
+expectedMessageGeneral.clear();
 zsys_info ("### %s: OK", scenario.c_str());
 
 
-// ====================================================    
+// ====================================================
 scenario = "scenario 2";
 zsys_info ("# %s:", scenario.c_str());
 //      prepare and send request message
@@ -140,7 +140,7 @@ zpoller_destroy (&poller);
 msg = mlm_client_recv (client);
 //      check the response
 assert ( zmsg_size (msg) == 4 );
-expectedMessageGeneral = 
+expectedMessageGeneral =
     {"TOPOLOGY_POWER", "NOTFOUNDASSET", "ERROR", "ASSET_NOT_FOUND"};
 for ( int i = 0 ; i < 4 ; i++ ) {
     char *somestring = zmsg_popstr (msg);
@@ -148,9 +148,9 @@ for ( int i = 0 ; i < 4 ; i++ ) {
     free (somestring);
 }
 
-//       crear 
+//       crear
 zmsg_destroy (&msg);
-expectedMessageGeneral.clear(); 
+expectedMessageGeneral.clear();
 zsys_info ("### %s: OK", scenario.c_str());
 
 

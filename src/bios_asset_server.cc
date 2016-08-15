@@ -1,21 +1,21 @@
 /*  =========================================================================
     bios_legacy_asset_server - Server translating legacy configure messages to new protocl
 
-    Copyright (C) 2014 - 2015 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2015 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -63,7 +63,7 @@
 
         where:
             <asset name>         = Name identifying the requested asset
- (OPTIONAL) <asset attributes X> = Request only attribute X.   
+ (OPTIONAL) <asset attributes X> = Request only attribute X.
                                    None specified requests all asset attributes.
 
     REP:
@@ -76,7 +76,7 @@
         where:
             [zhash_pack:hash] = Frame with encoded zhash containing the values
             <reason>          = Error message/code
-     
+
      ------------------------------------------------------------------------
     ## ASSETS in container
     REQ:
@@ -84,7 +84,7 @@
         Message is a multipart string message
 
         * GET/<container name>/<type 1>/.../<type n>
-        
+
         where:
             <container name>        = Name of the container things belongs to that
             <type X>                = Type or subtype to be returned. Possible values are
@@ -120,10 +120,10 @@ static void
 {
     // result of power topology - list of power device names
     std::vector<std::string> powerDevices{};
-    
+
     // select power devices
     int rv = select_devices_total_power(assetName, powerDevices);
-    
+
     // message to be sent as reply
     zmsg_t *msg = zmsg_new ();
 
@@ -278,6 +278,7 @@ void
             }
 
             if (streq (cmd, "$TERM")) {
+                zsys_info ("Got $TERM");
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
@@ -378,7 +379,7 @@ bios_asset_server_test (bool verbose)
     if (verbose) {
         zstr_send (server, "VERBOSE");
     }
-    
+
     zstr_sendx (server, "BIND", endpoint, NULL);
 
     // NOT legacy assets
@@ -398,7 +399,7 @@ bios_asset_server_test (bool verbose)
     /*
     static const char* subject = "TOPOLOGY";
 
-    // ====================================================    
+    // ====================================================
     scenario = "scenario 1";
     zsys_info ("# %s:", scenario.c_str());
     //      prepare and send request message
@@ -418,27 +419,27 @@ bios_asset_server_test (bool verbose)
 
     //      check the response
     assert ( zmsg_size (msg) == 5 );
-    std::vector <std::string> expectedMessageGeneral = 
+    std::vector <std::string> expectedMessageGeneral =
         {"TOPOLOGY_POWER", "RACK1-LAB", "OK"};
     for ( int i = 0 ; i < 3 ; i++ ) {
         char *somestring = zmsg_popstr (msg);
         assert ( expectedMessageGeneral.at(i) == somestring );
         free (somestring);
     }
-    std::set <std::string> expectedMessageDevices = 
+    std::set <std::string> expectedMessageDevices =
         {"UPS1-LAB", "UPS2-LAB"};
     for ( int i = 3 ; i < 5 ; i++ ) {
         char *somestring = zmsg_popstr (msg);
         assert ( expectedMessageDevices.count(somestring) == 1 );
         free (somestring);
     }
-    //       crear 
+    //       crear
     zmsg_destroy (&msg);
-    expectedMessageGeneral.clear(); 
+    expectedMessageGeneral.clear();
     zsys_info ("### %s: OK", scenario.c_str());
 
 
-    // ====================================================    
+    // ====================================================
     scenario = "scenario 2";
     zsys_info ("# %s:", scenario.c_str());
     //      prepare and send request message
@@ -457,7 +458,7 @@ bios_asset_server_test (bool verbose)
     msg = mlm_client_recv (client);
     //      check the response
     assert ( zmsg_size (msg) == 4 );
-    expectedMessageGeneral = 
+    expectedMessageGeneral =
         {"TOPOLOGY_POWER", "NOTFOUNDASSET", "ERROR", "ASSET_NOT_FOUND"};
     for ( int i = 0 ; i < 4 ; i++ ) {
         char *somestring = zmsg_popstr (msg);
@@ -465,9 +466,9 @@ bios_asset_server_test (bool verbose)
         free (somestring);
     }
 
-    //       crear 
+    //       crear
     zmsg_destroy (&msg);
-    expectedMessageGeneral.clear(); 
+    expectedMessageGeneral.clear();
     zsys_info ("### %s: OK", scenario.c_str());
     */
 
@@ -488,7 +489,7 @@ bios_asset_server_test (bool verbose)
     // selftest should clear after itself
     mlm_client_destroy (&client);
     zactor_destroy (&la_server);
-    
+
     zactor_destroy (&server);
 
     //  @end
