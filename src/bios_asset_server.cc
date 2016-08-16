@@ -166,19 +166,6 @@ s_handle_subject_topology (mlm_client_t *client, zmsg_t *zmessage)
     zstr_free (&command);
 }
 
-//TODO: move somewhere else
-//  container_name - name of container
-//  filter - type and subtypes to filter - empty means no filtering
-//  assets [out] - list of assets
-int
-select_assets_in_container (
-        const std::string& container_name,
-        const std::set <std::string>& filter,
-        std::vector <std::string>& assets)
-{
-    return -1;
-}
-
 static void
 s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
 {
@@ -219,7 +206,7 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
 
     // if there is no error msg prepared, call SQL
     if (zmsg_size (msg) == 0)
-        rv = select_assets_in_container (container_name, filters, assets);
+        rv = select_assets_by_container (container_name, filters, assets);
 
     if (rv == -1)
     {
