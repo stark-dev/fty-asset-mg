@@ -31,6 +31,7 @@
 #include <tntdb/result.h>
 #include <tntdb/error.h>
 #include <functional>
+#include <exception>
 #define INPUT_POWER_CHAIN     1
 
 // ----- table:  t_bios_asset_element_type ------------
@@ -543,10 +544,47 @@ static int
 
 
 // GENERAL FUNCTIONS START TODO move in future somewhere
+std::string
+select_assets_by_container_filter (
+    std::set<std::string> types_and_subtypes
+)
+{
+    std::string types, subtypes, filter;
+    
+    for (auto i: types_and_subtypes) {
+        uint32_t t = subtype_to_subtypeid (i);
+        if (t != asset_subtype::SUNKNOWN) {
+            subtypes += std::to_string (t) + ",";
+        } else {
+            t = type_to_typeid (i);
+            if (t == asset_type::TUNKNOWN) {
+                throw std::invalid_argument ("'" + i + "' is not known type or subtype ");
+            }
+            types += std::to_string (t) + ",";
+        }
+    }
+    if (!types.empty ()) types = types.substr(0, types.size() - 1);
+    if (!subtypes.empty ()) subtypes = subtypes.substr(0, types.size() - 1);
+    if (!types.empty () || !subtypes.empty () ) {
+        filter = " AND ( ";
+        if (!types.empty ()) {
+            filter += " id_type in (" + types + ") ";
+            if (!subtypes.empty () ) filter += " OR ";
+        }
+        if (!subtypes.empty ()) {
+            filter += " id_asset_device_type in (" + subtypes + ") ";
+        }
+        filter += " ) ";
+    }
+    return filter;
+}
+
+
 int
     select_assets_by_container (
         tntdb::Connection &conn,
         a_elmnt_id_t element_id,
+        std::set<std::string> types_and_subtypes,
         std::function<void(const tntdb::Row&)> cb
     )
 {
@@ -564,7 +602,8 @@ int
             " FROM "
             "   v_bios_asset_element_super_parent v "
             " WHERE "
-            "   :containerid in (v.id_parent1, v.id_parent2, v.id_parent3, v.id_parent4, v.id_parent5)"
+            "   (:containerid in (v.id_parent1, v.id_parent2, v.id_parent3, v.id_parent4, v.id_parent5) OR :containerid = 0 ) "
+            + select_assets_by_container_filter (types_and_subtypes)
         );
 
         tntdb::Result result = st.set("containerid", element_id).
@@ -582,6 +621,17 @@ int
     }
 }
 
+int
+    select_assets_by_container (
+        tntdb::Connection &conn,
+        a_elmnt_id_t element_id,
+        std::function<void(const tntdb::Row&)> cb
+    )
+{
+
+    std::set <std::string> empty;
+    return select_assets_by_container (conn, element_id, empty, cb);
+}
 
 int
     select_links_by_container (
@@ -681,6 +731,34 @@ static int
         id = 0;
         return -1;
     }
+}
+
+int
+select_assets_by_container (
+        const std::string& container_name,
+        const std::set <std::string>& filter,
+        std::vector <std::string>& assets)
+{
+    
+    tntdb::Connection conn = tntdb::connectCached (url);
+    a_elmnt_id_t id = 0;
+
+    // get container asset id
+    if (! container_name.empty ()) {
+        if (select_asset_id (conn, container_name, id) != 0) {
+            return -1;
+        }
+    }
+
+    std::function<void(const tntdb::Row&)> func =
+        [&assets](const tntdb::Row& row)
+        {
+            std::string name;
+            row["name"].get (name);
+            assets.push_back (name);
+        };
+
+    return select_assets_by_container (conn, id, func);
 }
 
 

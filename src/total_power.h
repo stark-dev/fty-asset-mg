@@ -46,6 +46,15 @@ AGENT_ASSET_EXPORT int
         std::vector<std::string> &powerDevices
     );
 
+AGENT_ASSET_EXPORT int
+    select_assets_by_container (
+        const std::string& container_name,
+        const std::set <std::string>& filter,
+        std::vector <std::string>& assets
+    );
+
+
+
 //  Self test of this class
 AGENT_ASSET_EXPORT void
     total_power_test (bool verbose);
