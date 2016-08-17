@@ -62,6 +62,13 @@ int main (int argc, char *argv [])
     zstr_sendx (la_server, "PRODUCER", bios_get_stream_main (), NULL);
     zstr_sendx (la_server, "CONSUMER", "ASSETS", ".*", NULL);
 
+    zactor_t *autoupdate_server = zactor_new (bios_asset_autoupdate_server, (void*) "asset-autoupdate");
+    if (verbose)
+        zstr_send (la_server, "VERBOSE");
+    zstr_sendx (autoupdate_server, "CONNECT", endpoint, NULL);
+    zstr_sendx (autoupdate_server, "PRODUCER", "ASSETS", NULL);
+    zstr_sendx (autoupdate_server, "CONSUMER", "ASSETS", ".*", NULL);
+
     zactor_t *asset_server = zactor_new (bios_asset_server, (void*) "asset-agent");
     if (verbose)
         zstr_send (asset_server, "VERBOSE");
@@ -89,6 +96,7 @@ int main (int argc, char *argv [])
         }
     }
     zpoller_destroy (&poller);
+    zactor_destroy (&autoupdate_server);
     zactor_destroy (&asset_server);
     zactor_destroy (&la_server);
     return 0;
