@@ -27,31 +27,155 @@
 */
 
 #include "agent_asset_classes.h"
+
 typedef struct {
     mlm_client_t *client = NULL;
     char *name = NULL;
     std::vector<std::string> rcs;
 } asset_autoupdate_t;
 
+#define is_ipv6(X) (X.find(':') != std::string::npos)
+
+void
+autoupdate_update_rc_self(asset_autoupdate_t *self, const std::string &assetName)
+{
+    bool haveLAN1 = false;
+    zhash_t *inventory = zhash_new ();
+    zhash_t *aux = zhash_new ();
+    std::string key, topic;
+
+    zhash_autofree (inventory);
+    zhash_autofree (aux);
+    zhash_update (aux, "time", (void *)std::to_string (zclock_time () / 1000).c_str ());
+    
+    auto ifaces = local_addresses();
+    haveLAN1 = (ifaces.find ("LAN1") != ifaces.cend ());
+    if (haveLAN1) {
+        // hopefully running on RC
+        int ipv4index = 0;
+        int ipv6index = 0;
+        for (int i = 1; i <= 3; ++i) {
+            const auto iface = ifaces.find( "LAN" + std::to_string (i));
+            if (iface != ifaces.cend()) {
+                for (auto addr: iface->second) {
+                    if (is_ipv6 (addr)) {
+                        key = "ipv6." + std::to_string (++ipv6index);
+                    } else {
+                        key = "ip." + std::to_string (++ipv4index);
+                    }
+                    zhash_update (inventory, key.c_str(), (void *)addr.c_str ());
+                }
+            }
+        }
+        zmsg_t *msg = bios_proto_encode_asset (
+            aux,
+            assetName.c_str (),
+            "inventory",
+            inventory);
+        if (msg) {
+            topic = "inventory@" + assetName;
+            zsys_debug ("new inventory message %s", topic.c_str());
+            int r = mlm_client_send (self->client, topic.c_str (), &msg);
+            if( r != 0 ) zsys_error("failed to send inventory %s result %" PRIi32, topic.c_str(), r);
+            zmsg_destroy (&msg);
+        }
+    } else {
+        // interfaces have unexpected names, publish them in unspecified order
+        int ipv4index = 0;
+        int ipv6index = 0;
+        for (auto interface: ifaces) {
+            if (interface.first == "lo") continue;
+            for (auto addr: interface.second) {
+                if (is_ipv6 (addr)) {
+                    key = "ipv6." + std::to_string (++ipv6index);
+                } else {
+                    key = "ip." + std::to_string (++ipv4index);
+                }
+                zhash_update (inventory, key.c_str(), (void *)addr.c_str ());
+            }
+        }
+        zmsg_t *msg = bios_proto_encode_asset (
+            aux,
+            assetName.c_str (),
+            "inventory",
+            inventory);
+        if (msg) {
+            topic = "inventory@" + assetName;
+            zsys_debug ("new inventory message %s", topic.c_str());
+            int r = mlm_client_send (self->client, topic.c_str (), &msg);
+            if( r != 0 ) zsys_error("failed to send inventory %s result %" PRIi32, topic.c_str(), r);
+            zmsg_destroy (&msg);
+        }
+    }
+    zhash_destroy (&inventory);
+    zhash_destroy (&aux);
+}
+
+void
+autoupdate_update_rc_information(asset_autoupdate_t *self)
+{
+    if (!self || !self->client) return;
+
+    if (self->rcs.size() == 1) {
+        // there is only one rc, must be me
+        autoupdate_update_rc_self (self, self->rcs[0]);
+        return;
+    }
+}
+
 void
 autoupdate_request_all_rcs (asset_autoupdate_t *self)
 {
     if (!self || !self->client) return;
     
+    zsys_debug ("requesting RC list");
     zmsg_t *msg = zmsg_new ();
     zmsg_addstr (msg, "GET");
     zmsg_addstr (msg, "");
     zmsg_addstr (msg, "rack controller");
-    mlm_client_sendto (self->client, "asset-agent", "ASSETS_IN_CONTAINER", NULL, 5000, &msg);
+    int rv = mlm_client_sendto (self->client, "asset-agent", "ASSETS_IN_CONTAINER", NULL, 5000, &msg);
+    if (rv != 0) {
+        zsys_error ("sending request for list of RCs failed");
+        zmsg_destroy (&msg);
+    }
 }
 
 void
-autoupdate_check (asset_autoupdate_t *self)
+autoupdate_update (asset_autoupdate_t *self)
 {
     if (!self || !self->client) return;
 
-    autoupdate_request_all_rcs (self);
+    autoupdate_update_rc_information (self);
 }
+
+void
+autoupdate_handle_message (asset_autoupdate_t *self, zmsg_t *message)
+{
+    if (!self || !message || !self->client) return;
+
+    zmsg_print (message);
+
+    const char *sender = mlm_client_sender (self->client);
+    const char *subj = mlm_client_subject (self->client);
+    if (streq (sender, "asset-agent")) {
+        if (streq (subj, "ASSETS_IN_CONTAINER")) {
+            self->rcs.clear ();
+            char *okfail = zmsg_popstr (message);
+            if (streq (okfail, "OK")) {
+                char *rc = zmsg_popstr(message);
+                while (rc) {
+                    self->rcs.push_back(rc);
+                    // TODO: ask agent-asset for device details
+                    zstr_free (&rc);
+                    rc = zmsg_popstr(message);
+                }
+            }
+            zstr_free (&okfail);
+            autoupdate_update (self);
+        }
+    }
+}
+
 
 void
 bios_asset_autoupdate_server (zsock_t *pipe, void *args)
@@ -68,14 +192,14 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
 
+    // ask for list of RCs
+    //autoupdate_request_all_rcs (&self);
     while (!zsys_interrupted) {
-
-        void *which = zpoller_wait (poller, 30000);
+        void *which = zpoller_wait (poller, -1);
         if ( !which ) {
-            autoupdate_request_all_rcs (&self);
             // cannot expire as waiting until infinity
             // so it is interrupted
-            break;
+            continue;
         }
         if (which == pipe) {
             zmsg_t *msg = zmsg_recv (pipe);
@@ -127,6 +251,10 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
                 zsock_signal (pipe, 0);
             }
             else
+            if (streq (cmd, "WAKEUP")) {
+                autoupdate_request_all_rcs (&self);
+            }
+            else
             {
                 zsys_info ("unhandled command %s", cmd);
             }
@@ -134,12 +262,11 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
             zmsg_destroy (&msg);
             continue;
         }
-
-        // This agent is a reactive agent, it reacts only on messages
-        // and doesn't do anything if there are no messages
-        zmsg_t *zmessage = mlm_client_recv (self.client);
-        if ( zmessage == NULL ) continue;
-        zmsg_destroy (&zmessage);
+        if (which == mlm_client_msgpipe(self.client)) {
+            zmsg_t *zmessage = mlm_client_recv (self.client);
+            autoupdate_handle_message (&self, zmessage);
+            zmsg_destroy (&zmessage);
+        }
     }
  exit:
     zpoller_destroy (&poller);
