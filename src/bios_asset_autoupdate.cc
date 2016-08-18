@@ -35,6 +35,7 @@ typedef struct {
 } asset_autoupdate_t;
 
 #define is_ipv6(X) (X.find(':') != std::string::npos)
+#define icase_streq(X,Y) (strcasecmp ((X),(Y)) == 0)
 
 void
 autoupdate_update_rc_self(asset_autoupdate_t *self, const std::string &assetName)
@@ -120,6 +121,31 @@ autoupdate_update_rc_information(asset_autoupdate_t *self)
         // there is only one rc, must be me
         autoupdate_update_rc_self (self, self->rcs[0]);
         return;
+    }
+    if (self->rcs.size() > 1) {
+        // there are more rc, test if one of my dns names == rc name
+        // resolve dns names of all IP addresses on all interfaces
+        // compare resolved name with list of RCs
+        for (auto interface: local_addresses ()) {
+            for (auto ip: interface.second) {
+                std::string name = ip_to_name (ip.c_str());
+                if (! name.empty ()) {
+                    std::string hostname = name;
+                    unsigned int i = hostname.find ('.');
+                    if (i != std::string::npos) {
+                        hostname.resize (i);
+                    }
+                    zsys_debug ("ip %s, dns name '%s'", ip.c_str (), name.c_str ());
+                    for (auto rc: self->rcs) {
+                        if (icase_streq (rc.c_str (), hostname.c_str ()) || icase_streq (rc.c_str (), name.c_str ())) {
+                            // asset name == hostname this is me
+                            autoupdate_update_rc_self (self, rc);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
