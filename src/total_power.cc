@@ -546,25 +546,30 @@ static int
 // GENERAL FUNCTIONS START TODO move in future somewhere
 std::string
 select_assets_by_container_filter (
-    std::set<std::string> types_and_subtypes
+    const std::set<std::string> &types_and_subtypes
 )
 {
     std::string types, subtypes, filter;
     
-    for (auto i: types_and_subtypes) {
+    zsys_debug ("filter size: '%i'", types_and_subtypes.size ());
+
+    for (const auto &i: types_and_subtypes) {
+        zsys_debug ("filter item: %s", i.c_str());
         uint32_t t = subtype_to_subtypeid (i);
         if (t != asset_subtype::SUNKNOWN) {
-            subtypes += std::to_string (t) + ",";
+            subtypes +=  "," + std::to_string (t);
         } else {
             t = type_to_typeid (i);
             if (t == asset_type::TUNKNOWN) {
                 throw std::invalid_argument ("'" + i + "' is not known type or subtype ");
             }
-            types += std::to_string (t) + ",";
+            types += "," + std::to_string (t);
         }
     }
-    if (!types.empty ()) types = types.substr(0, types.size() - 1);
-    if (!subtypes.empty ()) subtypes = subtypes.substr(0, types.size() - 1);
+    if (!types.empty ()) types = types.substr(1);
+    if (!subtypes.empty ()) subtypes = subtypes.substr(1);
+    zsys_debug("types: '%s'", types.c_str ());
+    zsys_debug("subtypes: '%s'", subtypes.c_str ());
     if (!types.empty () || !subtypes.empty () ) {
         filter = " AND ( ";
         if (!types.empty ()) {
@@ -576,6 +581,7 @@ select_assets_by_container_filter (
         }
         filter += " ) ";
     }
+    zsys_debug ("filter: '%s'", filter.c_str ());
     return filter;
 }
 
@@ -584,12 +590,13 @@ int
     select_assets_by_container (
         tntdb::Connection &conn,
         a_elmnt_id_t element_id,
-        std::set<std::string> types_and_subtypes,
+        const std::set<std::string> &types_and_subtypes,
         std::function<void(const tntdb::Row&)> cb
     )
 {
     zsys_debug ("container element_id = %" PRIu32, element_id);
-
+    zsys_debug ("types_and_subtypes size = %i", types_and_subtypes.size ());
+    
     try {
         // Can return more than one row.
         tntdb::Statement st = conn.prepareCached(
@@ -758,7 +765,7 @@ select_assets_by_container (
             assets.push_back (name);
         };
 
-    return select_assets_by_container (conn, id, func);
+    return select_assets_by_container (conn, id, filter, func);
 }
 
 

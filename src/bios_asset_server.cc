@@ -194,13 +194,9 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
     std::set <std::string> filters;
     while (zmsg_size (msg) > 0) {
         char *filter = zmsg_popstr (msg);
-        if (!streq (filter, "ups"))
-            zsys_info ("ASSETS_IN_CONTAINER: filter '%s' is not yet supported", filter);
-        else
-            filters.insert (filter);
+        filters.insert (filter);
         zstr_free (&filter);
     }
-
     std::vector <std::string> assets;
     int rv = 0;
 
