@@ -28,6 +28,13 @@
 
 #include "agent_asset_classes.h"
 
+static int
+s_autoupdate_timer (zloop_t *loop, int timer_id, void *output)
+{
+    zstr_send (output, "WAKEUP");
+    return 0;
+}
+
 int main (int argc, char *argv [])
 {
     const char* endpoint = "ipc://@/malamute";
@@ -62,21 +69,29 @@ int main (int argc, char *argv [])
     zstr_sendx (la_server, "PRODUCER", bios_get_stream_main (), NULL);
     zstr_sendx (la_server, "CONSUMER", "ASSETS", ".*", NULL);
 
-    zactor_t *autoupdate_server = zactor_new (bios_asset_autoupdate_server, (void*) "asset-autoupdate");
-    if (verbose)
-        zstr_send (la_server, "VERBOSE");
-    zstr_sendx (autoupdate_server, "CONNECT", endpoint, NULL);
-    zstr_sendx (autoupdate_server, "PRODUCER", "ASSETS", NULL);
-    zstr_sendx (autoupdate_server, "CONSUMER", "ASSETS", ".*", NULL);
-
     zactor_t *asset_server = zactor_new (bios_asset_server, (void*) "asset-agent");
     if (verbose)
         zstr_send (asset_server, "VERBOSE");
     zstr_sendx (asset_server, "CONNECT", endpoint, NULL);
     zsock_wait (asset_server);
+
+    zactor_t *autoupdate_server = zactor_new (bios_asset_autoupdate_server, (void*) "asset-autoupdate");
+    if (verbose)
+        zstr_send (la_server, "VERBOSE");
+    zstr_sendx (autoupdate_server, "CONNECT", endpoint, NULL);
+    zsock_wait (autoupdate_server);
+    zstr_sendx (autoupdate_server, "PRODUCER", "ASSETS", NULL);
+    zstr_sendx (autoupdate_server, "CONSUMER", "ASSETS", ".*", NULL);
+    zstr_sendx (autoupdate_server, "WAKEUP", NULL);
+
+    // create regular event for autoupdate agent
+    zloop_t *autoupdate_wakeup = zloop_new();
+    zloop_timer (autoupdate_wakeup, 5*60*1000, 0, s_autoupdate_timer, autoupdate_server);
+    zloop_start (autoupdate_wakeup);
+
     //  Accept and print any message back from server
     //  copy from src/malamute.c under MPL license
-    zpoller_t *poller = zpoller_new (la_server, asset_server, NULL);
+    zpoller_t *poller = zpoller_new (la_server, asset_server, autoupdate_server, NULL);
     while (true) {
         void *which = zpoller_wait (poller, -1);
         char *message = NULL;
@@ -85,6 +100,9 @@ int main (int argc, char *argv [])
         }
         else if ( which == asset_server) {
             message = zstr_recv (asset_server);
+        }
+        else if ( which == autoupdate_server) {
+            message = zstr_recv (autoupdate_server);
         }
         if (message) {
             puts (message);
@@ -95,6 +113,7 @@ int main (int argc, char *argv [])
             break;
         }
     }
+    zloop_destroy (&autoupdate_wakeup);
     zpoller_destroy (&poller);
     zactor_destroy (&autoupdate_server);
     zactor_destroy (&asset_server);
