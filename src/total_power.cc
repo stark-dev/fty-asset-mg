@@ -551,10 +551,7 @@ select_assets_by_container_filter (
 {
     std::string types, subtypes, filter;
     
-    zsys_debug ("filter size: '%i'", types_and_subtypes.size ());
-
     for (const auto &i: types_and_subtypes) {
-        zsys_debug ("filter item: %s", i.c_str());
         uint32_t t = subtype_to_subtypeid (i);
         if (t != asset_subtype::SUNKNOWN) {
             subtypes +=  "," + std::to_string (t);
@@ -568,8 +565,6 @@ select_assets_by_container_filter (
     }
     if (!types.empty ()) types = types.substr(1);
     if (!subtypes.empty ()) subtypes = subtypes.substr(1);
-    zsys_debug("types: '%s'", types.c_str ());
-    zsys_debug("subtypes: '%s'", subtypes.c_str ());
     if (!types.empty () || !subtypes.empty () ) {
         filter = " AND ( ";
         if (!types.empty ()) {
@@ -595,7 +590,6 @@ int
     )
 {
     zsys_debug ("container element_id = %" PRIu32, element_id);
-    zsys_debug ("types_and_subtypes size = %i", types_and_subtypes.size ());
     
     try {
         // Can return more than one row.
