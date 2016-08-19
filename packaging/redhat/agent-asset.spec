@@ -37,7 +37,7 @@ BuildRequires:  uuid-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
 BuildRequires:  core-devel
-BuildRequires:  biosproto-devel
+BuildRequires:  libbiosproto-devel
 BuildRequires:  cxxtools-devel
 BuildRequires:  tntdb-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -70,7 +70,7 @@ Requires:       uuid-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
 Requires:       core-devel
-Requires:       biosproto-devel
+Requires:       libbiosproto-devel
 Requires:       cxxtools-devel
 Requires:       tntdb-devel
 
