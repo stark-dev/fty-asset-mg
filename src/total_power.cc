@@ -30,7 +30,6 @@
 #include <tntdb/connect.h>
 #include <tntdb/result.h>
 #include <tntdb/error.h>
-#include <functional>
 #include <exception>
 #define INPUT_POWER_CHAIN     1
 
@@ -778,6 +777,142 @@ select_assets_by_container (
     return select_assets_by_container (conn, container_name, filter, assets);
 }
 
+int
+    select_asset_element_basic
+        (const std::string &asset_name,
+         std::function<void(const tntdb::Row&)> cb)
+{
+    zsys_debug ("asset_name = %s", asset_name.c_str());
+    tntdb::Connection conn;
+    try {
+        conn = tntdb::connectCached (url);
+    }
+    catch ( const std::exception &e) {
+        zsys_error ("DB: cannot connect, %s", e.what());
+        return -1;
+    }
+
+    try{
+        tntdb::Statement st = conn.prepareCached(
+            " SELECT"
+            "   v.id, v.name, v.id_type, v.type_name,"
+            "   v.subtype_id, v.id_parent,"
+            "   v.id_parent_type, v.status,"
+            "   v.priority, v.asset_tag, v.parent_name "
+            " FROM"
+            "   v_web_element v"
+            " WHERE :name = v.name"
+        );
+
+        tntdb::Row row = st.set("name", asset_name).
+                            selectRow();
+        zsys_debug("[v_web_element]: were selected %" PRIu32 " rows", 1);
+
+        cb(row);
+        return 0;
+    }
+    catch (const tntdb::NotFound &e) {
+        zsys_info ("end: %s", "asset '%s' not found", asset_name.c_str());
+        return 0;
+    }
+    catch (const std::exception &e) {
+        zsys_error ("Cannot select basic asset info: %s", e.what());
+        return -1;
+    }
+}
+
+int
+    select_ext_attributes
+        (uint32_t asset_id,
+         std::function<void(const tntdb::Row&)> cb)
+{
+    tntdb::Connection conn;
+    try {
+        conn = tntdb::connectCached (url);
+    }
+    catch ( const std::exception &e) {
+        zsys_error ("DB: cannot connect, %s", e.what());
+        return -1;
+    }
+    try {
+        // Can return more than one row
+        tntdb::Statement st_extattr = conn.prepareCached(
+            " SELECT"
+            "   v.keytag, v.value, v.read_only"
+            " FROM"
+            "   v_bios_asset_ext_attributes v"
+            " WHERE v.id_asset_element = :asset_id"
+        );
+
+        tntdb::Result result = st_extattr.set("asset_id", asset_id).
+                                          select();
+        zsys_debug("[v_bios_asset_ext_attributes]: were selected %" PRIu32 " rows", result.size());
+
+        // Go through the selected extra attributes
+        for ( const auto &row: result ) {
+            cb(row);
+        }
+        return 0;
+    }
+    catch (const std::exception &e) {
+        zsys_error (e.what());
+        return -1;
+    }
+}
+
+int
+    select_asset_element_super_parent (
+            uint32_t id,
+            std::function<void(
+                const tntdb::Row&
+                )>& cb)
+{
+    tntdb::Connection conn;
+    try {
+        conn = tntdb::connectCached (url);
+    }
+    catch ( const std::exception &e) {
+        zsys_error ("DB: cannot connect, %s", e.what());
+        return -1;
+    }
+    try{
+        tntdb::Statement st = conn.prepareCached(
+            " SELECT "
+            "   v.id_asset_element as id, "
+            "   v.id_parent1 as id_parent1, "
+            "   v.id_parent2 as id_parent2, "
+            "   v.id_parent3 as id_parent3, "
+            "   v.id_parent4 as id_parent4, "
+            "   v.id_parent5 as id_parent5, "
+            "   v.name_parent1 as parent_name1, "
+            "   v.name_parent2 as parent_name2, "
+            "   v.name_parent3 as parent_name3, "
+            "   v.name_parent4 as parent_name4, "
+            "   v.name_parent5 as parent_name5, "
+            "   v.name as name, "
+            "   v.type_name as type_name, "
+            "   v.id_asset_device_type as device_type, "
+            "   v.status as status, "
+            "   v.asset_tag as asset_tag, "
+            "   v.priority as priority, "
+            "   v.id_type as id_type "
+            " FROM v_bios_asset_element_super_parent v "
+            " WHERE "
+            "   v.id_asset_element = :id "
+            );
+
+        tntdb::Result res = st.set ("id", id).select ();
+
+        for (const auto& r: res) {
+            cb(r);
+        }
+        return 0;
+    }
+    catch (const std::exception &e) {
+        zsys_error (e.what());
+        return -1;
+    }
+}
 
 void
 total_power_test (bool verbose)
