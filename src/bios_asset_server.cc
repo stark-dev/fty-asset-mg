@@ -108,6 +108,7 @@
 #include "agent_asset_classes.h"
 #include <string>
 #include <tntdb/connect.h>
+#include <functional>
 // TODO add dependencies tntdb and cxxtools
 
 // ============================================================
@@ -229,6 +230,141 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
 
 }
 
+static void
+s_update_topology (bios_proto_t *msg, mlm_client_t *client)
+{
+    assert (msg);
+    assert (client);
+    if ( !streq (bios_proto_operation (msg),BIOS_PROTO_ASSET_OP_UPDATE)) {
+        zsys_info ("ignore: '%s' on '%s'", bios_proto_operation(msg), bios_proto_name (msg));
+        return;
+    }
+    // select assets, that were affected by the change
+    std::set<std::string> empty;
+    std::vector <std::string> asset_names;
+    int rv = select_assets_by_container (bios_proto_name (msg), empty, asset_names);
+    if ( rv != 0 ) {
+        zsys_warning ("Cannot select assets in container '%s'", bios_proto_name (msg));
+        return;
+    }
+
+    // For every asset we need to form new message!
+    for ( const auto &asset_name : asset_names ) {
+        zhash_t *aux = zhash_new ();
+        zhash_autofree (aux);
+        uint32_t asset_id = 0; 
+        std::function<void(const tntdb::Row&)> cb1 = \
+            [aux, &asset_id](const tntdb::Row &row)
+            {
+                int foo_i = 0;
+                row ["priority"].get (foo_i);
+                zhash_insert (aux, "priority", (void*) std::to_string (foo_i).c_str());
+                
+                foo_i = 0;
+                row ["id_type"].get (foo_i);
+                zhash_insert (aux, "type", (void*) asset_type2str (foo_i));
+                
+                foo_i = 0;
+                row ["subtype_id"].get (foo_i);
+                zhash_insert (aux, "subtype", (void*) asset_subtype2str (foo_i));
+                
+                foo_i = 0;
+                row ["id_parent"].get (foo_i);
+                zhash_insert (aux, "parent", (void*) std::to_string (foo_i).c_str());
+                
+                std::string foo_s;
+                row ["status"].get (foo_s);
+                zhash_insert (aux, "status", (void*) foo_s.c_str());
+
+                row ["id"].get (asset_id);
+            };
+        
+        // select basic info
+        int rv = select_asset_element_basic (asset_name, cb1);
+        if ( rv != 0 ) {
+            zsys_warning ("Cannot select info about '%s'", asset_name.c_str());
+            zhash_destroy (&aux);
+            return;
+        }
+
+        zhash_t *ext = zhash_new ();
+        zhash_autofree (aux);
+        
+        std::function<void(const tntdb::Row&)> cb2 = \
+            [ext](const tntdb::Row &row)
+            {
+                int foo_i = 0;
+                row ["priority"].get (foo_i);
+                zhash_insert (ext, "priority", (void*) std::to_string (foo_i).c_str());
+                
+                foo_i = 0;
+                row ["id_type"].get (foo_i);
+                zhash_insert (ext, "type", (void*) asset_type2str (foo_i));
+                
+                foo_i = 0;
+                row ["subtype_id"].get (foo_i);
+                zhash_insert (ext, "subtype", (void*) asset_subtype2str (foo_i));
+                
+                foo_i = 0;
+                row ["id_parent"].get (foo_i);
+                zhash_insert (ext, "parent", (void*) std::to_string (foo_i).c_str());
+                
+                std::string foo_s;
+                row ["status"].get (foo_s);
+                zhash_insert (ext, "status", (void*) foo_s.c_str());
+            };
+        // select ext attributes
+        rv = select_ext_attributes (asset_id, cb2);
+        if ( rv != 0 ) {
+            zsys_warning ("Cannot select info about '%s'", asset_name.c_str());
+            zhash_destroy (&aux);
+            zhash_destroy (&ext);
+            return;
+        }
+        
+        std::function<void(const tntdb::Row&)> cb3 = \
+            [aux](const tntdb::Row &row) {
+                for (const auto& name: {"parent_name1", "parent_name2", "parent_name3", "parent_name4", "parent_name5"}) {
+                    std::string foo;
+                    row [name].get (foo);
+                    std::string hash_name = name;
+                    //                11 == strlen ("parent_name")
+                    hash_name.insert (11, 1, '.');
+                    if (!foo.empty ())
+                        zhash_insert (aux, hash_name.c_str (), (void*) foo.c_str ());
+                }
+            };
+        // select "physical topology"
+        rv = select_asset_element_super_parent (asset_id, cb3);
+        if (rv != 0) {
+            zhash_destroy (&aux);
+            zhash_destroy (&ext);
+            zsys_error ("select_asset_element_super_parent ('%s') failed.", asset_name.c_str());
+            return;
+        }
+        // other information like, groups, power chain for now are not included in the message
+        std::string subject;
+        subject = (const char*) zhash_lookup (aux, "type");
+        subject.append (".");
+        subject.append ((const char*)zhash_lookup (aux, "subtype"));
+        subject.append ("@");
+        subject.append (asset_name);
+
+        zmsg_t *msg = bios_proto_encode_asset (
+                aux,
+                asset_name.c_str(),
+                BIOS_PROTO_ASSET_OP_UPDATE,
+                ext);
+        rv = mlm_client_send (client, subject.c_str(), &msg);
+        zhash_destroy (&ext);
+        zhash_destroy (&aux);
+        if ( rv != 0 ) {
+            zsys_error ("mlm_client_send failed for asset '%s'", asset_name.c_str());
+            return;
+        } 
+    }
+}
+
 void
     bios_asset_server (zsock_t *pipe, void *args)
 {
@@ -327,10 +463,19 @@ void
         if ( verbose )
             zsys_debug("Got message subject='%s', command='%s'", subject.c_str (), command.c_str ());
 
-        if (command != "MAILBOX DELIVER") {
-            // DO NOTHING for now
+        if (command == "STREAM DELIVER") {
+            if ( is_bios_proto (zmessage) ) {
+                bios_proto_t *bmsg = bios_proto_decode (&zmessage);
+                if ( bios_proto_id (bmsg) == BIOS_PROTO_ASSET ) {
+                    s_update_topology (bmsg, client);
+                }
+            }
+            else {
+                // DO NOTHING for now
+            }
         }
-        else {
+        else
+        if (command == "MAILBOX DELIVER") {
             if (subject == "TOPOLOGY")
                 s_handle_subject_topology (client, zmessage);
             else
@@ -338,6 +483,9 @@ void
                 s_handle_subject_assets_in_container (client, zmessage);
             else
                 zsys_error ("unexpected subject '%s'", subject.c_str ());
+        }
+        else {
+            // DO NOTHING for now
         }
         zmsg_destroy (&zmessage);
     }
