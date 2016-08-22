@@ -229,6 +229,11 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
 
 }
 
+static void
+s_update_topology (bios_proto_t *msg){
+    assert (msg);
+}
+
 void
     bios_asset_server (zsock_t *pipe, void *args)
 {
@@ -327,10 +332,19 @@ void
         if ( verbose )
             zsys_debug("Got message subject='%s', command='%s'", subject.c_str (), command.c_str ());
 
-        if (command != "MAILBOX DELIVER") {
-            // DO NOTHING for now
+        if (command == "STREAM DELIVER") {
+            if ( is_bios_proto (zmessage) ) {
+                bios_proto_t *bmsg = bios_proto_decode (&zmessage);
+                if ( bios_proto_id (bmsg) == BIOS_PROTO_ASSET ) {
+                    s_update_topology (bmsg);
+                }
+            }
+            else {
+                // DO NOTHING for now
+            }
         }
-        else {
+        else
+        if (command == "MAILBOX DELIVER") {
             if (subject == "TOPOLOGY")
                 s_handle_subject_topology (client, zmessage);
             else
@@ -338,6 +352,9 @@ void
                 s_handle_subject_assets_in_container (client, zmessage);
             else
                 zsys_error ("unexpected subject '%s'", subject.c_str ());
+        }
+        else {
+            // DO NOTHING for now
         }
         zmsg_destroy (&zmessage);
     }
