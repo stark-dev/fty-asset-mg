@@ -736,18 +736,11 @@ static int
 
 int
 select_assets_by_container (
+        tntdb::Connection &conn,
         const std::string& container_name,
         const std::set <std::string>& filter,
         std::vector <std::string>& assets)
 {
-    tntdb::Connection conn;
-    try {
-        conn = tntdb::connectCached (url);
-    }
-    catch ( const std::exception &e) {
-        zsys_error ("DB: cannot connect, %s", e.what());
-        return -1;
-    }
     a_elmnt_id_t id = 0;
 
     // get container asset id
@@ -768,6 +761,22 @@ select_assets_by_container (
     return select_assets_by_container (conn, id, filter, func);
 }
 
+int
+select_assets_by_container (
+        const std::string& container_name,
+        const std::set <std::string>& filter,
+        std::vector <std::string>& assets)
+{
+    tntdb::Connection conn;
+    try {
+        conn = tntdb::connectCached (url);
+    }
+    catch ( const std::exception &e) {
+        zsys_error ("DB: cannot connect, %s", e.what());
+        return -1;
+    }
+    return select_assets_by_container (conn, container_name, filter, assets);
+}
 
 
 void
