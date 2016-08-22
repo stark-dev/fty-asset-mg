@@ -550,7 +550,7 @@ select_assets_by_container_filter (
 )
 {
     std::string types, subtypes, filter;
-    
+
     for (const auto &i: types_and_subtypes) {
         uint32_t t = subtype_to_subtypeid (i);
         if (t != asset_subtype::SUNKNOWN) {
@@ -590,7 +590,7 @@ int
     )
 {
     zsys_debug ("container element_id = %" PRIu32, element_id);
-    
+
     try {
         // Can return more than one row.
         tntdb::Statement st = conn.prepareCached(
@@ -740,8 +740,14 @@ select_assets_by_container (
         const std::set <std::string>& filter,
         std::vector <std::string>& assets)
 {
-    
-    tntdb::Connection conn = tntdb::connectCached (url);
+    tntdb::Connection conn;
+    try {
+        conn = tntdb::connectCached (url);
+    }
+    catch ( const std::exception &e) {
+        zsys_error ("DB: cannot connect, %s", e.what());
+        return -1;
+    }
     a_elmnt_id_t id = 0;
 
     // get container asset id
