@@ -88,33 +88,8 @@ int main (int argc, char *argv [])
     zloop_t *autoupdate_wakeup = zloop_new();
     zloop_timer (autoupdate_wakeup, 5*60*1000, 0, s_autoupdate_timer, autoupdate_server);
     zloop_start (autoupdate_wakeup);
-
-    //  Accept and print any message back from server
-    //  copy from src/malamute.c under MPL license
-    zpoller_t *poller = zpoller_new (la_server, asset_server, autoupdate_server, NULL);
-    while (true) {
-        void *which = zpoller_wait (poller, -1);
-        char *message = NULL;
-        if ( which == la_server) {
-            message = zstr_recv (la_server);
-        }
-        else if ( which == asset_server) {
-            message = zstr_recv (asset_server);
-        }
-        else if ( which == autoupdate_server) {
-            message = zstr_recv (autoupdate_server);
-        }
-        if (message) {
-            puts (message);
-            free (message);
-        }
-        else {
-            puts ("interrupted");
-            break;
-        }
-    }
+    // zloop_start takes ownership of this thread! and waits for interrupt!
     zloop_destroy (&autoupdate_wakeup);
-    zpoller_destroy (&poller);
     zactor_destroy (&autoupdate_server);
     zactor_destroy (&asset_server);
     zactor_destroy (&la_server);

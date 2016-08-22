@@ -232,17 +232,22 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
 void
     bios_asset_server (zsock_t *pipe, void *args)
 {
-    zsys_debug ("asset server started");
+    assert (pipe);
+    assert (args);
     bool verbose = false;
 
     char *name = strdup ((char*) args);
+    assert (name);
 
     mlm_client_t *client = mlm_client_new ();
+    assert (client);
 
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(client), NULL);
+    assert (poller);
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
+    zsys_debug ("asset server started");
 
     while (!zsys_interrupted) {
 
