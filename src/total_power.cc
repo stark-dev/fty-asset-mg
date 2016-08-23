@@ -855,7 +855,7 @@ int
         return 0;
     }
     catch (const std::exception &e) {
-        zsys_error (e.what());
+        zsys_error ("select_ext: %s", e.what());
         return -1;
     }
 }
