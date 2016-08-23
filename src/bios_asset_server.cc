@@ -343,7 +343,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
         // select ext attributes
         rv = select_ext_attributes (asset_id, cb2);
         if ( rv != 0 ) {
-            zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
+            zsys_warning ("%s:\tCannot select ext attributes for '%s'", cfg->name, asset_name.c_str());
             zhash_destroy (&aux);
             zhash_destroy (&ext);
             return;
