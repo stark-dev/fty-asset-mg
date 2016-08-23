@@ -902,6 +902,7 @@ int
             );
 
         tntdb::Result res = st.set ("id", id).select ();
+        zsys_debug("[v_bios_asset_element_super_parent]: were selected %i rows", 1);
 
         for (const auto& r: res) {
             cb(r);
@@ -909,7 +910,7 @@ int
         return 0;
     }
     catch (const std::exception &e) {
-        zsys_error (e.what());
+        zsys_error ("[v_bios_asset_element_super_parent]: error '%s'", e.what());
         return -1;
     }
 }
