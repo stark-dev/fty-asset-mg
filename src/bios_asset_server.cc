@@ -111,6 +111,31 @@
 #include <functional>
 // TODO add dependencies tntdb and cxxtools
 
+
+typedef struct _agent_cfg_t {
+    bool verbose;
+    char *name;
+} agent_cfg_t;
+
+static agent_cfg_t*
+    agent_cfg_new (void)
+{
+    agent_cfg_t *self = (agent_cfg_t *) zmalloc (sizeof(agent_cfg_t));
+    return self;
+}
+
+static void
+    agent_cfg_destroy (agent_cfg_t **self_p)
+{
+    assert (self_p);
+    agent_cfg_t *self = *self_p;
+    if ( self ) {
+        zstr_free (&self->name);
+        free (self);
+        *self_p = NULL;
+    }
+}
+
 // ============================================================
 //         Functionality for TOPOLOGY processing
 // ============================================================
@@ -370,10 +395,11 @@ void
 {
     assert (pipe);
     assert (args);
-    bool verbose = false;
-
-    char *name = strdup ((char*) args);
-    assert (name);
+    agent_cfg_t *cfg = agent_cfg_new();
+    assert (cfg);
+    cfg->verbose = false;
+    cfg->name = strdup ((char*) args);
+    assert (cfg->name);
 
     mlm_client_t *client = mlm_client_new ();
     assert (client);
@@ -397,7 +423,7 @@ void
         if (which == pipe) {
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
-            if ( verbose ) {
+            if ( cfg->verbose ) {
                 zsys_debug ("actor command=%s", cmd);
             }
 
@@ -409,14 +435,14 @@ void
             }
             else
             if (streq (cmd, "VERBOSE")) {
-                verbose = true;
+                cfg->verbose = true;
             }
             else
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
-                int rv = mlm_client_connect (client, endpoint, 1000, name);
+                int rv = mlm_client_connect (client, endpoint, 1000, cfg->name);
                 if (rv == -1) {
-                    zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
+                    zsys_error ("%s: can't connect to malamute endpoint '%s'", cfg->name, endpoint);
                 }
                 zstr_free (&endpoint);
                 zsock_signal (pipe, 0);
@@ -426,7 +452,7 @@ void
                 char* stream = zmsg_popstr (msg);
                 int rv = mlm_client_set_producer (client, stream);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set producer on stream '%s'", name, stream);
+                    zsys_error ("%s: can't set producer on stream '%s'", cfg->name, stream);
                 }
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
@@ -437,7 +463,7 @@ void
                 char* pattern = zmsg_popstr (msg);
                 int rv = mlm_client_set_consumer (client, stream, pattern);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
+                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", cfg->name, stream, pattern);
                 }
                 zstr_free (&pattern);
                 zstr_free (&stream);
@@ -460,7 +486,7 @@ void
         }
         std::string subject = mlm_client_subject (client);
         std::string command = mlm_client_command (client);
-        if ( verbose )
+        if ( cfg->verbose )
             zsys_debug("Got message subject='%s', command='%s'", subject.c_str (), command.c_str ());
 
         if (command == "STREAM DELIVER") {
@@ -493,7 +519,7 @@ exit:
     //TODO:  save info to persistence before I die
     zpoller_destroy (&poller);
     mlm_client_destroy (&client);
-    zstr_free (&name);
+    agent_cfg_destroy (&cfg);
     zsys_debug ("asset server ended");
 }
 
@@ -504,6 +530,9 @@ void
 bios_asset_server_test (bool verbose)
 {
     printf (" * bios_asset_server: ");
+
+    agent_cfg_t *cfg = agent_cfg_new();
+    agent_cfg_destroy (&cfg);
 // Everything is commented out because: need to have a proper database
 // --> move it out of "make check"
     //  @selftest
