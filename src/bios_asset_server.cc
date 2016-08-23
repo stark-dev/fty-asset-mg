@@ -409,7 +409,7 @@ void
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
-    zsys_debug ("asset server started");
+    zsys_info ("%s:\tAsset server started", cfg->name);
 
     while (!zsys_interrupted) {
 
@@ -424,11 +424,12 @@ void
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
             if ( cfg->verbose ) {
-                zsys_debug ("actor command=%s", cmd);
+                zsys_debug ("%s:\tActor command=%s", cfg->name, cmd);
             }
 
             if (streq (cmd, "$TERM")) {
-                zsys_info ("Got $TERM");
+                if ( !cfg->verbose ) // ! is here intentionally, to get rid of duplication information
+                    zsys_info ("%s:\tGot $TERM", cfg->name);
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
@@ -442,7 +443,7 @@ void
                 char* endpoint = zmsg_popstr (msg);
                 int rv = mlm_client_connect (client, endpoint, 1000, cfg->name);
                 if (rv == -1) {
-                    zsys_error ("%s: can't connect to malamute endpoint '%s'", cfg->name, endpoint);
+                    zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", cfg->name, endpoint);
                 }
                 zstr_free (&endpoint);
                 zsock_signal (pipe, 0);
@@ -452,7 +453,7 @@ void
                 char* stream = zmsg_popstr (msg);
                 int rv = mlm_client_set_producer (client, stream);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set producer on stream '%s'", cfg->name, stream);
+                    zsys_error ("%s:\tCan't set producer on stream '%s'", cfg->name, stream);
                 }
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
@@ -463,7 +464,7 @@ void
                 char* pattern = zmsg_popstr (msg);
                 int rv = mlm_client_set_consumer (client, stream, pattern);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", cfg->name, stream, pattern);
+                    zsys_error ("%s:\tCan't set consumer on stream '%s', '%s'", cfg->name, stream, pattern);
                 }
                 zstr_free (&pattern);
                 zstr_free (&stream);
@@ -471,7 +472,7 @@ void
             }
             else
             {
-                zsys_info ("unhandled command %s", cmd);
+                zsys_info ("%s:\tUnhandled command %s", cfg->name, cmd);
             }
             zstr_free (&cmd);
             zmsg_destroy (&msg);
@@ -487,7 +488,7 @@ void
         std::string subject = mlm_client_subject (client);
         std::string command = mlm_client_command (client);
         if ( cfg->verbose )
-            zsys_debug("Got message subject='%s', command='%s'", subject.c_str (), command.c_str ());
+            zsys_debug("%s:\tGot message subject='%s', command='%s'", cfg->name, subject.c_str (), command.c_str ());
 
         if (command == "STREAM DELIVER") {
             if ( is_bios_proto (zmessage) ) {
@@ -508,7 +509,7 @@ void
             if (subject == "ASSETS_IN_CONTAINER")
                 s_handle_subject_assets_in_container (client, zmessage);
             else
-                zsys_error ("unexpected subject '%s'", subject.c_str ());
+                zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
         }
         else {
             // DO NOTHING for now
@@ -516,11 +517,11 @@ void
         zmsg_destroy (&zmessage);
     }
 exit:
+    zsys_info ("%s:\tAsset server ended", cfg->name);
     //TODO:  save info to persistence before I die
     zpoller_destroy (&poller);
     mlm_client_destroy (&client);
     agent_cfg_destroy (&cfg);
-    zsys_debug ("asset server ended");
 }
 
 //  --------------------------------------------------------------------------
@@ -529,7 +530,7 @@ exit:
 void
 bios_asset_server_test (bool verbose)
 {
-    printf (" * bios_asset_server: ");
+    printf (" * bios_asset_server: \n");
 
     agent_cfg_t *cfg = agent_cfg_new();
     agent_cfg_destroy (&cfg);
