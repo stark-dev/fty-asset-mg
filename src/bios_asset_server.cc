@@ -256,12 +256,14 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
 }
 
 static void
-s_update_topology (bios_proto_t *msg, mlm_client_t *client)
+s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
 {
     assert (msg);
     assert (client);
+    assert (cfg);
+
     if ( !streq (bios_proto_operation (msg),BIOS_PROTO_ASSET_OP_UPDATE)) {
-        zsys_info ("ignore: '%s' on '%s'", bios_proto_operation(msg), bios_proto_name (msg));
+        zsys_info ("%s:\tIgnore: '%s' on '%s'", cfg->name, bios_proto_operation(msg), bios_proto_name (msg));
         return;
     }
     // select assets, that were affected by the change
@@ -269,7 +271,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client)
     std::vector <std::string> asset_names;
     int rv = select_assets_by_container (bios_proto_name (msg), empty, asset_names);
     if ( rv != 0 ) {
-        zsys_warning ("Cannot select assets in container '%s'", bios_proto_name (msg));
+        zsys_warning ("%s:\tCannot select assets in container '%s'", cfg->name, bios_proto_name (msg));
         return;
     }
 
@@ -307,7 +309,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client)
         // select basic info
         int rv = select_asset_element_basic (asset_name, cb1);
         if ( rv != 0 ) {
-            zsys_warning ("Cannot select info about '%s'", asset_name.c_str());
+            zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
             zhash_destroy (&aux);
             return;
         }
@@ -341,7 +343,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client)
         // select ext attributes
         rv = select_ext_attributes (asset_id, cb2);
         if ( rv != 0 ) {
-            zsys_warning ("Cannot select info about '%s'", asset_name.c_str());
+            zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
             zhash_destroy (&aux);
             zhash_destroy (&ext);
             return;
@@ -364,7 +366,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client)
         if (rv != 0) {
             zhash_destroy (&aux);
             zhash_destroy (&ext);
-            zsys_error ("select_asset_element_super_parent ('%s') failed.", asset_name.c_str());
+            zsys_error ("%s:\tselect_asset_element_super_parent ('%s') failed.", cfg->name, asset_name.c_str());
             return;
         }
         // other information like, groups, power chain for now are not included in the message
@@ -384,7 +386,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client)
         zhash_destroy (&ext);
         zhash_destroy (&aux);
         if ( rv != 0 ) {
-            zsys_error ("mlm_client_send failed for asset '%s'", asset_name.c_str());
+            zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
             return;
         } 
     }
@@ -494,7 +496,7 @@ void
             if ( is_bios_proto (zmessage) ) {
                 bios_proto_t *bmsg = bios_proto_decode (&zmessage);
                 if ( bios_proto_id (bmsg) == BIOS_PROTO_ASSET ) {
-                    s_update_topology (bmsg, client);
+                    s_update_topology (bmsg, client, cfg);
                 }
             }
             else {
