@@ -542,9 +542,6 @@ bios_asset_server_test (bool verbose)
     // malamute broker
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     assert ( server != NULL );
-    if (verbose) {
-        zstr_send (server, "VERBOSE");
-    }
 
     zstr_sendx (server, "BIND", endpoint, NULL);
 
