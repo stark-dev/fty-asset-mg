@@ -142,7 +142,8 @@ static void
 static void
     s_processTopology(
         mlm_client_t *client,
-        const std::string &assetName)
+        const std::string &assetName,
+        agent_cfg_t *cfg)
 {
     // result of power topology - list of power device names
     std::vector<std::string> powerDevices{};
@@ -159,19 +160,20 @@ static void
 
     // form a message according the contract for the case "OK" and for the case "ERROR"
     if ( rv == -1 ) {
-        zsys_error ("Error occured during the request processing");
+        zsys_error ("%s:\tTOPOLOGY_POWER: Cannot select power sources", cfg->name);
         zmsg_addstr (msg, "ERROR");
         zmsg_addstr (msg, "INTERNAL_ERROR");
     } else if ( rv == -2 ) {
-        zsys_debug ("Asset was not found");
+        zsys_debug ("%s:\tTOPOLOGY_POWER: Asset was not found", cfg->name);
         zmsg_addstr (msg, "ERROR");
         zmsg_addstr (msg, "ASSET_NOT_FOUND");
     } else {
         zmsg_addstr (msg, "OK");
-
-        zsys_debug ("Power topology for '%s':", assetName.c_str());
+        if ( cfg->verbose )
+            zsys_debug ("%s:\tPower topology for '%s':", cfg->name, assetName.c_str());
         for (const auto &powerDeviceName : powerDevices ) {
-            zsys_debug ("   - %s", powerDeviceName.c_str());
+            if ( cfg->verbose )
+                zsys_debug ("%s:\t\t%s", cfg->name, powerDeviceName.c_str());
             zmsg_addstr (msg, powerDeviceName.c_str());
         }
     }
@@ -179,26 +181,30 @@ static void
 }
 
 static void
-s_handle_subject_topology (mlm_client_t *client, zmsg_t *zmessage)
+s_handle_subject_topology (mlm_client_t *client, zmsg_t *zmessage, agent_cfg_t *cfg)
 {
+    assert (client);
+    assert (zmessage);
+    assert (cfg);
     char* command = zmsg_popstr (zmessage);
     if ( streq (command, "TOPOLOGY_POWER") ) {
         char* asset_name = zmsg_popstr (zmessage);
-        s_processTopology (client, asset_name);
+        s_processTopology (client, asset_name, cfg);
         zstr_free (&asset_name);
     }
     else
-        zsys_error ("Unknown command for subject=TOPOLOGY '%s'", command);
+        zsys_error ("%s:\tUnknown command for subject=TOPOLOGY '%s'", cfg->name, command);
     zstr_free (&command);
 }
 
 static void
-s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
+s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg, agent_cfg_t *cfg)
 {
     assert (client);
     assert (msg);
+    assert (cfg);
     if (zmsg_size (msg) < 2) {
-        zsys_error ("ASSETS_IN_CONTAINER: incoming message have less than 2 frames");
+        zsys_error ("%s:\tASSETS_IN_CONTAINER: incoming message have less than 2 frames", cfg->name);
         return;
     }
 
@@ -206,7 +212,7 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
     zmsg_t *reply = zmsg_new ();
 
     if (! streq (c_command, "GET")) {
-        zsys_error ("ASSETS_IN_CONTAINER: bad command '%s', expected GET", c_command);
+        zsys_error ("%s:\tASSETS_IN_CONTAINER: bad command '%s', expected GET", cfg->name, c_command);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
     }
@@ -251,7 +257,7 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
     // send the reply
     rv = mlm_client_sendto (client, mlm_client_sender (client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
     if (rv == -1)
-        zsys_error ("ASSETS_IN_CONTAINER: mlm_client_sendto failed");
+        zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed");
 
 }
 
@@ -492,10 +498,10 @@ void
         else
         if (command == "MAILBOX DELIVER") {
             if (subject == "TOPOLOGY")
-                s_handle_subject_topology (client, zmessage);
+                s_handle_subject_topology (client, zmessage, cfg);
             else
             if (subject == "ASSETS_IN_CONTAINER")
-                s_handle_subject_assets_in_container (client, zmessage);
+                s_handle_subject_assets_in_container (client, zmessage, cfg);
             else
                 zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
         }
