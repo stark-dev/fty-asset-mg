@@ -111,6 +111,31 @@
 #include <functional>
 // TODO add dependencies tntdb and cxxtools
 
+
+typedef struct _agent_cfg_t {
+    bool verbose;
+    char *name;
+} agent_cfg_t;
+
+static agent_cfg_t*
+    agent_cfg_new (void)
+{
+    agent_cfg_t *self = (agent_cfg_t *) zmalloc (sizeof(agent_cfg_t));
+    return self;
+}
+
+static void
+    agent_cfg_destroy (agent_cfg_t **self_p)
+{
+    assert (self_p);
+    agent_cfg_t *self = *self_p;
+    if ( self ) {
+        zstr_free (&self->name);
+        free (self);
+        *self_p = NULL;
+    }
+}
+
 // ============================================================
 //         Functionality for TOPOLOGY processing
 // ============================================================
@@ -231,12 +256,14 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg)
 }
 
 static void
-s_update_topology (bios_proto_t *msg, mlm_client_t *client)
+s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
 {
     assert (msg);
     assert (client);
+    assert (cfg);
+
     if ( !streq (bios_proto_operation (msg),BIOS_PROTO_ASSET_OP_UPDATE)) {
-        zsys_info ("ignore: '%s' on '%s'", bios_proto_operation(msg), bios_proto_name (msg));
+        zsys_info ("%s:\tIgnore: '%s' on '%s'", cfg->name, bios_proto_operation(msg), bios_proto_name (msg));
         return;
     }
     // select assets, that were affected by the change
@@ -244,7 +271,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client)
     std::vector <std::string> asset_names;
     int rv = select_assets_by_container (bios_proto_name (msg), empty, asset_names);
     if ( rv != 0 ) {
-        zsys_warning ("Cannot select assets in container '%s'", bios_proto_name (msg));
+        zsys_warning ("%s:\tCannot select assets in container '%s'", cfg->name, bios_proto_name (msg));
         return;
     }
 
@@ -282,7 +309,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client)
         // select basic info
         int rv = select_asset_element_basic (asset_name, cb1);
         if ( rv != 0 ) {
-            zsys_warning ("Cannot select info about '%s'", asset_name.c_str());
+            zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
             zhash_destroy (&aux);
             return;
         }
@@ -293,30 +320,16 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client)
         std::function<void(const tntdb::Row&)> cb2 = \
             [ext](const tntdb::Row &row)
             {
-                int foo_i = 0;
-                row ["priority"].get (foo_i);
-                zhash_insert (ext, "priority", (void*) std::to_string (foo_i).c_str());
-                
-                foo_i = 0;
-                row ["id_type"].get (foo_i);
-                zhash_insert (ext, "type", (void*) asset_type2str (foo_i));
-                
-                foo_i = 0;
-                row ["subtype_id"].get (foo_i);
-                zhash_insert (ext, "subtype", (void*) asset_subtype2str (foo_i));
-                
-                foo_i = 0;
-                row ["id_parent"].get (foo_i);
-                zhash_insert (ext, "parent", (void*) std::to_string (foo_i).c_str());
-                
-                std::string foo_s;
-                row ["status"].get (foo_s);
-                zhash_insert (ext, "status", (void*) foo_s.c_str());
+                std::string keytag;
+                row ["keytag"].get (keytag);
+                std::string value;
+                row ["value"].get (value);
+                zhash_insert (ext, keytag.c_str(), (void*) value.c_str());
             };
         // select ext attributes
         rv = select_ext_attributes (asset_id, cb2);
         if ( rv != 0 ) {
-            zsys_warning ("Cannot select info about '%s'", asset_name.c_str());
+            zsys_warning ("%s:\tCannot select ext attributes for '%s'", cfg->name, asset_name.c_str());
             zhash_destroy (&aux);
             zhash_destroy (&ext);
             return;
@@ -339,7 +352,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client)
         if (rv != 0) {
             zhash_destroy (&aux);
             zhash_destroy (&ext);
-            zsys_error ("select_asset_element_super_parent ('%s') failed.", asset_name.c_str());
+            zsys_error ("%s:\tselect_asset_element_super_parent ('%s') failed.", cfg->name, asset_name.c_str());
             return;
         }
         // other information like, groups, power chain for now are not included in the message
@@ -359,7 +372,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client)
         zhash_destroy (&ext);
         zhash_destroy (&aux);
         if ( rv != 0 ) {
-            zsys_error ("mlm_client_send failed for asset '%s'", asset_name.c_str());
+            zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
             return;
         } 
     }
@@ -370,10 +383,11 @@ void
 {
     assert (pipe);
     assert (args);
-    bool verbose = false;
-
-    char *name = strdup ((char*) args);
-    assert (name);
+    agent_cfg_t *cfg = agent_cfg_new();
+    assert (cfg);
+    cfg->verbose = false;
+    cfg->name = strdup ((char*) args);
+    assert (cfg->name);
 
     mlm_client_t *client = mlm_client_new ();
     assert (client);
@@ -383,7 +397,7 @@ void
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
-    zsys_debug ("asset server started");
+    zsys_info ("%s:\tAsset server started", cfg->name);
 
     while (!zsys_interrupted) {
 
@@ -397,26 +411,27 @@ void
         if (which == pipe) {
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
-            if ( verbose ) {
-                zsys_debug ("actor command=%s", cmd);
+            if ( cfg->verbose ) {
+                zsys_debug ("%s:\tActor command=%s", cfg->name, cmd);
             }
 
             if (streq (cmd, "$TERM")) {
-                zsys_info ("Got $TERM");
+                if ( !cfg->verbose ) // ! is here intentionally, to get rid of duplication information
+                    zsys_info ("%s:\tGot $TERM", cfg->name);
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
             }
             else
             if (streq (cmd, "VERBOSE")) {
-                verbose = true;
+                cfg->verbose = true;
             }
             else
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
-                int rv = mlm_client_connect (client, endpoint, 1000, name);
+                int rv = mlm_client_connect (client, endpoint, 1000, cfg->name);
                 if (rv == -1) {
-                    zsys_error ("%s: can't connect to malamute endpoint '%s'", name, endpoint);
+                    zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", cfg->name, endpoint);
                 }
                 zstr_free (&endpoint);
                 zsock_signal (pipe, 0);
@@ -426,7 +441,7 @@ void
                 char* stream = zmsg_popstr (msg);
                 int rv = mlm_client_set_producer (client, stream);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set producer on stream '%s'", name, stream);
+                    zsys_error ("%s:\tCan't set producer on stream '%s'", cfg->name, stream);
                 }
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
@@ -437,7 +452,7 @@ void
                 char* pattern = zmsg_popstr (msg);
                 int rv = mlm_client_set_consumer (client, stream, pattern);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", name, stream, pattern);
+                    zsys_error ("%s:\tCan't set consumer on stream '%s', '%s'", cfg->name, stream, pattern);
                 }
                 zstr_free (&pattern);
                 zstr_free (&stream);
@@ -445,7 +460,7 @@ void
             }
             else
             {
-                zsys_info ("unhandled command %s", cmd);
+                zsys_info ("%s:\tUnhandled command %s", cfg->name, cmd);
             }
             zstr_free (&cmd);
             zmsg_destroy (&msg);
@@ -460,14 +475,14 @@ void
         }
         std::string subject = mlm_client_subject (client);
         std::string command = mlm_client_command (client);
-        if ( verbose )
-            zsys_debug("Got message subject='%s', command='%s'", subject.c_str (), command.c_str ());
+        if ( cfg->verbose )
+            zsys_debug("%s:\tGot message subject='%s', command='%s'", cfg->name, subject.c_str (), command.c_str ());
 
         if (command == "STREAM DELIVER") {
             if ( is_bios_proto (zmessage) ) {
                 bios_proto_t *bmsg = bios_proto_decode (&zmessage);
                 if ( bios_proto_id (bmsg) == BIOS_PROTO_ASSET ) {
-                    s_update_topology (bmsg, client);
+                    s_update_topology (bmsg, client, cfg);
                 }
             }
             else {
@@ -482,7 +497,7 @@ void
             if (subject == "ASSETS_IN_CONTAINER")
                 s_handle_subject_assets_in_container (client, zmessage);
             else
-                zsys_error ("unexpected subject '%s'", subject.c_str ());
+                zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
         }
         else {
             // DO NOTHING for now
@@ -490,11 +505,11 @@ void
         zmsg_destroy (&zmessage);
     }
 exit:
+    zsys_info ("%s:\tAsset server ended", cfg->name);
     //TODO:  save info to persistence before I die
     zpoller_destroy (&poller);
     mlm_client_destroy (&client);
-    zstr_free (&name);
-    zsys_debug ("asset server ended");
+    agent_cfg_destroy (&cfg);
 }
 
 //  --------------------------------------------------------------------------
@@ -503,7 +518,10 @@ exit:
 void
 bios_asset_server_test (bool verbose)
 {
-    printf (" * bios_asset_server: ");
+    printf (" * bios_asset_server: \n");
+
+    agent_cfg_t *cfg = agent_cfg_new();
+    agent_cfg_destroy (&cfg);
 // Everything is commented out because: need to have a proper database
 // --> move it out of "make check"
     //  @selftest
@@ -512,9 +530,6 @@ bios_asset_server_test (bool verbose)
     // malamute broker
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     assert ( server != NULL );
-    if (verbose) {
-        zstr_send (server, "VERBOSE");
-    }
 
     zstr_sendx (server, "BIND", endpoint, NULL);
 

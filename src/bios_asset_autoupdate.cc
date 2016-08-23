@@ -48,7 +48,7 @@ autoupdate_update_rc_self(asset_autoupdate_t *self, const std::string &assetName
     zhash_autofree (inventory);
     zhash_autofree (aux);
     zhash_update (aux, "time", (void *)std::to_string (zclock_time () / 1000).c_str ());
-    
+
     auto ifaces = local_addresses();
     haveLAN1 = (ifaces.find ("LAN1") != ifaces.cend ());
     if (haveLAN1) {
@@ -153,7 +153,7 @@ void
 autoupdate_request_all_rcs (asset_autoupdate_t *self)
 {
     if (!self || !self->client) return;
-    
+
     zsys_debug ("requesting RC list");
     zmsg_t *msg = zmsg_new ();
     zmsg_addstr (msg, "GET");
@@ -179,12 +179,11 @@ autoupdate_handle_message (asset_autoupdate_t *self, zmsg_t *message)
 {
     if (!self || !message || !self->client) return;
 
-    zmsg_print (message);
-
     const char *sender = mlm_client_sender (self->client);
     const char *subj = mlm_client_subject (self->client);
     if (streq (sender, "asset-agent")) {
         if (streq (subj, "ASSETS_IN_CONTAINER")) {
+            zmsg_print (message);
             self->rcs.clear ();
             char *okfail = zmsg_popstr (message);
             if (streq (okfail, "OK")) {
