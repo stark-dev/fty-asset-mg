@@ -259,7 +259,7 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg, agent_c
     // send the reply
     rv = mlm_client_sendto (client, mlm_client_sender (client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
     if (rv == -1)
-        zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed");
+        zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
 
 }
 
