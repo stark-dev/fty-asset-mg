@@ -320,25 +320,11 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
         std::function<void(const tntdb::Row&)> cb2 = \
             [ext](const tntdb::Row &row)
             {
-                int foo_i = 0;
-                row ["priority"].get (foo_i);
-                zhash_insert (ext, "priority", (void*) std::to_string (foo_i).c_str());
-                
-                foo_i = 0;
-                row ["id_type"].get (foo_i);
-                zhash_insert (ext, "type", (void*) asset_type2str (foo_i));
-                
-                foo_i = 0;
-                row ["subtype_id"].get (foo_i);
-                zhash_insert (ext, "subtype", (void*) asset_subtype2str (foo_i));
-                
-                foo_i = 0;
-                row ["id_parent"].get (foo_i);
-                zhash_insert (ext, "parent", (void*) std::to_string (foo_i).c_str());
-                
-                std::string foo_s;
-                row ["status"].get (foo_s);
-                zhash_insert (ext, "status", (void*) foo_s.c_str());
+                std::string keytag;
+                row ["keytag"].get (keytag);
+                std::string value;
+                row ["value"].get (value);
+                zhash_insert (ext, keytag.c_str(), (void*) value.c_str());
             };
         // select ext attributes
         rv = select_ext_attributes (asset_id, cb2);
