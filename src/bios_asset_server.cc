@@ -177,7 +177,9 @@ static void
             zmsg_addstr (msg, powerDeviceName.c_str());
         }
     }
-    mlm_client_sendto (client, mlm_client_sender (client), "TOPOLOGY", NULL, 5000, &msg);
+    rv = mlm_client_sendto (client, mlm_client_sender (client), "TOPOLOGY", NULL, 5000, &msg);
+    if ( rv != 0 )
+        zsys_error ("%s:\tTOPOLOGY_POWER: cannot send response message", cfg->name);
 }
 
 static void
