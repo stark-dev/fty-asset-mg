@@ -287,33 +287,33 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
     for ( const auto &asset_name : asset_names ) {
         zhash_t *aux = zhash_new ();
         zhash_autofree (aux);
-        uint32_t asset_id = 0; 
+        uint32_t asset_id = 0;
         std::function<void(const tntdb::Row&)> cb1 = \
             [aux, &asset_id](const tntdb::Row &row)
             {
                 int foo_i = 0;
                 row ["priority"].get (foo_i);
                 zhash_insert (aux, "priority", (void*) std::to_string (foo_i).c_str());
-                
+
                 foo_i = 0;
                 row ["id_type"].get (foo_i);
                 zhash_insert (aux, "type", (void*) asset_type2str (foo_i));
-                
+
                 foo_i = 0;
                 row ["subtype_id"].get (foo_i);
                 zhash_insert (aux, "subtype", (void*) asset_subtype2str (foo_i));
-                
+
                 foo_i = 0;
                 row ["id_parent"].get (foo_i);
                 zhash_insert (aux, "parent", (void*) std::to_string (foo_i).c_str());
-                
+
                 std::string foo_s;
                 row ["status"].get (foo_s);
                 zhash_insert (aux, "status", (void*) foo_s.c_str());
 
                 row ["id"].get (asset_id);
             };
-        
+
         // select basic info
         int rv = select_asset_element_basic (asset_name, cb1);
         if ( rv != 0 ) {
@@ -323,8 +323,8 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
         }
 
         zhash_t *ext = zhash_new ();
-        zhash_autofree (aux);
-        
+        zhash_autofree (ext);
+
         std::function<void(const tntdb::Row&)> cb2 = \
             [ext](const tntdb::Row &row)
             {
@@ -342,7 +342,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
             zhash_destroy (&ext);
             return;
         }
-        
+
         std::function<void(const tntdb::Row&)> cb3 = \
             [aux](const tntdb::Row &row) {
                 for (const auto& name: {"parent_name1", "parent_name2", "parent_name3", "parent_name4", "parent_name5"}) {
@@ -382,7 +382,7 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
         if ( rv != 0 ) {
             zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
             return;
-        } 
+        }
     }
 }
 
