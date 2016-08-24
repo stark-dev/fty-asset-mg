@@ -75,6 +75,7 @@ int main (int argc, char *argv [])
     zstr_sendx (asset_server, "CONNECT", endpoint, NULL);
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONSUMER", "ASSETS", ".*", NULL);
+    zstr_sendx (asset_server, "PRODUCER", "ASSETS", NULL);
     zsock_wait (asset_server);
 
     zactor_t *autoupdate_server = zactor_new (bios_asset_autoupdate_server, (void*) "asset-autoupdate");
