@@ -35,6 +35,13 @@ s_autoupdate_timer (zloop_t *loop, int timer_id, void *output)
     return 0;
 }
 
+static int
+s_repeat_assets_timer (zloop_t *loop, int timer_id, void *output)
+{
+    zstr_send (output, "REPEAT_ALL");
+    return 0;
+}
+
 int main (int argc, char *argv [])
 {
     const char* endpoint = "ipc://@/malamute";
@@ -88,11 +95,14 @@ int main (int argc, char *argv [])
     zstr_sendx (autoupdate_server, "WAKEUP", NULL);
 
     // create regular event for autoupdate agent
-    zloop_t *autoupdate_wakeup = zloop_new();
-    zloop_timer (autoupdate_wakeup, 5*60*1000, 0, s_autoupdate_timer, autoupdate_server);
-    zloop_start (autoupdate_wakeup);
+    zloop_t *loop = zloop_new();
+    // once in 5 minutes
+    zloop_timer (loop, 5*60*1000, 0, s_autoupdate_timer, autoupdate_server);
+    // every hour
+    zloop_timer (loop, 60*60*1000, 0, s_repeat_assets_timer, asset_server);
+    zloop_start (loop);
     // zloop_start takes ownership of this thread! and waits for interrupt!
-    zloop_destroy (&autoupdate_wakeup);
+    zloop_destroy (&loop);
     zactor_destroy (&autoupdate_server);
     zactor_destroy (&asset_server);
     zactor_destroy (&la_server);
