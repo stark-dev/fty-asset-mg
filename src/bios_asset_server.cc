@@ -264,69 +264,50 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg, agent_c
 }
 
 static void
-s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
+s_update_asset (agent_cfg_t *cfg, const std::string &asset_name, mlm_client_t *client)
 {
-    assert (msg);
-    assert (client);
     assert (cfg);
+    zhash_t *aux = zhash_new ();
+    zhash_autofree (aux);
+    uint32_t asset_id = 0;
+    std::function<void(const tntdb::Row&)> cb1 = \
+        [aux, &asset_id](const tntdb::Row &row)
+        {
+            int foo_i = 0;
+            row ["priority"].get (foo_i);
+            zhash_insert (aux, "priority", (void*) std::to_string (foo_i).c_str());
 
-    if ( !streq (bios_proto_operation (msg),BIOS_PROTO_ASSET_OP_UPDATE)) {
-        zsys_info ("%s:\tIgnore: '%s' on '%s'", cfg->name, bios_proto_operation(msg), bios_proto_name (msg));
-        return;
-    }
-    // select assets, that were affected by the change
-    std::set<std::string> empty;
-    std::vector <std::string> asset_names;
-    int rv = select_assets_by_container (bios_proto_name (msg), empty, asset_names);
+            foo_i = 0;
+            row ["id_type"].get (foo_i);
+            zhash_insert (aux, "type", (void*) asset_type2str (foo_i));
+
+            foo_i = 0;
+            row ["subtype_id"].get (foo_i);
+            zhash_insert (aux, "subtype", (void*) asset_subtype2str (foo_i));
+
+            foo_i = 0;
+            row ["id_parent"].get (foo_i);
+            zhash_insert (aux, "parent", (void*) std::to_string (foo_i).c_str());
+
+            std::string foo_s;
+            row ["status"].get (foo_s);
+            zhash_insert (aux, "status", (void*) foo_s.c_str());
+
+            row ["id"].get (asset_id);
+        };
+    // select basic info
+    int rv = select_asset_element_basic (asset_name, cb1);
     if ( rv != 0 ) {
-        zsys_warning ("%s:\tCannot select assets in container '%s'", cfg->name, bios_proto_name (msg));
+        zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
+        zhash_destroy (&aux);
         return;
     }
 
-    // For every asset we need to form new message!
-    for ( const auto &asset_name : asset_names ) {
-        zhash_t *aux = zhash_new ();
-        zhash_autofree (aux);
-        uint32_t asset_id = 0;
-        std::function<void(const tntdb::Row&)> cb1 = \
-            [aux, &asset_id](const tntdb::Row &row)
-            {
-                int foo_i = 0;
-                row ["priority"].get (foo_i);
-                zhash_insert (aux, "priority", (void*) std::to_string (foo_i).c_str());
+    zhash_t *ext = zhash_new ();
+    zhash_autofree (ext);
 
-                foo_i = 0;
-                row ["id_type"].get (foo_i);
-                zhash_insert (aux, "type", (void*) asset_type2str (foo_i));
-
-                foo_i = 0;
-                row ["subtype_id"].get (foo_i);
-                zhash_insert (aux, "subtype", (void*) asset_subtype2str (foo_i));
-
-                foo_i = 0;
-                row ["id_parent"].get (foo_i);
-                zhash_insert (aux, "parent", (void*) std::to_string (foo_i).c_str());
-
-                std::string foo_s;
-                row ["status"].get (foo_s);
-                zhash_insert (aux, "status", (void*) foo_s.c_str());
-
-                row ["id"].get (asset_id);
-            };
-
-        // select basic info
-        int rv = select_asset_element_basic (asset_name, cb1);
-        if ( rv != 0 ) {
-            zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
-            zhash_destroy (&aux);
-            return;
-        }
-
-        zhash_t *ext = zhash_new ();
-        zhash_autofree (ext);
-
-        std::function<void(const tntdb::Row&)> cb2 = \
-            [ext](const tntdb::Row &row)
+    std::function<void(const tntdb::Row&)> cb2 = \
+        [ext](const tntdb::Row &row)
             {
                 std::string keytag;
                 row ["keytag"].get (keytag);
@@ -383,6 +364,60 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
             zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
             return;
         }
+
+}
+
+static void
+s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
+{
+    assert (msg);
+    assert (client);
+    assert (cfg);
+
+    if ( !streq (bios_proto_operation (msg),BIOS_PROTO_ASSET_OP_UPDATE)) {
+        zsys_info ("%s:\tIgnore: '%s' on '%s'", cfg->name, bios_proto_operation(msg), bios_proto_name (msg));
+        return;
+    }
+    // select assets, that were affected by the change
+    std::set<std::string> empty;
+    std::vector <std::string> asset_names;
+    int rv = select_assets_by_container (bios_proto_name (msg), empty, asset_names);
+    if ( rv != 0 ) {
+        zsys_warning ("%s:\tCannot select assets in container '%s'", cfg->name, bios_proto_name (msg));
+        return;
+    }
+
+    // For every asset we need to form new message!
+    for ( const auto &asset_name : asset_names ) {
+        s_update_asset (cfg, asset_name, client);
+    }
+}
+
+static void
+s_repeat_all (mlm_client_t *client, agent_cfg_t *cfg)
+{
+    assert (client);
+    assert (cfg);
+
+    std::vector <std::string> asset_names;
+    std::function<void(const tntdb::Row&)> cb = \
+        [&asset_names](const tntdb::Row &row)
+        {
+            std::string foo;
+            row ["name"].get (foo);
+            asset_names.push_back (foo);
+        };
+
+    // select all assets
+    int rv = select_assets (cb);
+    if ( rv != 0 ) {
+        zsys_warning ("%s:\tCannot list all assets", cfg->name);
+        return;
+    }
+
+    // For every asset we need to form new message!
+    for ( const auto &asset_name : asset_names ) {
+        s_update_asset (cfg, asset_name, client);
     }
 }
 
@@ -465,6 +500,14 @@ void
                 zstr_free (&pattern);
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
+            }
+            else
+            if (streq (cmd, "REPEAT_ALL")) {
+                if ( cfg->verbose )
+                    zsys_debug ("%s:\tREPEAT_ALL start", cfg->name);
+                s_repeat_all (client, cfg);
+                if ( cfg->verbose )
+                    zsys_debug ("%s:\tREPEAT_ALL end", cfg->name);
             }
             else
             {
