@@ -69,6 +69,12 @@ AGENT_ASSET_EXPORT int
         uint32_t id,
         std::function<void(const tntdb::Row&)>& cb);
 
+AGENT_ASSET_EXPORT int
+    select_assets (
+            std::function<void(
+                const tntdb::Row&
+                )>& cb);
+
 //  Self test of this class
 AGENT_ASSET_EXPORT void
     total_power_test (bool verbose);

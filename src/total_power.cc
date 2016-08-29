@@ -915,6 +915,49 @@ int
     }
 }
 
+int
+    select_assets (
+            std::function<void(
+                const tntdb::Row&
+                )>& cb)
+{
+    tntdb::Connection conn;
+    try {
+        conn = tntdb::connectCached (url);
+    }
+    catch ( const std::exception &e) {
+        zsys_error ("DB: cannot connect, %s", e.what());
+        return -1;
+    }
+    try{
+        tntdb::Statement st = conn.prepareCached(
+            " SELECT "
+            "   v.name, "
+            "   v.id,  "
+            "   v.id_type,  "
+            "   v.id_subtype,  "
+            "   v.id_parent,  "
+            "   v.parent_name,  "
+            "   v.status,  "
+            "   v.priority,  "
+            "   v.asset_tag  "
+            " FROM v_bios_asset_element v "
+            );
+
+        tntdb::Result res = st.select ();
+        zsys_debug("[v_bios_asset_element]: were selected %zu rows", res.size());
+
+        for (const auto& r: res) {
+            cb(r);
+        }
+        return 0;
+    }
+    catch (const std::exception &e) {
+        zsys_error ("[v_bios_asset_element]: error '%s'", e.what());
+        return -1;
+    }
+}
+
 void
 total_power_test (bool verbose)
 {
