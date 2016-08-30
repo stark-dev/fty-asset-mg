@@ -246,7 +246,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
-    zsys_debug ("asset autoupdate started");
+    zsys_info ("%s:\tstarted", self->name);
 
     // ask for list of RCs
     //autoupdate_request_all_rcs (&self);

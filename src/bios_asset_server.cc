@@ -115,14 +115,8 @@
 typedef struct _agent_cfg_t {
     bool verbose;
     char *name;
+    mlm_client_t *client;
 } agent_cfg_t;
-
-static agent_cfg_t*
-    agent_cfg_new (void)
-{
-    agent_cfg_t *self = (agent_cfg_t *) zmalloc (sizeof(agent_cfg_t));
-    return self;
-}
 
 static void
     agent_cfg_destroy (agent_cfg_t **self_p)
@@ -131,10 +125,29 @@ static void
     agent_cfg_t *self = *self_p;
     if ( self ) {
         zstr_free (&self->name);
+        mlm_client_destroy (&self->client);
         free (self);
         *self_p = NULL;
     }
 }
+
+static agent_cfg_t*
+    agent_cfg_new (void)
+{
+    agent_cfg_t *self = (agent_cfg_t *) zmalloc (sizeof(agent_cfg_t));
+    if ( self ) {
+        self->client = mlm_client_new ();
+        if (self->client) {
+            self->verbose = false;
+        }
+        else {
+            agent_cfg_destroy (&self);
+        }
+    }
+    return self;
+}
+
+
 
 // ============================================================
 //         Functionality for TOPOLOGY processing
@@ -426,16 +439,12 @@ void
 {
     assert (pipe);
     assert (args);
-    agent_cfg_t *cfg = agent_cfg_new();
+    agent_cfg_t *cfg = agent_cfg_new ();
     assert (cfg);
-    cfg->verbose = false;
     cfg->name = strdup ((char*) args);
     assert (cfg->name);
 
-    mlm_client_t *client = mlm_client_new ();
-    assert (client);
-
-    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(client), NULL);
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(cfg->client), NULL);
     assert (poller);
 
     // Signal need to be send as it is required by "actor_new"
@@ -472,7 +481,7 @@ void
             else
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
-                int rv = mlm_client_connect (client, endpoint, 1000, cfg->name);
+                int rv = mlm_client_connect (cfg->client, endpoint, 1000, cfg->name);
                 if (rv == -1) {
                     zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", cfg->name, endpoint);
                 }
@@ -482,7 +491,7 @@ void
             else
             if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
-                int rv = mlm_client_set_producer (client, stream);
+                int rv = mlm_client_set_producer (cfg->client, stream);
                 if (rv == -1) {
                     zsys_error ("%s:\tCan't set producer on stream '%s'", cfg->name, stream);
                 }
@@ -493,7 +502,7 @@ void
             if (streq (cmd, "CONSUMER")) {
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
-                int rv = mlm_client_set_consumer (client, stream, pattern);
+                int rv = mlm_client_set_consumer (cfg->client, stream, pattern);
                 if (rv == -1) {
                     zsys_error ("%s:\tCan't set consumer on stream '%s', '%s'", cfg->name, stream, pattern);
                 }
@@ -505,7 +514,7 @@ void
             if (streq (cmd, "REPEAT_ALL")) {
                 if ( cfg->verbose )
                     zsys_debug ("%s:\tREPEAT_ALL start", cfg->name);
-                s_repeat_all (client, cfg);
+                s_repeat_all (cfg->client, cfg);
                 if ( cfg->verbose )
                     zsys_debug ("%s:\tREPEAT_ALL end", cfg->name);
             }
@@ -520,12 +529,12 @@ void
 
         // This agent is a reactive agent, it reacts only on messages
         // and doesn't do anything if there are no messages
-        zmsg_t *zmessage = mlm_client_recv (client);
+        zmsg_t *zmessage = mlm_client_recv (cfg->client);
         if ( zmessage == NULL ) {
             continue;
         }
-        std::string subject = mlm_client_subject (client);
-        std::string command = mlm_client_command (client);
+        std::string subject = mlm_client_subject (cfg->client);
+        std::string command = mlm_client_command (cfg->client);
         if ( cfg->verbose )
             zsys_debug("%s:\tGot message subject='%s', command='%s'", cfg->name, subject.c_str (), command.c_str ());
 
@@ -533,7 +542,7 @@ void
             if ( is_bios_proto (zmessage) ) {
                 bios_proto_t *bmsg = bios_proto_decode (&zmessage);
                 if ( bios_proto_id (bmsg) == BIOS_PROTO_ASSET ) {
-                    s_update_topology (bmsg, client, cfg);
+                    s_update_topology (bmsg, cfg->client, cfg);
                 }
             }
             else {
@@ -543,10 +552,10 @@ void
         else
         if (command == "MAILBOX DELIVER") {
             if (subject == "TOPOLOGY")
-                s_handle_subject_topology (client, zmessage, cfg);
+                s_handle_subject_topology (cfg->client, zmessage, cfg);
             else
             if (subject == "ASSETS_IN_CONTAINER")
-                s_handle_subject_assets_in_container (client, zmessage, cfg);
+                s_handle_subject_assets_in_container (cfg->client, zmessage, cfg);
             else
                 zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
         }
@@ -559,7 +568,6 @@ exit:
     zsys_info ("%s:\tAsset server ended", cfg->name);
     //TODO:  save info to persistence before I die
     zpoller_destroy (&poller);
-    mlm_client_destroy (&client);
     agent_cfg_destroy (&cfg);
 }
 
