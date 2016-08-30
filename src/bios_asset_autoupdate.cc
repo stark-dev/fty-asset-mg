@@ -237,10 +237,12 @@ void
 bios_asset_autoupdate_server (zsock_t *pipe, void *args)
 {
     asset_autoupdate_t *self = asset_autoupdate_new ();
+    assert (self);
     self->name = strdup ((char*) args);
     assert (self->name);
 
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(self->client), NULL);
+    assert (poller);
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
