@@ -268,7 +268,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
             }
 
             if (streq (cmd, "$TERM")) {
-                if ( !cfg->verbose ) // ! is here intentionally, to get rid of duplication information
+                if ( !self->verbose ) // ! is here intentionally, to get rid of duplication information
                     zsys_info ("%s:\tGot $TERM", self->name);
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
