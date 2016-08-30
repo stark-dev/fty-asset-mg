@@ -146,34 +146,38 @@ autoupdate_update_rc_self(asset_autoupdate_t *self, const std::string &assetName
 void
 autoupdate_update_rc_information(asset_autoupdate_t *self)
 {
-    if (!self || !self->client) return;
-
+    assert (self);
+    
+    if (self->rcs.empty() )
+        return;
     if (self->rcs.size() == 1) {
         // there is only one rc, must be me
         autoupdate_update_rc_self (self, self->rcs[0]);
         return;
     }
-    if (self->rcs.size() > 1) {
-        // there are more rc, test if one of my dns names == rc name
-        // resolve dns names of all IP addresses on all interfaces
-        // compare resolved name with list of RCs
-        for (auto interface: local_addresses ()) {
-            for (auto ip: interface.second) {
-                std::string name = ip_to_name (ip.c_str());
-                if (! name.empty ()) {
-                    std::string hostname = name;
-                    unsigned int i = hostname.find ('.');
-                    if (i != std::string::npos) {
-                        hostname.resize (i);
-                    }
-                    zsys_debug ("ip %s, dns name '%s'", ip.c_str (), name.c_str ());
-                    for (auto rc: self->rcs) {
-                        if (icase_streq (rc.c_str (), hostname.c_str ()) || icase_streq (rc.c_str (), name.c_str ())) {
-                            // asset name == hostname this is me
-                            autoupdate_update_rc_self (self, rc);
-                            return;
-                        }
-                    }
+    // so self->rcs.size() > 1
+    // there are more rc, test if one of my dns names == rc name
+    // resolve dns names of all IP addresses on all interfaces
+    // compare resolved name with list of RCs
+    for (const auto &interface: local_addresses ()) {
+        for (const auto &ip: interface.second) {
+            std::string name = ip_to_name (ip.c_str());
+            if ( name.empty () ) {
+                continue;
+            }
+
+            std::string hostname = name;
+            unsigned int i = hostname.find ('.');
+            if (i != std::string::npos) {
+                hostname.resize (i);
+            }
+            zsys_info ("%s:\tip='%s', dns_name='%s'", ip.c_str (), name.c_str ());
+            for (const auto &rc: self->rcs) {
+                if ( icase_streq (rc.c_str (), hostname.c_str ()) ||
+                     icase_streq (rc.c_str (), name.c_str ())) {
+                    // asset name == hostname this is me
+                    autoupdate_update_rc_self (self, rc);
+                    return;
                 }
             }
         }
@@ -183,16 +187,17 @@ autoupdate_update_rc_information(asset_autoupdate_t *self)
 void
 autoupdate_request_all_rcs (asset_autoupdate_t *self)
 {
-    if (!self ) return;
+    assert (self);
 
-    zsys_debug ("requesting RC list");
+    if ( self->verbose)
+        zsys_debug ("%s:\tRequest RC list", self->name);
     zmsg_t *msg = zmsg_new ();
     zmsg_addstr (msg, "GET");
     zmsg_addstr (msg, "");
     zmsg_addstr (msg, "rack controller");
     int rv = mlm_client_sendto (self->client, "asset-agent", "ASSETS_IN_CONTAINER", NULL, 5000, &msg);
     if (rv != 0) {
-        zsys_error ("sending request for list of RCs failed");
+        zsys_error ("%s:\tRequest RC list failed", self->name);
         zmsg_destroy (&msg);
     }
 }
@@ -200,8 +205,7 @@ autoupdate_request_all_rcs (asset_autoupdate_t *self)
 void
 autoupdate_update (asset_autoupdate_t *self)
 {
-    if (!self ) return;
-
+    assert (self);
     autoupdate_update_rc_information (self);
 }
 
@@ -214,10 +218,13 @@ autoupdate_handle_message (asset_autoupdate_t *self, zmsg_t *message)
     const char *subj = mlm_client_subject (self->client);
     if (streq (sender, "asset-agent")) {
         if (streq (subj, "ASSETS_IN_CONTAINER")) {
-            zmsg_print (message);
+            if ( self->verbose ) {
+                zsys_debug ("%s:\tGot reply with RC:", self->name);
+                zmsg_print (message);
+            }
             self->rcs.clear ();
             char *okfail = zmsg_popstr (message);
-            if (streq (okfail, "OK")) {
+            if ( okfail && streq (okfail, "OK")) {
                 char *rc = zmsg_popstr(message);
                 while (rc) {
                     self->rcs.push_back(rc);
@@ -251,8 +258,6 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
     zsock_signal (pipe, 0);
     zsys_info ("%s:\tStarted", self->name);
 
-    // ask for list of RCs
-    //autoupdate_request_all_rcs (&self);
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, -1);
         if ( !which ) {
