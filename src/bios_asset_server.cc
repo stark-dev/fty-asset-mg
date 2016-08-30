@@ -435,10 +435,11 @@ s_repeat_all (mlm_client_t *client, agent_cfg_t *cfg)
 }
 
 void
-    bios_asset_server (zsock_t *pipe, void *args)
+bios_asset_server (zsock_t *pipe, void *args)
 {
     assert (pipe);
     assert (args);
+
     agent_cfg_t *cfg = agent_cfg_new ();
     assert (cfg);
     cfg->name = strdup ((char*) args);
@@ -449,7 +450,7 @@ void
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
-    zsys_info ("%s:\tAsset server started", cfg->name);
+    zsys_info ("%s:\tStarted", cfg->name);
 
     while (!zsys_interrupted) {
 
@@ -565,7 +566,7 @@ void
         zmsg_destroy (&zmessage);
     }
 exit:
-    zsys_info ("%s:\tAsset server ended", cfg->name);
+    zsys_info ("%s:\tended", cfg->name);
     //TODO:  save info to persistence before I die
     zpoller_destroy (&poller);
     agent_cfg_destroy (&cfg);

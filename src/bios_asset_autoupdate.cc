@@ -236,6 +236,9 @@ autoupdate_handle_message (asset_autoupdate_t *self, zmsg_t *message)
 void
 bios_asset_autoupdate_server (zsock_t *pipe, void *args)
 {
+    assert (pipe);
+    assert (args);
+
     asset_autoupdate_t *self = asset_autoupdate_new ();
     assert (self);
     self->name = strdup ((char*) args);
@@ -246,7 +249,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
-    zsys_info ("%s:\tstarted", self->name);
+    zsys_info ("%s:\tStarted", self->name);
 
     // ask for list of RCs
     //autoupdate_request_all_rcs (&self);
@@ -261,11 +264,12 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
             if ( self->verbose ) {
-                zsys_debug ("actor command=%s", cmd);
+                zsys_debug ("%s:\tActor command=%s", self->name, cmd);
             }
 
             if (streq (cmd, "$TERM")) {
-                zsys_info ("Got $TERM");
+                if ( !cfg->verbose ) // ! is here intentionally, to get rid of duplication information
+                    zsys_info ("%s:\tGot $TERM", self->name);
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
@@ -279,7 +283,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
                 char* endpoint = zmsg_popstr (msg);
                 int rv = mlm_client_connect (self->client, endpoint, 1000, self->name);
                 if (rv == -1) {
-                    zsys_error ("%s: can't connect to malamute endpoint '%s'", self->name, endpoint);
+                    zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", self->name, endpoint);
                 }
                 zstr_free (&endpoint);
                 zsock_signal (pipe, 0);
@@ -289,7 +293,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
                 char* stream = zmsg_popstr (msg);
                 int rv = mlm_client_set_producer (self->client, stream);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set producer on stream '%s'", self->name, stream);
+                    zsys_error ("%s:\tCan't set producer on stream '%s'", self->name, stream);
                 }
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
@@ -300,7 +304,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
                 char* pattern = zmsg_popstr (msg);
                 int rv = mlm_client_set_consumer (self->client, stream, pattern);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", self->name, stream, pattern);
+                    zsys_error ("%s:\tCan't set consumer on stream '%s', '%s'", self->name, stream, pattern);
                 }
                 zstr_free (&pattern);
                 zstr_free (&stream);
@@ -312,7 +316,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
             }
             else
             {
-                zsys_info ("unhandled command %s", cmd);
+                zsys_info ("%s:\tUnhandled command %s", self->name, cmd);
             }
             zstr_free (&cmd);
             zmsg_destroy (&msg);
@@ -325,9 +329,9 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
         }
     }
  exit:
+    zsys_info ("%s:\tended", self->name);
     zpoller_destroy (&poller);
     asset_autoupdate_destroy (&self);
-    zsys_debug ("asset autoupdate ended");
 }
 
 void
