@@ -32,7 +32,38 @@ typedef struct {
     mlm_client_t *client = NULL;
     char *name = NULL;
     std::vector<std::string> rcs;
+    bool verbose;
 } asset_autoupdate_t;
+
+static void
+asset_autoupdate_destroy (asset_autoupdate_t **self_p)
+{
+    assert (self_p);
+    asset_autoupdate_t *self = *self_p;
+    if ( self ) {
+        zstr_free (&self->name);
+        mlm_client_destroy (&self->client);
+        free (self);
+        *self_p = NULL;
+    }
+}
+
+static asset_autoupdate_t*
+asset_autoupdate_new (void)
+{
+    asset_autoupdate_t *self = (asset_autoupdate_t *) zmalloc (sizeof(asset_autoupdate_t));
+    if ( self ) {
+        self->client = mlm_client_new ();
+        if (self->client) {
+            self->verbose = false;
+        }
+        else {
+            asset_autoupdate_destroy (&self);
+        }
+    }
+    return self;
+}
+
 
 #define is_ipv6(X) (X.find(':') != std::string::npos)
 #define icase_streq(X,Y) (strcasecmp ((X),(Y)) == 0)
@@ -152,7 +183,7 @@ autoupdate_update_rc_information(asset_autoupdate_t *self)
 void
 autoupdate_request_all_rcs (asset_autoupdate_t *self)
 {
-    if (!self || !self->client) return;
+    if (!self ) return;
 
     zsys_debug ("requesting RC list");
     zmsg_t *msg = zmsg_new ();
@@ -169,7 +200,7 @@ autoupdate_request_all_rcs (asset_autoupdate_t *self)
 void
 autoupdate_update (asset_autoupdate_t *self)
 {
-    if (!self || !self->client) return;
+    if (!self ) return;
 
     autoupdate_update_rc_information (self);
 }
@@ -177,7 +208,7 @@ autoupdate_update (asset_autoupdate_t *self)
 void
 autoupdate_handle_message (asset_autoupdate_t *self, zmsg_t *message)
 {
-    if (!self || !message || !self->client) return;
+    if (!self || !message ) return;
 
     const char *sender = mlm_client_sender (self->client);
     const char *subj = mlm_client_subject (self->client);
@@ -205,17 +236,15 @@ autoupdate_handle_message (asset_autoupdate_t *self, zmsg_t *message)
 void
 bios_asset_autoupdate_server (zsock_t *pipe, void *args)
 {
-    zsys_debug ("asset autoupdate started");
-    bool verbose = false;
-    asset_autoupdate_t self;
+    asset_autoupdate_t *self = asset_autoupdate_new ();
+    self->name = strdup ((char*) args);
+    assert (self->name);
 
-    self.name = strdup ((char*) args);
-    self.client = mlm_client_new ();
-
-    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(self.client), NULL);
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(self->client), NULL);
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
+    zsys_debug ("asset autoupdate started");
 
     // ask for list of RCs
     //autoupdate_request_all_rcs (&self);
@@ -229,7 +258,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
         if (which == pipe) {
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
-            if ( verbose ) {
+            if ( self->verbose ) {
                 zsys_debug ("actor command=%s", cmd);
             }
 
@@ -241,14 +270,14 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
             }
             else
             if (streq (cmd, "VERBOSE")) {
-                verbose = true;
+                self->verbose = true;
             }
             else
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
-                int rv = mlm_client_connect (self.client, endpoint, 1000, self.name);
+                int rv = mlm_client_connect (self->client, endpoint, 1000, self->name);
                 if (rv == -1) {
-                    zsys_error ("%s: can't connect to malamute endpoint '%s'", self.name, endpoint);
+                    zsys_error ("%s: can't connect to malamute endpoint '%s'", self->name, endpoint);
                 }
                 zstr_free (&endpoint);
                 zsock_signal (pipe, 0);
@@ -256,9 +285,9 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
             else
             if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
-                int rv = mlm_client_set_producer (self.client, stream);
+                int rv = mlm_client_set_producer (self->client, stream);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set producer on stream '%s'", self.name, stream);
+                    zsys_error ("%s: can't set producer on stream '%s'", self->name, stream);
                 }
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
@@ -267,9 +296,9 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
             if (streq (cmd, "CONSUMER")) {
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
-                int rv = mlm_client_set_consumer (self.client, stream, pattern);
+                int rv = mlm_client_set_consumer (self->client, stream, pattern);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", self.name, stream, pattern);
+                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", self->name, stream, pattern);
                 }
                 zstr_free (&pattern);
                 zstr_free (&stream);
@@ -277,7 +306,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
             }
             else
             if (streq (cmd, "WAKEUP")) {
-                autoupdate_request_all_rcs (&self);
+                autoupdate_request_all_rcs (self);
             }
             else
             {
@@ -287,16 +316,15 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
             zmsg_destroy (&msg);
             continue;
         }
-        if (which == mlm_client_msgpipe(self.client)) {
-            zmsg_t *zmessage = mlm_client_recv (self.client);
-            autoupdate_handle_message (&self, zmessage);
+        if (which == mlm_client_msgpipe(self->client)) {
+            zmsg_t *zmessage = mlm_client_recv (self->client);
+            autoupdate_handle_message (self, zmessage);
             zmsg_destroy (&zmessage);
         }
     }
  exit:
     zpoller_destroy (&poller);
-    mlm_client_destroy (&self.client);
-    zstr_free (&self.name);
+    asset_autoupdate_destroy (&self);
     zsys_debug ("asset autoupdate ended");
 }
 
