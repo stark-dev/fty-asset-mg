@@ -315,56 +315,56 @@ s_update_asset (agent_cfg_t *cfg, const std::string &asset_name, mlm_client_t *c
                 row ["value"].get (value);
                 zhash_insert (ext, keytag.c_str(), (void*) value.c_str());
             };
-        // select ext attributes
-        rv = select_ext_attributes (asset_id, cb2);
-        if ( rv != 0 ) {
-            zsys_warning ("%s:\tCannot select ext attributes for '%s'", cfg->name, asset_name.c_str());
-            zhash_destroy (&aux);
-            zhash_destroy (&ext);
-            return;
-        }
-
-        std::function<void(const tntdb::Row&)> cb3 = \
-            [aux](const tntdb::Row &row) {
-                for (const auto& name: {"parent_name1", "parent_name2", "parent_name3", "parent_name4", "parent_name5"}) {
-                    std::string foo;
-                    row [name].get (foo);
-                    std::string hash_name = name;
-                    //                11 == strlen ("parent_name")
-                    hash_name.insert (11, 1, '.');
-                    if (!foo.empty ())
-                        zhash_insert (aux, hash_name.c_str (), (void*) foo.c_str ());
-                }
-            };
-        // select "physical topology"
-        rv = select_asset_element_super_parent (asset_id, cb3);
-        if (rv != 0) {
-            zhash_destroy (&aux);
-            zhash_destroy (&ext);
-            zsys_error ("%s:\tselect_asset_element_super_parent ('%s') failed.", cfg->name, asset_name.c_str());
-            return;
-        }
-        // other information like, groups, power chain for now are not included in the message
-        std::string subject;
-        subject = (const char*) zhash_lookup (aux, "type");
-        subject.append (".");
-        subject.append ((const char*)zhash_lookup (aux, "subtype"));
-        subject.append ("@");
-        subject.append (asset_name);
-
-        zmsg_t *msg = bios_proto_encode_asset (
-                aux,
-                asset_name.c_str(),
-                BIOS_PROTO_ASSET_OP_UPDATE,
-                ext);
-        rv = mlm_client_send (client, subject.c_str(), &msg);
-        zhash_destroy (&ext);
+    // select ext attributes
+    rv = select_ext_attributes (asset_id, cb2);
+    if ( rv != 0 ) {
+        zsys_warning ("%s:\tCannot select ext attributes for '%s'", cfg->name, asset_name.c_str());
         zhash_destroy (&aux);
-        if ( rv != 0 ) {
-            zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
-            return;
-        }
+        zhash_destroy (&ext);
+        return;
+    }
 
+    std::function<void(const tntdb::Row&)> cb3 = \
+        [aux](const tntdb::Row &row)
+        {
+            for (const auto& name: {"parent_name1", "parent_name2", "parent_name3", "parent_name4", "parent_name5"}) {
+                std::string foo;
+                row [name].get (foo);
+                std::string hash_name = name;
+                //                11 == strlen ("parent_name")
+                hash_name.insert (11, 1, '.');
+                if (!foo.empty ())
+                    zhash_insert (aux, hash_name.c_str (), (void*) foo.c_str ());
+            }
+        };
+    // select "physical topology"
+    rv = select_asset_element_super_parent (asset_id, cb3);
+    if (rv != 0) {
+        zhash_destroy (&aux);
+        zhash_destroy (&ext);
+        zsys_error ("%s:\tselect_asset_element_super_parent ('%s') failed.", cfg->name, asset_name.c_str());
+        return;
+    }
+    // other information like, groups, power chain for now are not included in the message
+    std::string subject;
+    subject = (const char*) zhash_lookup (aux, "type");
+    subject.append (".");
+    subject.append ((const char*)zhash_lookup (aux, "subtype"));
+    subject.append ("@");
+    subject.append (asset_name);
+
+    zmsg_t *msg = bios_proto_encode_asset (
+            aux,
+            asset_name.c_str(),
+            BIOS_PROTO_ASSET_OP_UPDATE,
+            ext);
+    rv = mlm_client_send (client, subject.c_str(), &msg);
+    zhash_destroy (&ext);
+    zhash_destroy (&aux);
+    if ( rv != 0 ) {
+        zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
+        return;
+    }
 }
 
 static void
