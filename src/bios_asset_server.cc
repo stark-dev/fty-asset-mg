@@ -154,9 +154,8 @@ static agent_cfg_t*
 // ============================================================
 static void
     s_processTopology(
-        mlm_client_t *client,
-        const std::string &assetName,
-        agent_cfg_t *cfg)
+        agent_cfg_t *cfg,
+        const std::string &assetName)
 {
     // result of power topology - list of power device names
     std::vector<std::string> powerDevices{};
@@ -190,21 +189,22 @@ static void
             zmsg_addstr (msg, powerDeviceName.c_str());
         }
     }
-    rv = mlm_client_sendto (client, mlm_client_sender (client), "TOPOLOGY", NULL, 5000, &msg);
+    rv = mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "TOPOLOGY", NULL, 5000, &msg);
     if ( rv != 0 )
         zsys_error ("%s:\tTOPOLOGY_POWER: cannot send response message", cfg->name);
 }
 
 static void
-s_handle_subject_topology (mlm_client_t *client, zmsg_t *zmessage, agent_cfg_t *cfg)
+    s_handle_subject_topology(
+        agent_cfg_t *cfg,
+        zmsg_t *zmessage)
 {
-    assert (client);
     assert (zmessage);
     assert (cfg);
     char* command = zmsg_popstr (zmessage);
     if ( streq (command, "TOPOLOGY_POWER") ) {
         char* asset_name = zmsg_popstr (zmessage);
-        s_processTopology (client, asset_name, cfg);
+        s_processTopology (cfg, asset_name);
         zstr_free (&asset_name);
     }
     else
@@ -213,9 +213,10 @@ s_handle_subject_topology (mlm_client_t *client, zmsg_t *zmessage, agent_cfg_t *
 }
 
 static void
-s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg, agent_cfg_t *cfg)
+    s_handle_subject_assets_in_container (
+        agent_cfg_t *cfg,
+        zmsg_t *msg)
 {
-    assert (client);
     assert (msg);
     assert (cfg);
     if (zmsg_size (msg) < 2) {
@@ -270,14 +271,16 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg, agent_c
     }
 
     // send the reply
-    rv = mlm_client_sendto (client, mlm_client_sender (client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
+    rv = mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
     if (rv == -1)
         zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
 
 }
 
 static void
-s_update_asset (agent_cfg_t *cfg, const std::string &asset_name, mlm_client_t *client)
+    s_update_asset (
+        agent_cfg_t *cfg,
+        const std::string &asset_name)
 {
     assert (cfg);
     zhash_t *aux = zhash_new ();
@@ -371,7 +374,7 @@ s_update_asset (agent_cfg_t *cfg, const std::string &asset_name, mlm_client_t *c
             asset_name.c_str(),
             BIOS_PROTO_ASSET_OP_UPDATE,
             ext);
-    rv = mlm_client_send (client, subject.c_str(), &msg);
+    rv = mlm_client_send (cfg->client, subject.c_str(), &msg);
     zhash_destroy (&ext);
     zhash_destroy (&aux);
     if ( rv != 0 ) {
@@ -381,10 +384,11 @@ s_update_asset (agent_cfg_t *cfg, const std::string &asset_name, mlm_client_t *c
 }
 
 static void
-s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
+    s_update_topology(
+        agent_cfg_t *cfg,
+        bios_proto_t *msg)
 {
     assert (msg);
-    assert (client);
     assert (cfg);
 
     if ( !streq (bios_proto_operation (msg),BIOS_PROTO_ASSET_OP_UPDATE)) {
@@ -402,14 +406,13 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
 
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
-        s_update_asset (cfg, asset_name, client);
+        s_update_asset (cfg, asset_name);
     }
 }
 
 static void
-s_repeat_all (mlm_client_t *client, agent_cfg_t *cfg)
+s_repeat_all (agent_cfg_t *cfg)
 {
-    assert (client);
     assert (cfg);
 
     std::vector <std::string> asset_names;
@@ -430,7 +433,7 @@ s_repeat_all (mlm_client_t *client, agent_cfg_t *cfg)
 
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
-        s_update_asset (cfg, asset_name, client);
+        s_update_asset (cfg, asset_name);
     }
 }
 
@@ -515,7 +518,7 @@ bios_asset_server (zsock_t *pipe, void *args)
             if (streq (cmd, "REPEAT_ALL")) {
                 if ( cfg->verbose )
                     zsys_debug ("%s:\tREPEAT_ALL start", cfg->name);
-                s_repeat_all (cfg->client, cfg);
+                s_repeat_all (cfg);
                 if ( cfg->verbose )
                     zsys_debug ("%s:\tREPEAT_ALL end", cfg->name);
             }
@@ -543,7 +546,7 @@ bios_asset_server (zsock_t *pipe, void *args)
             if ( is_bios_proto (zmessage) ) {
                 bios_proto_t *bmsg = bios_proto_decode (&zmessage);
                 if ( bios_proto_id (bmsg) == BIOS_PROTO_ASSET ) {
-                    s_update_topology (bmsg, cfg->client, cfg);
+                    s_update_topology (cfg, bmsg);
                 }
             }
             else {
@@ -553,10 +556,10 @@ bios_asset_server (zsock_t *pipe, void *args)
         else
         if (command == "MAILBOX DELIVER") {
             if (subject == "TOPOLOGY")
-                s_handle_subject_topology (cfg->client, zmessage, cfg);
+                s_handle_subject_topology (cfg, zmessage);
             else
             if (subject == "ASSETS_IN_CONTAINER")
-                s_handle_subject_assets_in_container (cfg->client, zmessage, cfg);
+                s_handle_subject_assets_in_container (cfg, zmessage);
             else
                 zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
         }
