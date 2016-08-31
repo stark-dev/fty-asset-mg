@@ -146,34 +146,38 @@ autoupdate_update_rc_self(asset_autoupdate_t *self, const std::string &assetName
 void
 autoupdate_update_rc_information(asset_autoupdate_t *self)
 {
-    if (!self || !self->client) return;
-
+    assert (self);
+    
+    if (self->rcs.empty() )
+        return;
     if (self->rcs.size() == 1) {
         // there is only one rc, must be me
         autoupdate_update_rc_self (self, self->rcs[0]);
         return;
     }
-    if (self->rcs.size() > 1) {
-        // there are more rc, test if one of my dns names == rc name
-        // resolve dns names of all IP addresses on all interfaces
-        // compare resolved name with list of RCs
-        for (auto interface: local_addresses ()) {
-            for (auto ip: interface.second) {
-                std::string name = ip_to_name (ip.c_str());
-                if (! name.empty ()) {
-                    std::string hostname = name;
-                    unsigned int i = hostname.find ('.');
-                    if (i != std::string::npos) {
-                        hostname.resize (i);
-                    }
-                    zsys_debug ("ip %s, dns name '%s'", ip.c_str (), name.c_str ());
-                    for (auto rc: self->rcs) {
-                        if (icase_streq (rc.c_str (), hostname.c_str ()) || icase_streq (rc.c_str (), name.c_str ())) {
-                            // asset name == hostname this is me
-                            autoupdate_update_rc_self (self, rc);
-                            return;
-                        }
-                    }
+    // so self->rcs.size() > 1
+    // there are more rc, test if one of my dns names == rc name
+    // resolve dns names of all IP addresses on all interfaces
+    // compare resolved name with list of RCs
+    for (const auto &interface: local_addresses ()) {
+        for (const auto &ip: interface.second) {
+            std::string name = ip_to_name (ip.c_str());
+            if ( name.empty () ) {
+                continue;
+            }
+
+            std::string hostname = name;
+            unsigned int i = hostname.find ('.');
+            if (i != std::string::npos) {
+                hostname.resize (i);
+            }
+            zsys_info ("%s:\tip='%s', dns_name='%s'", ip.c_str (), name.c_str ());
+            for (const auto &rc: self->rcs) {
+                if ( icase_streq (rc.c_str (), hostname.c_str ()) ||
+                     icase_streq (rc.c_str (), name.c_str ())) {
+                    // asset name == hostname this is me
+                    autoupdate_update_rc_self (self, rc);
+                    return;
                 }
             }
         }
@@ -183,16 +187,17 @@ autoupdate_update_rc_information(asset_autoupdate_t *self)
 void
 autoupdate_request_all_rcs (asset_autoupdate_t *self)
 {
-    if (!self ) return;
+    assert (self);
 
-    zsys_debug ("requesting RC list");
+    if ( self->verbose)
+        zsys_debug ("%s:\tRequest RC list", self->name);
     zmsg_t *msg = zmsg_new ();
     zmsg_addstr (msg, "GET");
     zmsg_addstr (msg, "");
     zmsg_addstr (msg, "rack controller");
     int rv = mlm_client_sendto (self->client, "asset-agent", "ASSETS_IN_CONTAINER", NULL, 5000, &msg);
     if (rv != 0) {
-        zsys_error ("sending request for list of RCs failed");
+        zsys_error ("%s:\tRequest RC list failed", self->name);
         zmsg_destroy (&msg);
     }
 }
@@ -200,8 +205,7 @@ autoupdate_request_all_rcs (asset_autoupdate_t *self)
 void
 autoupdate_update (asset_autoupdate_t *self)
 {
-    if (!self ) return;
-
+    assert (self);
     autoupdate_update_rc_information (self);
 }
 
@@ -214,10 +218,13 @@ autoupdate_handle_message (asset_autoupdate_t *self, zmsg_t *message)
     const char *subj = mlm_client_subject (self->client);
     if (streq (sender, "asset-agent")) {
         if (streq (subj, "ASSETS_IN_CONTAINER")) {
-            zmsg_print (message);
+            if ( self->verbose ) {
+                zsys_debug ("%s:\tGot reply with RC:", self->name);
+                zmsg_print (message);
+            }
             self->rcs.clear ();
             char *okfail = zmsg_popstr (message);
-            if (streq (okfail, "OK")) {
+            if ( okfail && streq (okfail, "OK")) {
                 char *rc = zmsg_popstr(message);
                 while (rc) {
                     self->rcs.push_back(rc);
@@ -236,6 +243,9 @@ autoupdate_handle_message (asset_autoupdate_t *self, zmsg_t *message)
 void
 bios_asset_autoupdate_server (zsock_t *pipe, void *args)
 {
+    assert (pipe);
+    assert (args);
+
     asset_autoupdate_t *self = asset_autoupdate_new ();
     assert (self);
     self->name = strdup ((char*) args);
@@ -246,10 +256,8 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
-    zsys_debug ("asset autoupdate started");
+    zsys_info ("%s:\tStarted", self->name);
 
-    // ask for list of RCs
-    //autoupdate_request_all_rcs (&self);
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, -1);
         if ( !which ) {
@@ -261,11 +269,12 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
             if ( self->verbose ) {
-                zsys_debug ("actor command=%s", cmd);
+                zsys_debug ("%s:\tActor command=%s", self->name, cmd);
             }
 
             if (streq (cmd, "$TERM")) {
-                zsys_info ("Got $TERM");
+                if ( !self->verbose ) // ! is here intentionally, to get rid of duplication information
+                    zsys_info ("%s:\tGot $TERM", self->name);
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
@@ -279,7 +288,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
                 char* endpoint = zmsg_popstr (msg);
                 int rv = mlm_client_connect (self->client, endpoint, 1000, self->name);
                 if (rv == -1) {
-                    zsys_error ("%s: can't connect to malamute endpoint '%s'", self->name, endpoint);
+                    zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", self->name, endpoint);
                 }
                 zstr_free (&endpoint);
                 zsock_signal (pipe, 0);
@@ -289,7 +298,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
                 char* stream = zmsg_popstr (msg);
                 int rv = mlm_client_set_producer (self->client, stream);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set producer on stream '%s'", self->name, stream);
+                    zsys_error ("%s:\tCan't set producer on stream '%s'", self->name, stream);
                 }
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
@@ -300,7 +309,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
                 char* pattern = zmsg_popstr (msg);
                 int rv = mlm_client_set_consumer (self->client, stream, pattern);
                 if (rv == -1) {
-                    zsys_error ("%s: can't set consumer on stream '%s', '%s'", self->name, stream, pattern);
+                    zsys_error ("%s:\tCan't set consumer on stream '%s', '%s'", self->name, stream, pattern);
                 }
                 zstr_free (&pattern);
                 zstr_free (&stream);
@@ -312,7 +321,7 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
             }
             else
             {
-                zsys_info ("unhandled command %s", cmd);
+                zsys_info ("%s:\tUnhandled command %s", self->name, cmd);
             }
             zstr_free (&cmd);
             zmsg_destroy (&msg);
@@ -325,9 +334,9 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
         }
     }
  exit:
+    zsys_info ("%s:\tended", self->name);
     zpoller_destroy (&poller);
     asset_autoupdate_destroy (&self);
-    zsys_debug ("asset autoupdate ended");
 }
 
 void

@@ -82,6 +82,7 @@ int main (int argc, char *argv [])
     zstr_sendx (asset_server, "CONNECT", endpoint, NULL);
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONSUMER", "ASSETS", ".*", NULL);
+    zsock_wait (asset_server);
     zstr_sendx (asset_server, "PRODUCER", "ASSETS", NULL);
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "REPEAT_ALL", NULL);
@@ -92,7 +93,9 @@ int main (int argc, char *argv [])
     zstr_sendx (autoupdate_server, "CONNECT", endpoint, NULL);
     zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "PRODUCER", "ASSETS", NULL);
+    zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "CONSUMER", "ASSETS", ".*", NULL);
+    zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "WAKEUP", NULL);
 
     // create regular event for autoupdate agent

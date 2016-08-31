@@ -115,14 +115,8 @@
 typedef struct _agent_cfg_t {
     bool verbose;
     char *name;
+    mlm_client_t *client;
 } agent_cfg_t;
-
-static agent_cfg_t*
-    agent_cfg_new (void)
-{
-    agent_cfg_t *self = (agent_cfg_t *) zmalloc (sizeof(agent_cfg_t));
-    return self;
-}
 
 static void
     agent_cfg_destroy (agent_cfg_t **self_p)
@@ -131,19 +125,37 @@ static void
     agent_cfg_t *self = *self_p;
     if ( self ) {
         zstr_free (&self->name);
+        mlm_client_destroy (&self->client);
         free (self);
         *self_p = NULL;
     }
 }
+
+static agent_cfg_t*
+    agent_cfg_new (void)
+{
+    agent_cfg_t *self = (agent_cfg_t *) zmalloc (sizeof(agent_cfg_t));
+    if ( self ) {
+        self->client = mlm_client_new ();
+        if (self->client) {
+            self->verbose = false;
+        }
+        else {
+            agent_cfg_destroy (&self);
+        }
+    }
+    return self;
+}
+
+
 
 // ============================================================
 //         Functionality for TOPOLOGY processing
 // ============================================================
 static void
     s_processTopology(
-        mlm_client_t *client,
-        const std::string &assetName,
-        agent_cfg_t *cfg)
+        agent_cfg_t *cfg,
+        const std::string &assetName)
 {
     // result of power topology - list of power device names
     std::vector<std::string> powerDevices{};
@@ -177,21 +189,22 @@ static void
             zmsg_addstr (msg, powerDeviceName.c_str());
         }
     }
-    rv = mlm_client_sendto (client, mlm_client_sender (client), "TOPOLOGY", NULL, 5000, &msg);
+    rv = mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "TOPOLOGY", NULL, 5000, &msg);
     if ( rv != 0 )
         zsys_error ("%s:\tTOPOLOGY_POWER: cannot send response message", cfg->name);
 }
 
 static void
-s_handle_subject_topology (mlm_client_t *client, zmsg_t *zmessage, agent_cfg_t *cfg)
+    s_handle_subject_topology(
+        agent_cfg_t *cfg,
+        zmsg_t *zmessage)
 {
-    assert (client);
     assert (zmessage);
     assert (cfg);
     char* command = zmsg_popstr (zmessage);
     if ( streq (command, "TOPOLOGY_POWER") ) {
         char* asset_name = zmsg_popstr (zmessage);
-        s_processTopology (client, asset_name, cfg);
+        s_processTopology (cfg, asset_name);
         zstr_free (&asset_name);
     }
     else
@@ -200,9 +213,10 @@ s_handle_subject_topology (mlm_client_t *client, zmsg_t *zmessage, agent_cfg_t *
 }
 
 static void
-s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg, agent_cfg_t *cfg)
+    s_handle_subject_assets_in_container (
+        agent_cfg_t *cfg,
+        zmsg_t *msg)
 {
-    assert (client);
     assert (msg);
     assert (cfg);
     if (zmsg_size (msg) < 2) {
@@ -257,14 +271,16 @@ s_handle_subject_assets_in_container (mlm_client_t *client, zmsg_t *msg, agent_c
     }
 
     // send the reply
-    rv = mlm_client_sendto (client, mlm_client_sender (client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
+    rv = mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
     if (rv == -1)
         zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
 
 }
 
 static void
-s_update_asset (agent_cfg_t *cfg, const std::string &asset_name, mlm_client_t *client)
+    s_update_asset (
+        agent_cfg_t *cfg,
+        const std::string &asset_name)
 {
     assert (cfg);
     zhash_t *aux = zhash_new ();
@@ -358,7 +374,7 @@ s_update_asset (agent_cfg_t *cfg, const std::string &asset_name, mlm_client_t *c
             asset_name.c_str(),
             BIOS_PROTO_ASSET_OP_UPDATE,
             ext);
-    rv = mlm_client_send (client, subject.c_str(), &msg);
+    rv = mlm_client_send (cfg->client, subject.c_str(), &msg);
     zhash_destroy (&ext);
     zhash_destroy (&aux);
     if ( rv != 0 ) {
@@ -368,10 +384,11 @@ s_update_asset (agent_cfg_t *cfg, const std::string &asset_name, mlm_client_t *c
 }
 
 static void
-s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
+    s_update_topology(
+        agent_cfg_t *cfg,
+        bios_proto_t *msg)
 {
     assert (msg);
-    assert (client);
     assert (cfg);
 
     if ( !streq (bios_proto_operation (msg),BIOS_PROTO_ASSET_OP_UPDATE)) {
@@ -389,14 +406,13 @@ s_update_topology (bios_proto_t *msg, mlm_client_t *client, agent_cfg_t *cfg)
 
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
-        s_update_asset (cfg, asset_name, client);
+        s_update_asset (cfg, asset_name);
     }
 }
 
 static void
-s_repeat_all (mlm_client_t *client, agent_cfg_t *cfg)
+s_repeat_all (agent_cfg_t *cfg)
 {
-    assert (client);
     assert (cfg);
 
     std::vector <std::string> asset_names;
@@ -417,30 +433,27 @@ s_repeat_all (mlm_client_t *client, agent_cfg_t *cfg)
 
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
-        s_update_asset (cfg, asset_name, client);
+        s_update_asset (cfg, asset_name);
     }
 }
 
 void
-    bios_asset_server (zsock_t *pipe, void *args)
+bios_asset_server (zsock_t *pipe, void *args)
 {
     assert (pipe);
     assert (args);
-    agent_cfg_t *cfg = agent_cfg_new();
+
+    agent_cfg_t *cfg = agent_cfg_new ();
     assert (cfg);
-    cfg->verbose = false;
     cfg->name = strdup ((char*) args);
     assert (cfg->name);
 
-    mlm_client_t *client = mlm_client_new ();
-    assert (client);
-
-    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(client), NULL);
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(cfg->client), NULL);
     assert (poller);
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
-    zsys_info ("%s:\tAsset server started", cfg->name);
+    zsys_info ("%s:\tStarted", cfg->name);
 
     while (!zsys_interrupted) {
 
@@ -472,7 +485,7 @@ void
             else
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
-                int rv = mlm_client_connect (client, endpoint, 1000, cfg->name);
+                int rv = mlm_client_connect (cfg->client, endpoint, 1000, cfg->name);
                 if (rv == -1) {
                     zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", cfg->name, endpoint);
                 }
@@ -482,7 +495,7 @@ void
             else
             if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
-                int rv = mlm_client_set_producer (client, stream);
+                int rv = mlm_client_set_producer (cfg->client, stream);
                 if (rv == -1) {
                     zsys_error ("%s:\tCan't set producer on stream '%s'", cfg->name, stream);
                 }
@@ -493,7 +506,7 @@ void
             if (streq (cmd, "CONSUMER")) {
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
-                int rv = mlm_client_set_consumer (client, stream, pattern);
+                int rv = mlm_client_set_consumer (cfg->client, stream, pattern);
                 if (rv == -1) {
                     zsys_error ("%s:\tCan't set consumer on stream '%s', '%s'", cfg->name, stream, pattern);
                 }
@@ -505,7 +518,7 @@ void
             if (streq (cmd, "REPEAT_ALL")) {
                 if ( cfg->verbose )
                     zsys_debug ("%s:\tREPEAT_ALL start", cfg->name);
-                s_repeat_all (client, cfg);
+                s_repeat_all (cfg);
                 if ( cfg->verbose )
                     zsys_debug ("%s:\tREPEAT_ALL end", cfg->name);
             }
@@ -520,12 +533,12 @@ void
 
         // This agent is a reactive agent, it reacts only on messages
         // and doesn't do anything if there are no messages
-        zmsg_t *zmessage = mlm_client_recv (client);
+        zmsg_t *zmessage = mlm_client_recv (cfg->client);
         if ( zmessage == NULL ) {
             continue;
         }
-        std::string subject = mlm_client_subject (client);
-        std::string command = mlm_client_command (client);
+        std::string subject = mlm_client_subject (cfg->client);
+        std::string command = mlm_client_command (cfg->client);
         if ( cfg->verbose )
             zsys_debug("%s:\tGot message subject='%s', command='%s'", cfg->name, subject.c_str (), command.c_str ());
 
@@ -533,7 +546,7 @@ void
             if ( is_bios_proto (zmessage) ) {
                 bios_proto_t *bmsg = bios_proto_decode (&zmessage);
                 if ( bios_proto_id (bmsg) == BIOS_PROTO_ASSET ) {
-                    s_update_topology (bmsg, client, cfg);
+                    s_update_topology (cfg, bmsg);
                 }
             }
             else {
@@ -543,10 +556,10 @@ void
         else
         if (command == "MAILBOX DELIVER") {
             if (subject == "TOPOLOGY")
-                s_handle_subject_topology (client, zmessage, cfg);
+                s_handle_subject_topology (cfg, zmessage);
             else
             if (subject == "ASSETS_IN_CONTAINER")
-                s_handle_subject_assets_in_container (client, zmessage, cfg);
+                s_handle_subject_assets_in_container (cfg, zmessage);
             else
                 zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
         }
@@ -556,10 +569,9 @@ void
         zmsg_destroy (&zmessage);
     }
 exit:
-    zsys_info ("%s:\tAsset server ended", cfg->name);
+    zsys_info ("%s:\tended", cfg->name);
     //TODO:  save info to persistence before I die
     zpoller_destroy (&poller);
-    mlm_client_destroy (&client);
     agent_cfg_destroy (&cfg);
 }
 
