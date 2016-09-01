@@ -25,9 +25,10 @@
                                       asset information across the system
 @discuss
      ASSET PROTOCOL
-     ## Topology request
 
      ------------------------------------------------------------------------
+     ## Topology request
+
      power topology request:
          subject: "TOPOLOGY"
          message: is a multipart message A/B
@@ -52,33 +53,40 @@
                  D = "ERROR" - mandatory
                  E = "ASSET_NOT_FOUND"/"INTERNAL_ERROR" - mandatory
 
-     ------------------------------------------------------------------------
 
-    ## ASSET protocol
+    ------------------------------------------------------------------------
+    ## Asset manipulation protocol 
+
     REQ:
-        subject: "ASSET"
-        Message is a multipart string message:
+        subject: "ASSET_MANIPULATION"
+        Message is a bios protocol (bios_proto_t) message
 
-        * GET/<asset name>/<asset attribute 1>/.../<asset attribute N>
+        *) bios_proto ASSET message
 
-        where:
-            <asset name>         = Name identifying the requested asset
- (OPTIONAL) <asset attributes X> = Request only attribute X.
-                                   None specified requests all asset attributes.
+        where 'operation' is one of [ create | update | delete | retire ].
+        Asset messages with different operation value are discarded and not replied to.
 
     REP:
-        subject: "ASSET"
-        Message is a multipart message:
+        subject: same as in REQ
+        Message is a multipart string message:
 
-        * OK/[zhash_pack:hash]
+        * OK/<asset_id>
         * ERROR/<reason>
 
         where:
-            [zhash_pack:hash] = Frame with encoded zhash containing the values
-            <reason>          = Error message/code
+ (OPTIONAL)     <asset_id>  = asset id (in case of create, update operation) 
+                <reason>    = Error message/code TODO  
 
-     ------------------------------------------------------------------------
+    Note: in REQ message certain asset information are encoded as follows
+
+      'ext' field
+          Power Links - key: "power_link.<device_name>", value: "<first_outlet_num>/<second_outlet_num>", i.e. 1 --> 2 == "1/2"
+          Groups - key: "group", value: "<group_name_1>/.../<group_name_N>"
+            
+
+    ------------------------------------------------------------------------
     ## ASSETS in container
+
     REQ:
         subject: "ASSETS_IN_CONTAINER"
         Message is a multipart string message
@@ -101,6 +109,7 @@
 
         where:
             <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR / BAD_COMMAND
+
 
 @end
 */
