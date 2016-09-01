@@ -87,6 +87,10 @@ uint32_t
 uint32_t
     str2operation
         (const std::string &operation);
+
+AGENT_ASSET_EXPORT void
+    asset_defs_test (bool verbose);
+
 //  @end
 
 #ifdef __cplusplus

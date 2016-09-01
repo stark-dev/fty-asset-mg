@@ -81,6 +81,8 @@ const char *asset_subtype2str (int asset_subtype)
             return "rack controller";
         case VIRTUAL:
             return "virtual";
+        case SENSOR:
+            return "sensor";
         case N_A:
             return "N_A";
         default:

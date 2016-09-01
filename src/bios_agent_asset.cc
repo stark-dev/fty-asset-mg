@@ -28,6 +28,20 @@
 
 #include "agent_asset_classes.h"
 
+static int
+s_autoupdate_timer (zloop_t *loop, int timer_id, void *output)
+{
+    zstr_send (output, "WAKEUP");
+    return 0;
+}
+
+static int
+s_repeat_assets_timer (zloop_t *loop, int timer_id, void *output)
+{
+    zstr_send (output, "REPEAT_ALL");
+    return 0;
+}
+
 int main (int argc, char *argv [])
 {
     const char* endpoint = "ipc://@/malamute";
@@ -67,28 +81,33 @@ int main (int argc, char *argv [])
         zstr_send (asset_server, "VERBOSE");
     zstr_sendx (asset_server, "CONNECT", endpoint, NULL);
     zsock_wait (asset_server);
-    //  Accept and print any message back from server
-    //  copy from src/malamute.c under MPL license
-    zpoller_t *poller = zpoller_new (la_server, asset_server, NULL);
-    while (true) {
-        void *which = zpoller_wait (poller, -1);
-        char *message = NULL;
-        if ( which == la_server) {
-            message = zstr_recv (la_server);
-        }
-        else if ( which == asset_server) {
-            message = zstr_recv (asset_server);
-        }
-        if (message) {
-            puts (message);
-            free (message);
-        }
-        else {
-            puts ("interrupted");
-            break;
-        }
-    }
-    zpoller_destroy (&poller);
+    zstr_sendx (asset_server, "CONSUMER", "ASSETS", ".*", NULL);
+    zsock_wait (asset_server);
+    zstr_sendx (asset_server, "PRODUCER", "ASSETS", NULL);
+    zsock_wait (asset_server);
+    zstr_sendx (asset_server, "REPEAT_ALL", NULL);
+
+    zactor_t *autoupdate_server = zactor_new (bios_asset_autoupdate_server, (void*) "asset-autoupdate");
+    if (verbose)
+        zstr_send (la_server, "VERBOSE");
+    zstr_sendx (autoupdate_server, "CONNECT", endpoint, NULL);
+    zsock_wait (autoupdate_server);
+    zstr_sendx (autoupdate_server, "PRODUCER", "ASSETS", NULL);
+    zsock_wait (autoupdate_server);
+    zstr_sendx (autoupdate_server, "CONSUMER", "ASSETS", ".*", NULL);
+    zsock_wait (autoupdate_server);
+    zstr_sendx (autoupdate_server, "WAKEUP", NULL);
+
+    // create regular event for autoupdate agent
+    zloop_t *loop = zloop_new();
+    // once in 5 minutes
+    zloop_timer (loop, 5*60*1000, 0, s_autoupdate_timer, autoupdate_server);
+    // every hour
+    zloop_timer (loop, 60*60*1000, 0, s_repeat_assets_timer, asset_server);
+    zloop_start (loop);
+    // zloop_start takes ownership of this thread! and waits for interrupt!
+    zloop_destroy (&loop);
+    zactor_destroy (&autoupdate_server);
     zactor_destroy (&asset_server);
     zactor_destroy (&la_server);
     return 0;

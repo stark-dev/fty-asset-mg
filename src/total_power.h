@@ -24,6 +24,7 @@
 
 #include <string>
 #include <vector>
+#include <functional>
 
 /*
  * \brief For the specified asset finds out the devices
@@ -45,6 +46,34 @@ AGENT_ASSET_EXPORT int
         const std::string &assetName,
         std::vector<std::string> &powerDevices
     );
+
+AGENT_ASSET_EXPORT int
+    select_assets_by_container (
+        const std::string& container_name,
+        const std::set <std::string>& filter,
+        std::vector <std::string>& assets
+    );
+
+AGENT_ASSET_EXPORT int
+    select_ext_attributes
+        (uint32_t asset_id,
+         std::function<void(const tntdb::Row&)> cb);
+
+AGENT_ASSET_EXPORT int
+    select_asset_element_basic
+        (const std::string &asset_name,
+         std::function<void(const tntdb::Row&)> cb);
+
+AGENT_ASSET_EXPORT int
+    select_asset_element_super_parent (
+        uint32_t id,
+        std::function<void(const tntdb::Row&)>& cb);
+
+AGENT_ASSET_EXPORT int
+    select_assets (
+            std::function<void(
+                const tntdb::Row&
+                )>& cb);
 
 //  Self test of this class
 AGENT_ASSET_EXPORT void
