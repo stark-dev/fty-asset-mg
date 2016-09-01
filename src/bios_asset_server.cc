@@ -110,9 +110,6 @@
         where:
             <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR / BAD_COMMAND
 
-    ------------------------------------------------------------------------
-    ## ASSETS in container
-
 
 @end
 */
