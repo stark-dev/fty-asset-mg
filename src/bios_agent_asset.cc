@@ -98,12 +98,16 @@ int main (int argc, char *argv [])
     zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "WAKEUP", NULL);
 
+    // set up how ofter assets should be repeated
+    char *repeat_interval = getenv("BIOS_ASSETS_REPEAT");
+    int repeat_interval_s = repeat_interval ? std::stoi (repeat_interval) : 60*60*1000;
+
     // create regular event for autoupdate agent
     zloop_t *loop = zloop_new();
     // once in 5 minutes
     zloop_timer (loop, 5*60*1000, 0, s_autoupdate_timer, autoupdate_server);
     // every hour
-    zloop_timer (loop, 60*60*1000, 0, s_repeat_assets_timer, asset_server);
+    zloop_timer (loop, repeat_interval_s, 0, s_repeat_assets_timer, asset_server);
     zloop_start (loop);
     // zloop_start takes ownership of this thread! and waits for interrupt!
     zloop_destroy (&loop);
