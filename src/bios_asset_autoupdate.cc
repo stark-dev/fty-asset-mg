@@ -344,6 +344,8 @@ bios_asset_autoupdate_test (bool verbose)
 {
     printf (" * bios_asset_autoupdate: ");
     //  @selftest
+    asset_autoupdate_t *self = asset_autoupdate_new ();
+    asset_autoupdate_destroy (&self);
     //  @end
     printf ("OK\n");
 }

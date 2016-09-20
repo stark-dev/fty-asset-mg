@@ -557,6 +557,7 @@ bios_asset_server (zsock_t *pipe, void *args)
                 if ( bios_proto_id (bmsg) == BIOS_PROTO_ASSET ) {
                     s_update_topology (cfg, bmsg);
                 }
+                bios_proto_destroy (&bmsg);
             }
             else {
                 // DO NOTHING for now
