@@ -41,5 +41,6 @@
     <main name = "bios-agent-asset" service = "1" >
         Agent managing assets
     </main>
+    <main name = "agent-asset-cli" />
 
 </project>

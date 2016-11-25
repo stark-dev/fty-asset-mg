@@ -110,6 +110,15 @@
         where:
             <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR / BAD_COMMAND
 
+    ------------------------------------------------------------------------
+    ## REPUBLISH
+
+    REQ:
+        subject: "REPUBLISH"
+        Message is a multipart string message
+
+        /asset1/asset2/asset3       - republish asset information about asset1 asset2 and asset3
+        /$all                       - republish information about all assets
 
 @end
 */
@@ -420,17 +429,21 @@ static void
 }
 
 static void
-s_repeat_all (agent_cfg_t *cfg)
+s_repeat_all (agent_cfg_t *cfg, const std::set<std::string>& assets_to_publish)
 {
     assert (cfg);
 
     std::vector <std::string> asset_names;
     std::function<void(const tntdb::Row&)> cb = \
-        [&asset_names](const tntdb::Row &row)
+        [&asset_names, &assets_to_publish](const tntdb::Row &row)
         {
             std::string foo;
             row ["name"].get (foo);
-            asset_names.push_back (foo);
+            if (assets_to_publish.size () == 0)
+                asset_names.push_back (foo);
+            else
+            if (assets_to_publish.count (foo) == 1)
+                asset_names.push_back (foo);
         };
 
     // select all assets
@@ -439,11 +452,17 @@ s_repeat_all (agent_cfg_t *cfg)
         zsys_warning ("%s:\tCannot list all assets", cfg->name);
         return;
     }
-
+    
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
         s_update_asset (cfg, asset_name);
     }
+}
+
+static void
+s_repeat_all (agent_cfg_t *cfg)
+{
+    return s_repeat_all (cfg, {});
 }
 
 void
@@ -570,6 +589,23 @@ bios_asset_server (zsock_t *pipe, void *args)
             else
             if (subject == "ASSETS_IN_CONTAINER")
                 s_handle_subject_assets_in_container (cfg, zmessage);
+            else
+            if (subject == "REPUBLISH") {
+
+                zmsg_print (zmessage);
+                char *asset = zmsg_popstr (zmessage);
+                if (!asset || streq (asset, "$all"))
+                    s_repeat_all (cfg);
+                else {
+                    std::set <std::string> assets_to_publish;
+                    while (asset) {
+                        assets_to_publish.insert (asset);
+                        zstr_free (&asset);
+                        asset = zmsg_popstr (zmessage);
+                    }
+                    s_repeat_all (cfg, assets_to_publish);
+                }
+            }
             else
                 zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
         }

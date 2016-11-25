@@ -62,6 +62,13 @@ src_bios_agent_asset_service_DATA = src/bios-agent-asset.service
 endif #WITH_SYSTEMD_UNITS
 endif #ENABLE_BIOS_AGENT_ASSET
 
+if ENABLE_AGENT_ASSET_CLI
+bin_PROGRAMS += src/agent-asset-cli
+src_agent_asset_cli_CPPFLAGS = ${AM_CPPFLAGS}
+src_agent_asset_cli_LDADD = ${program_libs}
+src_agent_asset_cli_SOURCES = src/agent_asset_cli.cc
+endif #ENABLE_AGENT_ASSET_CLI
+
 if ENABLE_AGENT_ASSET_SELFTEST
 check_PROGRAMS += src/agent_asset_selftest
 noinst_PROGRAMS += src/agent_asset_selftest
