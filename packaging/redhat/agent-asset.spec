@@ -102,6 +102,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %files
 %defattr(-,root,root)
 %{_bindir}/bios-agent-asset
+%{_bindir}/agent-asset-cli
 %{_prefix}/lib/systemd/system/bios-agent-asset*.service
 
 

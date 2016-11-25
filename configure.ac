@@ -564,6 +564,16 @@ AC_ARG_ENABLE([bios-agent-asset],
 AM_CONDITIONAL([ENABLE_BIOS_AGENT_ASSET], [test x$enable_bios_agent_asset != xno])
 AM_COND_IF([ENABLE_BIOS_AGENT_ASSET], [AC_MSG_NOTICE([ENABLE_BIOS_AGENT_ASSET defined])])
 
+# Check for agent-asset-cli intent
+AC_ARG_ENABLE([agent-asset-cli],
+    AS_HELP_STRING([--enable-agent-asset-cli],
+        [Compile and install 'agent-asset-cli' [default=yes]]),
+    [enable_agent_asset=$enableval],
+    [enable_agent_asset=yes])
+
+AM_CONDITIONAL([ENABLE_AGENT_ASSET_CLI], [test x$enable_agent_asset_cli != xno])
+AM_COND_IF([ENABLE_AGENT_ASSET_CLI], [AC_MSG_NOTICE([ENABLE_AGENT_ASSET_CLI defined])])
+
 # Check for agent_asset_selftest intent
 AC_ARG_ENABLE([agent_asset_selftest],
     AS_HELP_STRING([--enable-agent_asset_selftest],
