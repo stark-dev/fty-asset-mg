@@ -62,7 +62,7 @@ fi
 make -j4
 make install
 cd ..
-git clone --quiet --depth 1 https://stash.mbt.lab.etn.com/bios/core core.git
+git clone --quiet --depth 1 https://github.com/42ity/fty-core core.git
 cd core.git
 git --no-pager log --oneline -n1
 if [ -e autogen.sh ]; then

@@ -1,7 +1,7 @@
 Format: 3.0 (quilt)
+Binary: fty-asset
 Source: fty-asset
 Version: 1.0.0
-Binary: fty-asset
 Maintainer: fty-asset Developers <eatonipcopensource@eaton.com>
 Architecture: any
 Build-Depends: debhelper (>= 9),

@@ -31,7 +31,6 @@
 
 //  External dependencies
 #include <malamute.h>
-//#include <biosapi.h>
 #include <ftyproto.h>
 #include <cxxtools/allocator.h>
 #include <tntdb.h>

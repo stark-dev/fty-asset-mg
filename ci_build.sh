@@ -106,7 +106,7 @@ if [ "$BUILD_TYPE" == "default" ] || [ "$BUILD_TYPE" == "default-Werror" ] ; the
     make -j4
     make install
     cd "${BASE_PWD}"
-    git clone --quiet --depth 1 https://stash.mbt.lab.etn.com/bios/core core.git
+    git clone --quiet --depth 1 https://github.com/42ity/fty-core core.git
     BASE_PWD=${PWD}
     cd core.git
     git --no-pager log --oneline -n1
