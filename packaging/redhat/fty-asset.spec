@@ -56,6 +56,7 @@ BuildRequires:  malamute-devel
 BuildRequires:  core-devel
 BuildRequires:  fty-proto-devel
 BuildRequires:  cxxtools-devel
+BuildRequires:  magic-devel
 BuildRequires:  tntdb-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
@@ -87,6 +88,7 @@ Requires:       malamute-devel
 Requires:       core-devel
 Requires:       fty-proto-devel
 Requires:       cxxtools-devel
+Requires:       magic-devel
 Requires:       tntdb-devel
 
 %description devel

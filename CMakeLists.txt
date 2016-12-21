@@ -163,6 +163,18 @@ ELSE (CXXTOOLS_FOUND)
 ENDIF (CXXTOOLS_FOUND)
 
 ########################################################################
+# MAGIC dependency
+########################################################################
+find_package(magic REQUIRED)
+IF (MAGIC_FOUND)
+    include_directories(${MAGIC_INCLUDE_DIRS})
+    list(APPEND MORE_LIBRARIES ${MAGIC_LIBRARIES})
+    set(pkg_config_libs_private "${pkg_config_libs_private} -lmagic")
+ELSE (MAGIC_FOUND)
+    message( FATAL_ERROR "magic not found." )
+ENDIF (MAGIC_FOUND)
+
+########################################################################
 # TNTDB dependency
 ########################################################################
 find_package(tntdb REQUIRED)
@@ -263,6 +275,7 @@ target_link_libraries(
     ${CORE_LIBRARIES}
     ${FTY-PROTO_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
+    ${MAGIC_LIBRARIES}
     ${TNTDB_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
@@ -283,6 +296,7 @@ target_link_libraries(
     ${CORE_LIBRARIES}
     ${FTY-PROTO_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
+    ${MAGIC_LIBRARIES}
     ${TNTDB_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
@@ -303,6 +317,7 @@ target_link_libraries(
     ${CORE_LIBRARIES}
     ${FTY-PROTO_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
+    ${MAGIC_LIBRARIES}
     ${TNTDB_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )

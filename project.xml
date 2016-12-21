@@ -36,6 +36,13 @@
         release = "42ity"
         />
 
+    <use project = "magic" libname = "libmagic"
+        repository = "https://github.com/42ity/libmagic"
+        test = "magic_close"
+        spec_name = "file-devel"
+        >
+    </use>
+
     <use project = "tntdb" test="tntdb::Blob::Blob"/>
 
     <class name = "asset_defs" private = "1">Some fancy definitions related to assets</class>
