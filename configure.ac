@@ -7,12 +7,12 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.61)
 #
-AC_INIT([agent-asset],[0.1.0],[bios@eaton.com])
+AC_INIT([fty-asset],[1.0.0],[eatonipcopensource@eaton.com])
 
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR(config)
 AC_CONFIG_HEADERS([src/platform.h])
-AM_INIT_AUTOMAKE([subdir-objects tar-ustar foreign])
+AM_INIT_AUTOMAKE([subdir-objects tar-ustar dist-zip foreign])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # This defines PACKAGE_VERSION_... in src/platform.h
@@ -20,11 +20,11 @@ PV_MAJOR=`echo $PACKAGE_VERSION | cut -d . -f 1`
 PV_MINOR=`echo $PACKAGE_VERSION | cut -d . -f 2`
 PV_PATCH=`echo $PACKAGE_VERSION | cut -d . -f 3`
 AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MAJOR],[$PV_MAJOR],
-    [AGENT_ASSET major version])
+    [FTY_ASSET major version])
 AC_DEFINE_UNQUOTED([PACKAGE_VERSION_MINOR],[$PV_MINOR],
-    [AGENT_ASSET minor version])
+    [FTY_ASSET minor version])
 AC_DEFINE_UNQUOTED([PACKAGE_VERSION_PATCH],[$PV_PATCH],
-    [AGENT_ASSET patchlevel])
+    [FTY_ASSET patchlevel])
 # This lets us use PACKAGE_VERSION in Makefiles
 AC_SUBST(PACKAGE_VERSION)
 
@@ -35,12 +35,12 @@ AC_SUBST(PACKAGE_VERSION)
 # know exactly what you're doing and have read and understand
 # http://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
 #
-# libagent_asset -version-info
-LTVER="0:1:0"
+# libfty_asset -version-info
+LTVER="1:0:0"
 AC_SUBST(LTVER)
 
 # Capture c flags
-AGENT_ASSET_ORIG_CFLAGS="${CFLAGS:-none}"
+FTY_ASSET_ORIG_CFLAGS="${CFLAGS:-none}"
 
 # Checks for programs
 AC_PROG_CC
@@ -57,18 +57,21 @@ PKG_PROG_PKG_CONFIG
 # Code coverage
 AC_ARG_WITH(gcov, [AS_HELP_STRING([--with-gcov=yes/no],
                   [With GCC Code Coverage reporting])],
-                  [AGENT_ASSET_GCOV="$withval"])
+                  [FTY_ASSET_GCOV="$withval"])
 
-if test "x${AGENT_ASSET_GCOV}" == "xyes"; then
+if test "x${FTY_ASSET_GCOV}" == "xyes"; then
     CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage"
 
-    if test "x${AGENT_ASSET_ORIG_CFLAGS}" != "xnone"; then
-        CFLAGS="${CFLAGS} ${AGENT_ASSET_ORIG_CFLAGS}"
+    if test "x${FTY_ASSET_ORIG_CFLAGS}" != "xnone"; then
+        CFLAGS="${CFLAGS} ${FTY_ASSET_ORIG_CFLAGS}"
     fi
     AM_CONDITIONAL(WITH_GCOV, true)
 else
     AM_CONDITIONAL(WITH_GCOV, false)
 fi
+
+# Will be used to add flags to pkg-config useful when apps want to statically link
+PKGCFG_LIBS_PRIVATE=""
 
 PREVIOUS_CFLAGS="${CFLAGS}"
 PREVIOUS_LIBS="${LIBS}"
@@ -78,6 +81,7 @@ was_libzmq_check_lib_detected=no
 
 PKG_CHECK_MODULES([libzmq], [libzmq >= 0.0.0],
     [
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $libzmq_LIBS"
     ],
     [
         AC_ARG_WITH([libzmq],
@@ -110,6 +114,7 @@ PKG_CHECK_MODULES([libzmq], [libzmq >= 0.0.0],
                 AC_SUBST([libzmq_CFLAGS],[${libzmq_synthetic_cflags}])
                 AC_SUBST([libzmq_LIBS],[${libzmq_synthetic_libs}])
                 was_libzmq_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lzmq"
             ],
             [AC_MSG_ERROR([cannot link with -lzmq, install libzmq])])
     ])
@@ -123,6 +128,7 @@ was_czmq_check_lib_detected=no
 
 PKG_CHECK_MODULES([czmq], [libczmq >= 0.0.0],
     [
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $czmq_LIBS"
     ],
     [
         AC_ARG_WITH([libczmq],
@@ -146,7 +152,7 @@ PKG_CHECK_MODULES([czmq], [libczmq >= 0.0.0],
         fi
 
 
-        AC_CHECK_LIB([czmq], [zctx_test],
+        AC_CHECK_LIB([czmq], [zhashx_test],
             [
                 CFLAGS="${czmq_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${czmq_synthetic_libs} ${LDFLAGS}"
@@ -155,6 +161,7 @@ PKG_CHECK_MODULES([czmq], [libczmq >= 0.0.0],
                 AC_SUBST([czmq_CFLAGS],[${czmq_synthetic_cflags}])
                 AC_SUBST([czmq_LIBS],[${czmq_synthetic_libs}])
                 was_czmq_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lczmq"
             ],
             [AC_MSG_ERROR([cannot link with -lczmq, install libczmq])])
     ])
@@ -168,6 +175,7 @@ was_malamute_check_lib_detected=no
 
 PKG_CHECK_MODULES([malamute], [libmlm >= 0.0.0],
     [
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $malamute_LIBS"
     ],
     [
         AC_ARG_WITH([libmlm],
@@ -200,6 +208,7 @@ PKG_CHECK_MODULES([malamute], [libmlm >= 0.0.0],
                 AC_SUBST([malamute_CFLAGS],[${malamute_synthetic_cflags}])
                 AC_SUBST([malamute_LIBS],[${malamute_synthetic_libs}])
                 was_malamute_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lmlm"
             ],
             [AC_MSG_ERROR([cannot link with -lmlm, install libmlm])])
     ])
@@ -213,6 +222,7 @@ was_core_check_lib_detected=no
 
 PKG_CHECK_MODULES([core], [biosapi >= 0.0.0],
     [
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $core_LIBS"
     ],
     [
         AC_ARG_WITH([biosapi],
@@ -245,6 +255,7 @@ PKG_CHECK_MODULES([core], [biosapi >= 0.0.0],
                 AC_SUBST([core_CFLAGS],[${core_synthetic_cflags}])
                 AC_SUBST([core_LIBS],[${core_synthetic_libs}])
                 was_core_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lbiosapi"
             ],
             [AC_MSG_ERROR([cannot link with -lbiosapi, install biosapi])])
     ])
@@ -254,55 +265,26 @@ if test "x$was_core_check_lib_detected" = "xno"; then
     LIBS="${core_LIBS} ${LIBS}"
 fi
 
-was_biosproto_check_lib_detected=no
+was_fty_proto_check_lib_detected=no
 
-PKG_CHECK_MODULES([biosproto], [libbiosproto >= 0.0.0],
+PKG_CHECK_MODULES([fty_proto], [libfty_proto >= 1.0.0],
     [
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $fty_proto_LIBS"
     ],
     [
-        AC_ARG_WITH([libbiosproto],
-            [
-                AS_HELP_STRING([--with-libbiosproto],
-                [Specify libbiosproto prefix])
-            ],
-            [search_libbiosproto="yes"],
-            [])
-
-        biosproto_synthetic_cflags=""
-        biosproto_synthetic_libs="-lbiosproto"
-
-        if test "x$search_libbiosproto" = "xyes"; then
-            if test -r "${with_libbiosproto}/include/biosproto.h"; then
-                biosproto_synthetic_cflags="-I${with_libbiosproto}/include"
-                biosproto_synthetic_libs="-L${with_libbiosproto}/lib -lbiosproto"
-            else
-                AC_MSG_ERROR([${with_libbiosproto}/include/biosproto.h not found. Please check libbiosproto prefix])
-            fi
-        fi
-
-
-        AC_CHECK_LIB([biosproto], [bios_proto_test],
-            [
-                CFLAGS="${biosproto_synthetic_cflags} ${CFLAGS}"
-                LDFLAGS="${biosproto_synthetic_libs} ${LDFLAGS}"
-                LIBS="${biosproto_synthetic_libs} ${LIBS}"
-
-                AC_SUBST([biosproto_CFLAGS],[${biosproto_synthetic_cflags}])
-                AC_SUBST([biosproto_LIBS],[${biosproto_synthetic_libs}])
-                was_biosproto_check_lib_detected=yes
-            ],
-            [AC_MSG_ERROR([cannot link with -lbiosproto, install libbiosproto])])
+        AC_MSG_ERROR([Cannot find libfty_proto 1.0.0 or higher])
     ])
 
-if test "x$was_biosproto_check_lib_detected" = "xno"; then
-    CFLAGS="${biosproto_CFLAGS} ${CFLAGS}"
-    LIBS="${biosproto_LIBS} ${LIBS}"
+if test "x$was_fty_proto_check_lib_detected" = "xno"; then
+    CFLAGS="${fty_proto_CFLAGS} ${CFLAGS}"
+    LIBS="${fty_proto_LIBS} ${LIBS}"
 fi
 
 was_cxxtools_check_lib_detected=no
 
 PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
     [
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $cxxtools_LIBS"
     ],
     [
         AC_ARG_WITH([cxxtools],
@@ -317,11 +299,11 @@ PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
         cxxtools_synthetic_libs="-lcxxtools"
 
         if test "x$search_cxxtools" = "xyes"; then
-            if test -r "${with_cxxtools}/include/cxxtools.h"; then
+            if test -r "${with_cxxtools}/include/cxxtools/allocator.h"; then
                 cxxtools_synthetic_cflags="-I${with_cxxtools}/include"
                 cxxtools_synthetic_libs="-L${with_cxxtools}/lib -lcxxtools"
             else
-                AC_MSG_ERROR([${with_cxxtools}/include/cxxtools.h not found. Please check cxxtools prefix])
+                AC_MSG_ERROR([${with_cxxtools}/include/cxxtools/allocator.h not found. Please check cxxtools prefix])
             fi
         fi
 
@@ -335,6 +317,7 @@ PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
                 AC_SUBST([cxxtools_CFLAGS],[${cxxtools_synthetic_cflags}])
                 AC_SUBST([cxxtools_LIBS],[${cxxtools_synthetic_libs}])
                 was_cxxtools_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lcxxtools"
             ],
             [AC_MSG_ERROR([cannot link with -lcxxtools, install cxxtools])])
     ])
@@ -348,6 +331,7 @@ was_tntdb_check_lib_detected=no
 
 PKG_CHECK_MODULES([tntdb], [tntdb >= 0.0.0],
     [
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $tntdb_LIBS"
     ],
     [
         AC_ARG_WITH([tntdb],
@@ -380,6 +364,7 @@ PKG_CHECK_MODULES([tntdb], [tntdb >= 0.0.0],
                 AC_SUBST([tntdb_CFLAGS],[${tntdb_synthetic_cflags}])
                 AC_SUBST([tntdb_LIBS],[${tntdb_synthetic_libs}])
                 was_tntdb_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -ltntdb"
             ],
             [AC_MSG_ERROR([cannot link with -ltntdb, install tntdb])])
     ])
@@ -392,12 +377,14 @@ fi
 CFLAGS="${PREVIOUS_CFLAGS}"
 LIBS="${PREVIOUS_LIBS}"
 
+AC_SUBST(pkg_config_libs_private, $PKGCFG_LIBS_PRIVATE)
+
 # Platform specific checks
-agent_asset_on_mingw32="no"
-agent_asset_on_cygwin="no"
-agent_asset_on_android="no"
-agent_asset_on_linux="no"
-agent_asset_on_gnu="no"
+fty_asset_on_mingw32="no"
+fty_asset_on_cygwin="no"
+fty_asset_on_android="no"
+fty_asset_on_linux="no"
+fty_asset_on_gnu="no"
 
 # Host specific checks
 AC_CANONICAL_HOST
@@ -410,106 +397,118 @@ AC_ARG_WITH([docs],
     [with_docs=$withval])
 
 if test "x$with_docs" = "xno"; then
-    agent_asset_build_doc="no"
-    agent_asset_install_man="no"
+    fty_asset_build_doc="no"
+    fty_asset_install_man="no"
 else
     # Determine whether or not documentation should be built and installed.
-    agent_asset_build_doc="yes"
-    agent_asset_install_man="yes"
+    fty_asset_build_doc="yes"
+    fty_asset_install_man="yes"
 
     # Check for asciidoc and xmlto and don't build the docs if these are not installed.
-    AC_CHECK_PROG(agent_asset_have_asciidoc, asciidoc, yes, no)
-    AC_CHECK_PROG(agent_asset_have_xmlto, xmlto, yes, no)
-    if test "x$agent_asset_have_asciidoc" = "xno" -o "x$agent_asset_have_xmlto" = "xno"; then
-        agent_asset_build_doc="no"
+    AC_CHECK_PROG(fty_asset_have_asciidoc, asciidoc, yes, no)
+    AC_CHECK_PROG(fty_asset_have_xmlto, xmlto, yes, no)
+    if test "x$fty_asset_have_asciidoc" = "xno" -o "x$fty_asset_have_xmlto" = "xno"; then
+        fty_asset_build_doc="no"
         # Tarballs built with 'make dist' ship with prebuilt documentation.
-        if ! test -f doc/agent_asset.7; then
-            agent_asset_install_man="no"
-            AC_MSG_WARN([You are building an unreleased version of AGENT-ASSET and asciidoc or xmlto are not installed.])
+        if ! test -f doc/fty-asset.7; then
+            fty_asset_install_man="no"
+            AC_MSG_WARN([You are building an unreleased version of FTY-ASSET and asciidoc or xmlto are not installed.])
             AC_MSG_WARN([Documentation will not be built and manual pages will not be installed.])
         fi
     fi
 fi
 AC_MSG_CHECKING([whether to build documentation])
-AC_MSG_RESULT([$agent_asset_build_doc])
+AC_MSG_RESULT([$fty_asset_build_doc])
 AC_MSG_CHECKING([whether to install manpages])
-AC_MSG_RESULT([$agent_asset_install_man])
+AC_MSG_RESULT([$fty_asset_install_man])
 
-# Set some default features required by libagent_asset code.
-CPPFLAGS="-D_REENTRANT -D_THREAD_SAFE $CPPFLAGS"
+# Set some default features required by libfty_asset code.
+CPPFLAGS="-DFTY_ASSET_INTERNAL_BUILD -D_REENTRANT -D_THREAD_SAFE $CPPFLAGS"
 
 # OS-specific tests
 case "${host_os}" in
     *linux*)
         # Define on Linux to enable all library features
         CPPFLAGS="-D_GNU_SOURCE -DLINUX $CPPFLAGS"
-        AC_DEFINE(AGENT_ASSET_HAVE_LINUX, 1, [Have Linux OS])
-        agent_asset_on_linux="yes"
+        AC_DEFINE(FTY_ASSET_HAVE_LINUX, 1, [Have Linux OS])
+        fty_asset_on_linux="yes"
 
         case "${host_os}" in
             *android*)
-                AC_DEFINE(AGENT_ASSET_HAVE_ANDROID, 1, [Have Android OS])
-                agent_asset_on_android="yes"
+                AC_DEFINE(FTY_ASSET_HAVE_ANDROID, 1, [Have Android OS])
+                fty_asset_on_android="yes"
             ;;
         esac
         ;;
     *solaris*)
         # Define on Solaris to enable all library features
         CPPFLAGS="-D_PTHREADS $CPPFLAGS"
-        AC_DEFINE(AGENT_ASSET_HAVE_SOLARIS, 1, [Have Solaris OS])
+        # Allow definitions of common OS-provided functions that are not in old standards
+        CPPFLAGS="-D__EXTENSIONS__ $CPPFLAGS"
+        AC_DEFINE(FTY_ASSET_HAVE_SOLARIS, 1, [Have Solaris OS])
         CFLAGS="${CFLAGS} -lsocket -lssp"
         ;;
     *freebsd*)
         # Define on FreeBSD to enable all library features
         CPPFLAGS="-D__BSD_VISIBLE $CPPFLAGS"
-        AC_DEFINE(AGENT_ASSET_HAVE_FREEBSD, 1, [Have FreeBSD OS])
+        AC_DEFINE(FTY_ASSET_HAVE_FREEBSD, 1, [Have FreeBSD OS])
         ;;
     *darwin*)
         # Define on Darwin to enable all library features
         CPPFLAGS="-D_DARWIN_C_SOURCE $CPPFLAGS"
-        AC_DEFINE(AGENT_ASSET_HAVE_OSX, 1, [Have DarwinOSX OS])
+        AC_DEFINE(FTY_ASSET_HAVE_OSX, 1, [Have DarwinOSX OS])
         ;;
     *netbsd*)
         # Define on NetBSD to enable all library features
         CPPFLAGS="-D_NETBSD_SOURCE $CPPFLAGS"
-        AC_DEFINE(AGENT_ASSET_HAVE_NETBSD, 1, [Have NetBSD OS])
+        AC_DEFINE(FTY_ASSET_HAVE_NETBSD, 1, [Have NetBSD OS])
         ;;
     *openbsd*)
         # Define on OpenBSD to enable all library features
         CPPFLAGS="-D_BSD_SOURCE $CPPFLAGS"
-        AC_DEFINE(AGENT_ASSET_HAVE_OPENBSD, 1, [Have OpenBSD OS])
+        AC_DEFINE(FTY_ASSET_HAVE_OPENBSD, 1, [Have OpenBSD OS])
         ;;
     *nto-qnx*)
-        AC_DEFINE(AGENT_ASSET_HAVE_QNXNTO, 1, [Have QNX Neutrino OS])
+        AC_DEFINE(FTY_ASSET_HAVE_QNXNTO, 1, [Have QNX Neutrino OS])
         ;;
     *aix*)
-        AC_DEFINE(AGENT_ASSET_HAVE_AIX, 1, [Have AIX OS])
+        AC_DEFINE(FTY_ASSET_HAVE_AIX, 1, [Have AIX OS])
         ;;
     *hpux*)
         # Define on HP-UX to enable all library features
         CPPFLAGS="-D_POSIX_C_SOURCE=200112L"
-        AC_DEFINE(AGENT_ASSET_HAVE_HPUX, 1, [Have HPUX OS])
+        AC_DEFINE(FTY_ASSET_HAVE_HPUX, 1, [Have HPUX OS])
         ;;
     *mingw32*)
-        AC_DEFINE(AGENT_ASSET_HAVE_WINDOWS, 1, [Have Windows OS])
-        AC_DEFINE(AGENT_ASSET_HAVE_MINGW32, 1, [Have MinGW32])
+        AC_DEFINE(FTY_ASSET_HAVE_WINDOWS, 1, [Have Windows OS])
+        AC_DEFINE(FTY_ASSET_HAVE_MINGW32, 1, [Have MinGW32])
         AC_CHECK_HEADERS(windows.h)
-        agent_asset_on_mingw32="yes"
-        agent_asset_install_man="no"
+        fty_asset_on_mingw32="yes"
+        fty_asset_install_man="no"
+        ;;
+    *mingw64*)
+        # Define on MINGW64 to enable all libeary features
+        # Disable format error due to incomplete ANSI C
+        CPPFLAGS="-Wno-error=format -D_XOPEN_SOURCE $CPPFLAGS"
+        AC_DEFINE(FTY_ASSET_HAVE_WINDOWS, 1, [Have Windows OS])
+        AC_DEFINE(FTY_ASSET_HAVE_MINGW32, 1, [Have MinGW32])
+        AC_CHECK_HEADERS(windows.h)
+        fty_asset_on_mingw32="yes"
+        fty_asset_install_man="no"
         ;;
     *cygwin*)
         # Define on Cygwin to enable all library features
         CPPFLAGS="-D_GNU_SOURCE $CPPFLAGS"
-        AC_DEFINE(AGENT_ASSET_HAVE_CYGWIN, 1, [Have Cygwin])
-        agent_asset_on_cygwin="yes"
+        AC_DEFINE(FTY_ASSET_HAVE_CYGWIN, 1, [Have Cygwin])
+        fty_asset_on_cygwin="yes"
         ;;
     gnu*)
         # Define on GNU/Hurd to enable all library features
         if test "x$GXX" = "xyes"; then
             CPPFLAGS="-D_GNU_SOURCE $CPPFLAGS"
         fi
-        AC_DEFINE(AGENT_ASSET_HAVE_GNU, 1, [Have GNU/Hurd OS])
-        agent_asset_on_gnu="yes"
+        AC_DEFINE(FTY_ASSET_HAVE_GNU, 1, [Have GNU/Hurd OS])
+        fty_asset_on_gnu="yes"
         ;;
     *)
         AC_MSG_ERROR([unsupported system: ${host_os}])
@@ -546,43 +545,43 @@ if test "x$GCC" = "xyes"; then
 fi
 
 AM_CONDITIONAL(ENABLE_SHARED, test "x$enable_shared" = "xyes")
-AM_CONDITIONAL(ON_MINGW, test "x$agent_asset_on_mingw32" = "xyes")
-AM_CONDITIONAL(ON_CYGWIN, test "x$agent_asset_on_cygwin" = "xyes")
-AM_CONDITIONAL(ON_ANDROID, test "x$agent_asset_on_android" = "xyes")
-AM_CONDITIONAL(ON_LINUX, test "x$agent_asset_on_linux" = "xyes")
-AM_CONDITIONAL(ON_GNU, test "x$agent_asset_on_gnu" = "xyes")
-AM_CONDITIONAL(INSTALL_MAN, test "x$agent_asset_install_man" = "xyes")
-AM_CONDITIONAL(BUILD_DOC, test "x$agent_asset_build_doc" = "xyes")
+AM_CONDITIONAL(ON_MINGW, test "x$fty_asset_on_mingw32" = "xyes")
+AM_CONDITIONAL(ON_CYGWIN, test "x$fty_asset_on_cygwin" = "xyes")
+AM_CONDITIONAL(ON_ANDROID, test "x$fty_asset_on_android" = "xyes")
+AM_CONDITIONAL(ON_LINUX, test "x$fty_asset_on_linux" = "xyes")
+AM_CONDITIONAL(ON_GNU, test "x$fty_asset_on_gnu" = "xyes")
+AM_CONDITIONAL(INSTALL_MAN, test "x$fty_asset_install_man" = "xyes")
+AM_CONDITIONAL(BUILD_DOC, test "x$fty_asset_build_doc" = "xyes")
 
-# Check for bios-agent-asset intent
-AC_ARG_ENABLE([bios-agent-asset],
-    AS_HELP_STRING([--enable-bios-agent-asset],
-        [Compile and install 'bios-agent-asset' [default=yes]]),
-    [enable_bios_agent_asset=$enableval],
-    [enable_bios_agent_asset=yes])
+# Check for fty-asset intent
+AC_ARG_ENABLE([fty-asset],
+    AS_HELP_STRING([--enable-fty-asset],
+        [Compile and install 'fty-asset' [default=yes]]),
+    [enable_fty_asset=$enableval],
+    [enable_fty_asset=yes])
 
-AM_CONDITIONAL([ENABLE_BIOS_AGENT_ASSET], [test x$enable_bios_agent_asset != xno])
-AM_COND_IF([ENABLE_BIOS_AGENT_ASSET], [AC_MSG_NOTICE([ENABLE_BIOS_AGENT_ASSET defined])])
+AM_CONDITIONAL([ENABLE_FTY_ASSET], [test x$enable_fty_asset != xno])
+AM_COND_IF([ENABLE_FTY_ASSET], [AC_MSG_NOTICE([ENABLE_FTY_ASSET defined])])
 
-# Check for agent-asset-cli intent
-AC_ARG_ENABLE([agent-asset-cli],
-    AS_HELP_STRING([--enable-agent-asset-cli],
-        [Compile and install 'agent-asset-cli' [default=yes]]),
-    [enable_agent_asset=$enableval],
-    [enable_agent_asset=yes])
+# Check for fty-asset-cli intent
+AC_ARG_ENABLE([fty-asset-cli],
+    AS_HELP_STRING([--enable-fty-asset-cli],
+        [Compile and install 'fty-asset-cli' [default=yes]]),
+    [enable_fty_asset_cli=$enableval],
+    [enable_fty_asset_cli=yes])
 
-AM_CONDITIONAL([ENABLE_AGENT_ASSET_CLI], [test x$enable_agent_asset_cli != xno])
-AM_COND_IF([ENABLE_AGENT_ASSET_CLI], [AC_MSG_NOTICE([ENABLE_AGENT_ASSET_CLI defined])])
+AM_CONDITIONAL([ENABLE_FTY_ASSET_CLI], [test x$enable_fty_asset_cli != xno])
+AM_COND_IF([ENABLE_FTY_ASSET_CLI], [AC_MSG_NOTICE([ENABLE_FTY_ASSET_CLI defined])])
 
-# Check for agent_asset_selftest intent
-AC_ARG_ENABLE([agent_asset_selftest],
-    AS_HELP_STRING([--enable-agent_asset_selftest],
-        [Compile 'agent_asset_selftest' in src [default=yes]]),
-    [enable_agent_asset_selftest=$enableval],
-    [enable_agent_asset_selftest=yes])
+# Check for fty_asset_selftest intent
+AC_ARG_ENABLE([fty_asset_selftest],
+    AS_HELP_STRING([--enable-fty_asset_selftest],
+        [Compile 'fty_asset_selftest' in src [default=yes]]),
+    [enable_fty_asset_selftest=$enableval],
+    [enable_fty_asset_selftest=yes])
 
-AM_CONDITIONAL([ENABLE_AGENT_ASSET_SELFTEST], [test x$enable_agent_asset_selftest != xno])
-AM_COND_IF([ENABLE_AGENT_ASSET_SELFTEST], [AC_MSG_NOTICE([ENABLE_AGENT_ASSET_SELFTEST defined])])
+AM_CONDITIONAL([ENABLE_FTY_ASSET_SELFTEST], [test x$enable_fty_asset_selftest != xno])
+AM_COND_IF([ENABLE_FTY_ASSET_SELFTEST], [AC_MSG_NOTICE([ENABLE_FTY_ASSET_SELFTEST defined])])
 
 # Checks for library functions.
 AC_TYPE_SIGNAL
@@ -602,7 +601,22 @@ AC_ARG_WITH([systemd-units],
     [with_systemd_units=$withval],
     [with_systemd_units=no])
 
-AM_CONDITIONAL([WITH_SYSTEMD_UNITS], [test x$with_systemd_units != xno])
+PKG_PROG_PKG_CONFIG
+AC_ARG_WITH([systemdsystemunitdir],
+     [AS_HELP_STRING([--with-systemdsystemunitdir=DIR], [Directory for systemd service files])],,
+     [with_systemdsystemunitdir=auto])
+AS_IF([test "x$with_systemdsystemunitdir" = "xyes" -o "x$with_systemdsystemunitdir" = "xauto"], [
+     def_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
+
+     AS_IF([test "x$def_systemdsystemunitdir" = "x"],
+   [AS_IF([test "x$with_systemdsystemunitdir" = "xyes"],
+    [AC_MSG_ERROR([systemd support requested but pkg-config unable to query systemd package])])
+    with_systemdsystemunitdir=no],
+   [with_systemdsystemunitdir="$def_systemdsystemunitdir"])])
+AS_IF([test "x$with_systemdsystemunitdir" != "xno"],
+      [AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])])
+
+AM_CONDITIONAL([WITH_SYSTEMD_UNITS], [test "x$with_systemdsystemunitdir" != "xno" -a x$with_systemd_units != xno])
 
 AM_COND_IF([WITH_SYSTEMD_UNITS],
     [AC_DEFINE(WITH_SYSTEMD_UNITS, 1, [systemd units are going to be installed])
@@ -628,8 +642,8 @@ AM_CONDITIONAL([ENABLE_DRAFTS], [test x$enable_drafts != xno])
 
 if test "x$enable_drafts" = "xyes"; then
     AC_MSG_NOTICE([Building stable and legacy API + draft API])
-    AC_DEFINE(AGENT_ASSET_BUILD_DRAFT_API, 1, [Provide draft classes and methods])
-    AC_SUBST(pkg_config_defines, "-DAGENT_ASSET_BUILD_DRAFT_API=1")
+    AC_DEFINE(FTY_ASSET_BUILD_DRAFT_API, 1, [Provide draft classes and methods])
+    AC_SUBST(pkg_config_defines, "-DFTY_ASSET_BUILD_DRAFT_API=1")
 else
     AC_MSG_NOTICE([Building stable and legacy API (no draft API)])
     AC_SUBST(pkg_config_defines, "")
@@ -638,18 +652,92 @@ fi
 # Specify output files
 AC_CONFIG_FILES([Makefile
                  doc/Makefile
-                 src/libagent_asset.pc
-                 src/bios-agent-asset.cfg
+                 src/libfty_asset.pc
+                 src/fty-asset.cfg
                  ])
 
 AM_COND_IF([WITH_SYSTEMD_UNITS],
     [AC_CONFIG_FILES([
-                 src/bios-agent-asset.service
+                 src/fty-asset.service
     ])],
     [])
 
 
 AC_OUTPUT
+
+# Print configure summary and list make options
+AC_DEFUN([AX_SUMMARIZE_ENV],
+[
+BUILD_USER=${USER}
+BUILD_ARCH=${host}
+BUILD_HOST=${ac_hostname}
+BUILD_DATE=$(date +'%F %H:%M')
+
+AC_DEFINE_UNQUOTED([BUILD_USER],     "${BUILD_USER}",     [The fine user who built the package])
+AC_DEFINE_UNQUOTED([BUILD_ARCH],     "${BUILD_ARCH}",     [Architecture of the build host])
+AC_DEFINE_UNQUOTED([BUILD_HOST],     "${BUILD_HOST}",     [Build host name])
+AC_DEFINE_UNQUOTED([BUILD_DATE],     "${BUILD_DATE}",     [Build date])
+
+AC_SUBST(BUILD_USER)
+AC_SUBST(BUILD_ARCH)
+AC_SUBST(BUILD_HOST)
+AC_SUBST(BUILD_DATE)
+AC_SUBST(BUILD_VERSION)
+])
+
+AC_DEFUN([AX_SUMMARIZE_CONFIG],
+[
+echo
+echo '##########################################################################'
+echo '#                                SUMMARY                                 #'
+echo '##########################################################################'
+echo
+echo Package version............... : $PACKAGE-$VERSION
+echo
+echo C compiler.................... : $CC
+echo C compiler flags.............. : $CFLAGS
+echo Configure date................ : $BUILD_DATE
+echo Build architecture............ : $BUILD_ARCH
+echo Build docs.................... : $fty_asset_build_doc
+echo Build host.................... : $BUILD_HOST
+echo Build user.................... : $USER
+echo Draft API..................... : $enable_drafts
+echo Install dir................... : $prefix
+echo Install man pages............. : $fty_asset_install_man
+
+echo
+echo Help:
+echo Use the Draft API \(default = yes\):
+echo --enable-drafts=\(yes\|no\)
+echo
+echo Build the docs and install the man pages \(default = yes\):
+echo --with-docs=\(yes\|no\)       *requires asciidoc and xmlto
+
+echo
+echo '##########################################################################'
+
+echo
+echo Configure complete! Now procced with:
+echo "    - 'make'               compile the project"
+echo "    - 'make check'         run the project's selftest"
+echo "    - 'make install'       install the project to $prefix"
+echo
+echo Further options are:
+echo "    - 'make callcheck'     run the project's selftest with valgrind to"
+echo "                           check for performance leaks"
+echo "    - 'make check-verbose' run the project's selftest in verbose mode"
+echo "    - 'make code'          generate code from models in src directory"
+echo "                           (requires zproject and zproto)"
+echo "    - 'make debug'         run the project's selftest under gdb"
+echo "    - 'make memcheck'      run the project's selftest with valgrind to"
+echo "                           check for memory leaks"
+echo "    - 'make coverage'      generate project's selftest coverage report"
+echo "                           expects --with-gcov option for configure"
+echo
+])
+
+AX_SUMMARIZE_ENV
+AX_SUMMARIZE_CONFIG
 ################################################################################
 #  THIS FILE IS 100% GENERATED BY ZPROJECT; DO NOT EDIT EXCEPT EXPERIMENTALLY  #
 #  Read the zproject/README.md for information about making permanent changes. #

@@ -26,7 +26,7 @@
 @end
 */
 
-#include "agent_asset_classes.h"
+#include "fty_asset_classes.h"
 #include <algorithm>
 
 //  Structure of our class

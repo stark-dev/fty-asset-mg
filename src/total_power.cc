@@ -26,7 +26,7 @@
 @end
 */
 
-#include "agent_asset_classes.h"
+#include "fty_asset_classes.h"
 #include <tntdb/connect.h>
 #include <tntdb/result.h>
 #include <tntdb/error.h>

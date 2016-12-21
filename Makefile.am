@@ -3,6 +3,9 @@
 #  Read the zproject/README.md for information about making permanent changes. #
 ################################################################################
 
+DISTCHECK_CONFIGURE_FLAGS = \
+  --with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)
+
 ACLOCAL_AMFLAGS = -I config
 
 AM_CFLAGS = \
@@ -17,13 +20,13 @@ AM_CPPFLAGS = \
     ${czmq_CFLAGS} \
     ${malamute_CFLAGS} \
     ${core_CFLAGS} \
-    ${biosproto_CFLAGS} \
+    ${fty_proto_CFLAGS} \
     ${cxxtools_CFLAGS} \
     ${tntdb_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${core_LIBS} ${biosproto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS}
+project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${core_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS}
 
 SUBDIRS = doc
 DIST_SUBDIRS = doc
@@ -35,10 +38,18 @@ noinst_LTLIBRARIES =
 TESTS =
 
 EXTRA_DIST = \
+    CMakeLists.txt \
+    Findlibzmq.cmake \
+    Findczmq.cmake \
+    Findmalamute.cmake \
+    Findcore.cmake \
+    Findfty_proto.cmake \
+    Findcxxtools.cmake \
+    Findtntdb.cmake \
     src/asset_defs.h \
     src/total_power.h \
     src/dns.h \
-    src/agent_asset_classes.h
+    src/fty_asset_classes.h
 
 include $(srcdir)/src/Makemodule.am
 

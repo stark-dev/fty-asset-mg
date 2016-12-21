@@ -1,5 +1,5 @@
 [Unit]
-Description=BIOS asset management service
+Description=fty-asset service
 After=malamute.service bios-db-init.service
 Requires=malamute.service bios-db-init.service
 PartOf=bios.target
@@ -13,7 +13,7 @@ EnvironmentFile=-/etc/default/bios
 EnvironmentFile=-/etc/default/bios__%n.conf
 EnvironmentFile=-/etc/default/bios-db-rw
 Environment="prefix=@prefix@"
-ExecStart=@prefix@/bin/bios-agent-asset
+ExecStart=@prefix@/bin/fty-asset @sysconfdir@/@PACKAGE@/fty-asset.cfg
 Restart=always
 
 [Install]

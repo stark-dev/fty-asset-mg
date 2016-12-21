@@ -19,9 +19,9 @@ save.xml
 *.lo
 
 # Executables
-src/agent-asset_selftest
-src/bios-agent-asset
-src/agent_asset_selftest
+src/fty_asset_selftest
+src/fty-asset-cli
+src/fty-asset
 *.exe
 *.out
 *.app
@@ -85,3 +85,4 @@ build/
 # Temporary files
 *.swp
 *~
+*.bak
