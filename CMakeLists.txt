@@ -139,30 +139,6 @@ ELSE (MAGIC_FOUND)
 ENDIF (MAGIC_FOUND)
 
 ########################################################################
-# CORE dependency
-########################################################################
-find_package(core REQUIRED)
-IF (CORE_FOUND)
-    include_directories(${CORE_INCLUDE_DIRS})
-    list(APPEND MORE_LIBRARIES ${CORE_LIBRARIES})
-    set(pkg_config_libs_private "${pkg_config_libs_private} -lbiosapi")
-ELSE (CORE_FOUND)
-    message( FATAL_ERROR "core not found." )
-ENDIF (CORE_FOUND)
-
-########################################################################
-# FTY-PROTO dependency
-########################################################################
-find_package(fty-proto REQUIRED)
-IF (FTY-PROTO_FOUND)
-    include_directories(${FTY-PROTO_INCLUDE_DIRS})
-    list(APPEND MORE_LIBRARIES ${FTY-PROTO_LIBRARIES})
-    set(pkg_config_libs_private "${pkg_config_libs_private} -lfty-proto")
-ELSE (FTY-PROTO_FOUND)
-    message( FATAL_ERROR "fty-proto not found." )
-ENDIF (FTY-PROTO_FOUND)
-
-########################################################################
 # CXXTOOLS dependency
 ########################################################################
 find_package(cxxtools REQUIRED)
@@ -185,6 +161,30 @@ IF (TNTDB_FOUND)
 ELSE (TNTDB_FOUND)
     message( FATAL_ERROR "tntdb not found." )
 ENDIF (TNTDB_FOUND)
+
+########################################################################
+# CORE dependency
+########################################################################
+find_package(core REQUIRED)
+IF (CORE_FOUND)
+    include_directories(${CORE_INCLUDE_DIRS})
+    list(APPEND MORE_LIBRARIES ${CORE_LIBRARIES})
+    set(pkg_config_libs_private "${pkg_config_libs_private} -lbiosapi")
+ELSE (CORE_FOUND)
+    message( FATAL_ERROR "core not found." )
+ENDIF (CORE_FOUND)
+
+########################################################################
+# FTY-PROTO dependency
+########################################################################
+find_package(fty-proto REQUIRED)
+IF (FTY-PROTO_FOUND)
+    include_directories(${FTY-PROTO_INCLUDE_DIRS})
+    list(APPEND MORE_LIBRARIES ${FTY-PROTO_LIBRARIES})
+    set(pkg_config_libs_private "${pkg_config_libs_private} -lfty-proto")
+ELSE (FTY-PROTO_FOUND)
+    message( FATAL_ERROR "fty-proto not found." )
+ENDIF (FTY-PROTO_FOUND)
 
 ########################################################################
 # includes
@@ -273,10 +273,10 @@ target_link_libraries(
     ${CZMQ_LIBRARIES}
     ${MALAMUTE_LIBRARIES}
     ${MAGIC_LIBRARIES}
-    ${CORE_LIBRARIES}
-    ${FTY-PROTO_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
     ${TNTDB_LIBRARIES}
+    ${CORE_LIBRARIES}
+    ${FTY-PROTO_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
 set_target_properties(
@@ -294,10 +294,10 @@ target_link_libraries(
     ${CZMQ_LIBRARIES}
     ${MALAMUTE_LIBRARIES}
     ${MAGIC_LIBRARIES}
-    ${CORE_LIBRARIES}
-    ${FTY-PROTO_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
     ${TNTDB_LIBRARIES}
+    ${CORE_LIBRARIES}
+    ${FTY-PROTO_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
 set_target_properties(
@@ -315,10 +315,10 @@ target_link_libraries(
     ${CZMQ_LIBRARIES}
     ${MALAMUTE_LIBRARIES}
     ${MAGIC_LIBRARIES}
-    ${CORE_LIBRARIES}
-    ${FTY-PROTO_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
     ${TNTDB_LIBRARIES}
+    ${CORE_LIBRARIES}
+    ${FTY-PROTO_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
 set_target_properties(

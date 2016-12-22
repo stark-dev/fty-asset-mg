@@ -73,6 +73,32 @@ fi
 make -j4
 make install
 cd ..
+git clone --quiet --depth 1 -b 42ity https://github.com/42ity/cxxtools cxxtools.git
+cd cxxtools.git
+git --no-pager log --oneline -n1
+if [ -e autogen.sh ]; then
+    ./autogen.sh 2> /dev/null
+fi
+if [ -e buildconf ]; then
+    ./buildconf 2> /dev/null
+fi
+./configure "${CONFIG_OPTS[@]}"
+make -j4
+make install
+cd ..
+git clone --quiet --depth 1 -b 42ity https://github.com/42ity/tntdb tntdb.git
+cd tntdb.git
+git --no-pager log --oneline -n1
+if [ -e autogen.sh ]; then
+    ./autogen.sh 2> /dev/null
+fi
+if [ -e buildconf ]; then
+    ./buildconf 2> /dev/null
+fi
+./configure "${CONFIG_OPTS[@]}"
+make -j4
+make install
+cd ..
 git clone --quiet --depth 1 https://github.com/42ity/fty-core core.git
 cd core.git
 git --no-pager log --oneline -n1
@@ -88,19 +114,6 @@ make install
 cd ..
 git clone --quiet --depth 1 https://github.com/42ity/fty-proto fty-proto.git
 cd fty-proto.git
-git --no-pager log --oneline -n1
-if [ -e autogen.sh ]; then
-    ./autogen.sh 2> /dev/null
-fi
-if [ -e buildconf ]; then
-    ./buildconf 2> /dev/null
-fi
-./configure "${CONFIG_OPTS[@]}"
-make -j4
-make install
-cd ..
-git clone --quiet --depth 1 -b 42ity https://github.com/42ity/cxxtools cxxtools.git
-cd cxxtools.git
 git --no-pager log --oneline -n1
 if [ -e autogen.sh ]; then
     ./autogen.sh 2> /dev/null

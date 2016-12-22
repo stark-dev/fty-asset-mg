@@ -53,11 +53,11 @@ BuildRequires:  gcc-c++
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
+BuildRequires:  magic-devel
+BuildRequires:  cxxtools-devel
+BuildRequires:  tntdb-devel
 BuildRequires:  core-devel
 BuildRequires:  fty-proto-devel
-BuildRequires:  cxxtools-devel
-BuildRequires:  magic-devel
-BuildRequires:  tntdb-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
@@ -85,11 +85,11 @@ Requires:       libfty_asset1 = %{version}
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
+Requires:       magic-devel
+Requires:       cxxtools-devel
+Requires:       tntdb-devel
 Requires:       core-devel
 Requires:       fty-proto-devel
-Requires:       cxxtools-devel
-Requires:       magic-devel
-Requires:       tntdb-devel
 
 %description devel
 agent managing information about assets development tools

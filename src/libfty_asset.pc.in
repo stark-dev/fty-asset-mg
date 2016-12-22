@@ -12,7 +12,7 @@ Name: libfty_asset
 Description: Agent managing information about assets
 Version: @VERSION@
 
-Requires:libzmq libczmq libmlm libmagic biosapi libfty_proto >= 1.0.0 cxxtools tntdb
+Requires:libzmq libczmq libmlm libmagic cxxtools tntdb biosapi libfty_proto >= 1.0.0
 
 Libs: -L${libdir} -lfty_asset
 Cflags: -I${includedir} @pkg_config_defines@
