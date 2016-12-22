@@ -19,15 +19,15 @@ AM_CPPFLAGS = \
     ${libzmq_CFLAGS} \
     ${czmq_CFLAGS} \
     ${malamute_CFLAGS} \
+    ${magic_CFLAGS} \
     ${core_CFLAGS} \
     ${fty_proto_CFLAGS} \
     ${cxxtools_CFLAGS} \
-    ${magic_CFLAGS} \
     ${tntdb_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${core_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${magic_LIBS} ${tntdb_LIBS}
+project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${core_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS}
 
 SUBDIRS = doc
 DIST_SUBDIRS = doc
@@ -43,10 +43,10 @@ EXTRA_DIST = \
     Findlibzmq.cmake \
     Findczmq.cmake \
     Findmalamute.cmake \
+    Findmagic.cmake \
     Findcore.cmake \
     Findfty_proto.cmake \
     Findcxxtools.cmake \
-    Findmagic.cmake \
     Findtntdb.cmake \
     src/asset_defs.h \
     src/total_power.h \

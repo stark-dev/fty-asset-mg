@@ -127,6 +127,18 @@ ELSE (MALAMUTE_FOUND)
 ENDIF (MALAMUTE_FOUND)
 
 ########################################################################
+# MAGIC dependency
+########################################################################
+find_package(magic REQUIRED)
+IF (MAGIC_FOUND)
+    include_directories(${MAGIC_INCLUDE_DIRS})
+    list(APPEND MORE_LIBRARIES ${MAGIC_LIBRARIES})
+    set(pkg_config_libs_private "${pkg_config_libs_private} -lmagic")
+ELSE (MAGIC_FOUND)
+    message( FATAL_ERROR "magic not found." )
+ENDIF (MAGIC_FOUND)
+
+########################################################################
 # CORE dependency
 ########################################################################
 find_package(core REQUIRED)
@@ -161,18 +173,6 @@ IF (CXXTOOLS_FOUND)
 ELSE (CXXTOOLS_FOUND)
     message( FATAL_ERROR "cxxtools not found." )
 ENDIF (CXXTOOLS_FOUND)
-
-########################################################################
-# MAGIC dependency
-########################################################################
-find_package(magic REQUIRED)
-IF (MAGIC_FOUND)
-    include_directories(${MAGIC_INCLUDE_DIRS})
-    list(APPEND MORE_LIBRARIES ${MAGIC_LIBRARIES})
-    set(pkg_config_libs_private "${pkg_config_libs_private} -lmagic")
-ELSE (MAGIC_FOUND)
-    message( FATAL_ERROR "magic not found." )
-ENDIF (MAGIC_FOUND)
 
 ########################################################################
 # TNTDB dependency
@@ -272,10 +272,10 @@ target_link_libraries(
     ${LIBZMQ_LIBRARIES}
     ${CZMQ_LIBRARIES}
     ${MALAMUTE_LIBRARIES}
+    ${MAGIC_LIBRARIES}
     ${CORE_LIBRARIES}
     ${FTY-PROTO_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
-    ${MAGIC_LIBRARIES}
     ${TNTDB_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
@@ -293,10 +293,10 @@ target_link_libraries(
     ${LIBZMQ_LIBRARIES}
     ${CZMQ_LIBRARIES}
     ${MALAMUTE_LIBRARIES}
+    ${MAGIC_LIBRARIES}
     ${CORE_LIBRARIES}
     ${FTY-PROTO_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
-    ${MAGIC_LIBRARIES}
     ${TNTDB_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
@@ -314,10 +314,10 @@ target_link_libraries(
     ${LIBZMQ_LIBRARIES}
     ${CZMQ_LIBRARIES}
     ${MALAMUTE_LIBRARIES}
+    ${MAGIC_LIBRARIES}
     ${CORE_LIBRARIES}
     ${FTY-PROTO_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
-    ${MAGIC_LIBRARIES}
     ${TNTDB_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )

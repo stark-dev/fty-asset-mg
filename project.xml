@@ -17,6 +17,13 @@
     <version major = "1" minor = "0" patch = "0" />
     <use project = "malamute" />
 
+    <use project = "magic" libname = "libmagic"
+        repository = "https://github.com/42ity/libmagic"
+        test = "magic_close"
+        spec_name = "file-devel"
+        >
+    </use>
+
     <use project = "core" libname = "biosapi" prefix="biosapi"
         min_major = "0" min_minor = "0" min_patch = "0"
         repository = "https://github.com/42ity/fty-core"
@@ -35,13 +42,6 @@
         repository = "https://github.com/42ity/cxxtools"
         release = "42ity"
         />
-
-    <use project = "magic" libname = "libmagic"
-        repository = "https://github.com/42ity/libmagic"
-        test = "magic_close"
-        spec_name = "file-devel"
-        >
-    </use>
 
     <use project = "tntdb" test="tntdb::Blob::Blob"/>
 

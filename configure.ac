@@ -218,6 +218,53 @@ if test "x$was_malamute_check_lib_detected" = "xno"; then
     LIBS="${malamute_LIBS} ${LIBS}"
 fi
 
+was_magic_check_lib_detected=no
+
+PKG_CHECK_MODULES([magic], [libmagic >= 0.0.0],
+    [
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $magic_LIBS"
+    ],
+    [
+        AC_ARG_WITH([libmagic],
+            [
+                AS_HELP_STRING([--with-libmagic],
+                [Specify libmagic prefix])
+            ],
+            [search_libmagic="yes"],
+            [])
+
+        magic_synthetic_cflags=""
+        magic_synthetic_libs="-lmagic"
+
+        if test "x$search_libmagic" = "xyes"; then
+            if test -r "${with_libmagic}/include/magic.h"; then
+                magic_synthetic_cflags="-I${with_libmagic}/include"
+                magic_synthetic_libs="-L${with_libmagic}/lib -lmagic"
+            else
+                AC_MSG_ERROR([${with_libmagic}/include/magic.h not found. Please check libmagic prefix])
+            fi
+        fi
+
+
+        AC_CHECK_LIB([magic], [magic_close],
+            [
+                CFLAGS="${magic_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${magic_synthetic_libs} ${LDFLAGS}"
+                LIBS="${magic_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([magic_CFLAGS],[${magic_synthetic_cflags}])
+                AC_SUBST([magic_LIBS],[${magic_synthetic_libs}])
+                was_magic_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lmagic"
+            ],
+            [AC_MSG_ERROR([cannot link with -lmagic, install libmagic])])
+    ])
+
+if test "x$was_magic_check_lib_detected" = "xno"; then
+    CFLAGS="${magic_CFLAGS} ${CFLAGS}"
+    LIBS="${magic_LIBS} ${LIBS}"
+fi
+
 was_core_check_lib_detected=no
 
 PKG_CHECK_MODULES([core], [biosapi >= 0.0.0],
@@ -325,53 +372,6 @@ PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
 if test "x$was_cxxtools_check_lib_detected" = "xno"; then
     CFLAGS="${cxxtools_CFLAGS} ${CFLAGS}"
     LIBS="${cxxtools_LIBS} ${LIBS}"
-fi
-
-was_magic_check_lib_detected=no
-
-PKG_CHECK_MODULES([magic], [libmagic >= 0.0.0],
-    [
-        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $magic_LIBS"
-    ],
-    [
-        AC_ARG_WITH([libmagic],
-            [
-                AS_HELP_STRING([--with-libmagic],
-                [Specify libmagic prefix])
-            ],
-            [search_libmagic="yes"],
-            [])
-
-        magic_synthetic_cflags=""
-        magic_synthetic_libs="-lmagic"
-
-        if test "x$search_libmagic" = "xyes"; then
-            if test -r "${with_libmagic}/include/magic.h"; then
-                magic_synthetic_cflags="-I${with_libmagic}/include"
-                magic_synthetic_libs="-L${with_libmagic}/lib -lmagic"
-            else
-                AC_MSG_ERROR([${with_libmagic}/include/magic.h not found. Please check libmagic prefix])
-            fi
-        fi
-
-
-        AC_CHECK_LIB([magic], [magic_close],
-            [
-                CFLAGS="${magic_synthetic_cflags} ${CFLAGS}"
-                LDFLAGS="${magic_synthetic_libs} ${LDFLAGS}"
-                LIBS="${magic_synthetic_libs} ${LIBS}"
-
-                AC_SUBST([magic_CFLAGS],[${magic_synthetic_cflags}])
-                AC_SUBST([magic_LIBS],[${magic_synthetic_libs}])
-                was_magic_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lmagic"
-            ],
-            [AC_MSG_ERROR([cannot link with -lmagic, install libmagic])])
-    ])
-
-if test "x$was_magic_check_lib_detected" = "xno"; then
-    CFLAGS="${magic_CFLAGS} ${CFLAGS}"
-    LIBS="${magic_LIBS} ${LIBS}"
 fi
 
 was_tntdb_check_lib_detected=no
