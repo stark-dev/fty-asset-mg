@@ -1,5 +1,5 @@
 /*  =========================================================================
-    dns - DNS and networking helper
+    fty-asset - Agent managing information about assets
 
     Copyright (C) 2014 - 2015 Eaton                                        
                                                                            
@@ -19,29 +19,12 @@
     =========================================================================
 */
 
-#ifndef DNS_H_INCLUDED
-#define DNS_H_INCLUDED
+#ifndef FTY_ASSET_H_H_INCLUDED
+#define FTY_ASSET_H_H_INCLUDED
 
-//  @interface
+//  Include the project library file
+#include "fty_asset_library.h"
 
-FTY_ASSET_EXPORT std::set<std::string>
-    name_to_ip4 (const char *name);
-
-FTY_ASSET_EXPORT std::set<std::string>
-    name_to_ip6 (const char *name);
-
-FTY_ASSET_EXPORT std::set<std::string>
-    name_to_ip (const char *name);
-
-FTY_ASSET_EXPORT std::string
-    ip_to_name (const char *ip);
-
-FTY_ASSET_EXPORT std::map<std::string,std::set<std::string>>
-    local_addresses();
-
-FTY_ASSET_EXPORT void
-    dns_test (bool verbose);
-
-//  @end
+//  Add your own public definitions here, if you need them
 
 #endif

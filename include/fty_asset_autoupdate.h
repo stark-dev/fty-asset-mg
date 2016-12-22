@@ -1,5 +1,5 @@
 /*  =========================================================================
-    dns - DNS and networking helper
+    fty_asset_autoupdate - Asset server, that udates some of asset information on change like IP address in case of DHCP
 
     Copyright (C) 2014 - 2015 Eaton                                        
                                                                            
@@ -19,29 +19,26 @@
     =========================================================================
 */
 
-#ifndef DNS_H_INCLUDED
-#define DNS_H_INCLUDED
+#ifndef FTY_ASSET_AUTOUPDATE_H_INCLUDED
+#define FTY_ASSET_AUTOUPDATE_H_INCLUDED
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 //  @interface
-
-FTY_ASSET_EXPORT std::set<std::string>
-    name_to_ip4 (const char *name);
-
-FTY_ASSET_EXPORT std::set<std::string>
-    name_to_ip6 (const char *name);
-
-FTY_ASSET_EXPORT std::set<std::string>
-    name_to_ip (const char *name);
-
-FTY_ASSET_EXPORT std::string
-    ip_to_name (const char *ip);
-
-FTY_ASSET_EXPORT std::map<std::string,std::set<std::string>>
-    local_addresses();
-
+//  bios_asset_autoupdate actor
 FTY_ASSET_EXPORT void
-    dns_test (bool verbose);
+    fty_asset_autoupdate_server (zsock_t *pipe, void *args);
+
+//  Self test of this class
+FTY_ASSET_EXPORT void
+    fty_asset_autoupdate_test (bool verbose);
 
 //  @end
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

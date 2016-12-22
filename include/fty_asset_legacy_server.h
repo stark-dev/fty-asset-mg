@@ -1,5 +1,5 @@
 /*  =========================================================================
-    bios_asset_autoupdate - Asset server, that udates some of asset information on change like IP address in case of DHCP
+    fty_asset_legacy_server - Server translating legacy configure messages to new protocol
 
     Copyright (C) 2014 - 2015 Eaton                                        
                                                                            
@@ -19,22 +19,22 @@
     =========================================================================
 */
 
-#ifndef BIOS_ASSET_AUTOUPDATE_H_INCLUDED
-#define BIOS_ASSET_AUTOUPDATE_H_INCLUDED
+#ifndef FTY_ASSET_LEGACY_SERVER_H_INCLUDED
+#define FTY_ASSET_LEGACY_SERVER_H_INCLUDED
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef struct _fty_asset_legacy_server_t fty_asset_legacy_server_t;
 //  @interface
-//  bios_asset_autoupdate actor
-AGENT_ASSET_EXPORT void
-    bios_asset_autoupdate_server (zsock_t *pipe, void *args);
-
+//  Server converting old configure messages sent by REST API to new protocol
+FTY_ASSET_EXPORT void
+    fty_asset_legacy_server (zsock_t *pipe, void *args);
 
 //  Self test of this class
-AGENT_ASSET_EXPORT void
-    bios_asset_autoupdate_test (bool verbose);
+FTY_ASSET_EXPORT void
+    fty_asset_legacy_server_test (bool verbose);
 
 //  @end
 

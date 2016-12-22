@@ -1,5 +1,5 @@
 /*  =========================================================================
-    agent-asset - generated layer of public API
+    fty-asset - generated layer of public API
 
     Copyright (C) 2014 - 2015 Eaton                                        
                                                                            
@@ -24,54 +24,67 @@
     =========================================================================
 */
 
-#ifndef AGENT_ASSET_LIBRARY_H_INCLUDED
-#define AGENT_ASSET_LIBRARY_H_INCLUDED
+#ifndef FTY_ASSET_LIBRARY_H_INCLUDED
+#define FTY_ASSET_LIBRARY_H_INCLUDED
 
 //  Set up environment for the application
 
 //  External dependencies
 #include <malamute.h>
-#include <biosproto.h>
+#include <ftyproto.h>
+#include <cxxtools/allocator.h>
 #include <tntdb.h>
 #include <bios/bios_agent.h>
 #include <bios/agents.h>
 
-//  AGENT_ASSET version macros for compile-time API detection
-#define AGENT_ASSET_VERSION_MAJOR 0
-#define AGENT_ASSET_VERSION_MINOR 1
-#define AGENT_ASSET_VERSION_PATCH 0
+//  FTY_ASSET version macros for compile-time API detection
+#define FTY_ASSET_VERSION_MAJOR 1
+#define FTY_ASSET_VERSION_MINOR 0
+#define FTY_ASSET_VERSION_PATCH 0
 
-#define AGENT_ASSET_MAKE_VERSION(major, minor, patch) \
+#define FTY_ASSET_MAKE_VERSION(major, minor, patch) \
     ((major) * 10000 + (minor) * 100 + (patch))
-#define AGENT_ASSET_VERSION \
-    AGENT_ASSET_MAKE_VERSION(AGENT_ASSET_VERSION_MAJOR, AGENT_ASSET_VERSION_MINOR, AGENT_ASSET_VERSION_PATCH)
+#define FTY_ASSET_VERSION \
+    FTY_ASSET_MAKE_VERSION(FTY_ASSET_VERSION_MAJOR, FTY_ASSET_VERSION_MINOR, FTY_ASSET_VERSION_PATCH)
 
 #if defined (__WINDOWS__)
-#   if defined AGENT_ASSET_STATIC
-#       define AGENT_ASSET_EXPORT
-#   elif defined AGENT_ASSET_EXPORTS
-#       define AGENT_ASSET_EXPORT __declspec(dllexport)
+#   if defined FTY_ASSET_STATIC
+#       define FTY_ASSET_EXPORT
+#   elif defined FTY_ASSET_INTERNAL_BUILD
+#       if defined DLL_EXPORT
+#           define FTY_ASSET_EXPORT __declspec(dllexport)
+#       else
+#           define FTY_ASSET_EXPORT
+#       endif
+#   elif defined FTY_ASSET_EXPORTS
+#       define FTY_ASSET_EXPORT __declspec(dllexport)
 #   else
-#       define AGENT_ASSET_EXPORT __declspec(dllimport)
+#       define FTY_ASSET_EXPORT __declspec(dllimport)
 #   endif
+#   define FTY_ASSET_PRIVATE
 #else
-#   define AGENT_ASSET_EXPORT
+#   define FTY_ASSET_EXPORT
+#   if (defined __GNUC__ && __GNUC__ >= 4) || defined __INTEL_COMPILER
+#       define FTY_ASSET_PRIVATE __attribute__ ((visibility ("hidden")))
+#   else
+#       define FTY_ASSET_PRIVATE
+#   endif
 #endif
 
 //  Opaque class structures to allow forward references
 //  These classes are stable or legacy and built in all releases
-typedef struct _bios_legacy_asset_server_t bios_legacy_asset_server_t;
-#define BIOS_LEGACY_ASSET_SERVER_T_DEFINED
-typedef struct _bios_asset_server_t bios_asset_server_t;
-#define BIOS_ASSET_SERVER_T_DEFINED
-typedef struct _bios_asset_autoupdate_t bios_asset_autoupdate_t;
-#define BIOS_ASSET_AUTOUPDATE_T_DEFINED
+typedef struct _fty_asset_legacy_server_t fty_asset_legacy_server_t;
+#define FTY_ASSET_LEGACY_SERVER_T_DEFINED
+typedef struct _fty_asset_server_t fty_asset_server_t;
+#define FTY_ASSET_SERVER_T_DEFINED
+typedef struct _fty_asset_autoupdate_t fty_asset_autoupdate_t;
+#define FTY_ASSET_AUTOUPDATE_T_DEFINED
 
 
 //  Public classes, each with its own header file
-#include "bios_legacy_asset_server.h"
-#include "bios_asset_server.h"
-#include "bios_asset_autoupdate.h"
+#include "fty_asset_legacy_server.h"
+#include "fty_asset_server.h"
+#include "fty_asset_autoupdate.h"
 
 #endif
 /*

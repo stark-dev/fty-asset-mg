@@ -1,35 +1,36 @@
 /*  =========================================================================
-    bios_legacy_asset_server - Server translating legacy configure messages to new protocl
+    fty_asset_legacy_server - Server translating legacy configure messages to new protocol
 
-    Copyright (C) 2014 - 2015 Eaton
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
+    Copyright (C) 2014 - 2015 Eaton                                        
+                                                                           
+    This program is free software; you can redistribute it and/or modify   
+    it under the terms of the GNU General Public License as published by   
+    the Free Software Foundation; either version 2 of the License, or      
+    (at your option) any later version.                                    
+                                                                           
+    This program is distributed in the hope that it will be useful,        
+    but WITHOUT ANY WARRANTY; without even the implied warranty of         
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
+    GNU General Public License for more details.                           
+                                                                           
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
     =========================================================================
 */
 
 /*
 @header
-    bios_legacy_asset_server - Server translating legacy configure messages to new protocl
+    fty_asset_legacy_server - Server translating legacy configure messages to new protocol
 @discuss
 @end
 */
 
-#include "agent_asset_classes.h"
+#include "fty_asset_classes.h"
+
 
 void
-    bios_legacy_asset_server (zsock_t *pipe, void *args)
+    fty_asset_legacy_server (zsock_t *pipe, void *args)
 {
     bool verbose = false;
     char *name = strdup ((char*)args);
@@ -107,18 +108,18 @@ void
             zsys_error ("mlm_client_recv failed");
             continue;
         }
-        bios_proto_t *bmsg = bios_proto_decode (&msg);
+        fty_proto_t *bmsg = fty_proto_decode (&msg);
         if ( !bmsg ) {
-            zsys_error ("bios_proto_decode failed");
+            zsys_error ("fty_proto_decode failed");
             zmsg_destroy (&msg);
             continue;
         }
-        if ( bios_proto_id (bmsg) != BIOS_PROTO_ASSET ) {
+        if ( fty_proto_id (bmsg) != FTY_PROTO_ASSET ) {
             zsys_error ("NOT ASSET MESSAGE detected on ASSET strema!");
-            bios_proto_destroy (&bmsg);
+            fty_proto_destroy (&bmsg);
             continue;
         }
-        zhash_t *aux = bios_proto_aux (bmsg);
+        zhash_t *aux = fty_proto_aux (bmsg);
         char *priority = NULL;
         char *type = NULL;
         char *subtype = NULL;
@@ -133,27 +134,27 @@ void
             status = (char *) zhash_lookup (aux, "status");
         }
 
-        zhash_t *ext = bios_proto_get_ext(bmsg);
+        zhash_t *ext = fty_proto_get_ext(bmsg);
         ymsg_t *newmsg = bios_asset_extra_encode(
-                bios_proto_name(bmsg),
+                fty_proto_name(bmsg),
                 &ext,
                 (type == NULL ? 0 : type_to_typeid(type)),
                 (subtype == NULL ? 0 : subtype_to_subtypeid(subtype)),
                 (parent == NULL ? 0 : atoi(parent)),
                 (status == NULL ? "": status),
                 (priority == NULL ? 0 : atoi(priority)),
-                str2operation(bios_proto_operation(bmsg))
+                str2operation(fty_proto_operation(bmsg))
             );
 
-        zsys_debug ("name=%s, status=%s", bios_proto_name(bmsg), status);
-        zsys_debug ("op=%s, type=%s, subtype=%s, parent_id=%s", bios_proto_operation(bmsg), type, subtype, parent);
+        zsys_debug ("name=%s, status=%s", fty_proto_name(bmsg), status);
+        zsys_debug ("op=%s, type=%s, subtype=%s, parent_id=%s", fty_proto_operation(bmsg), type, subtype, parent);
 
         char *subject;
-        int r = asprintf (&subject, "configure@%s", bios_proto_name(bmsg));
+        int r = asprintf (&subject, "configure@%s", fty_proto_name(bmsg));
         assert ( r != -1);
         r = bios_agent_send (agent, subject, &newmsg);
         zstr_free (&subject);
-        bios_proto_destroy (&bmsg);
+        fty_proto_destroy (&bmsg);
     }
 
 exit:
@@ -205,7 +206,7 @@ static void s_send_asset_message (
     if ( parent )
         zhash_insert (aux, "parent", (void *)parent);
     zhash_insert (aux, "status", (void *)status);
-    zmsg_t *msg = bios_proto_encode_asset (aux, asset_name, operation, ext);
+    zmsg_t *msg = fty_proto_encode_asset (aux, asset_name, operation, ext);
     assert (msg);
     int rv = mlm_client_send (producer, asset_name, &msg);
     assert ( rv == 0 );
@@ -215,12 +216,12 @@ static void s_send_asset_message (
 }
 
 void
-bios_legacy_asset_server_test (bool verbose)
+fty_asset_legacy_server_test (bool verbose)
 {
-    printf (" * bios_legacy_asset_server: ");
+    printf (" * fty_asset_legacy_server: ");
 
     //  @selftest
-    static const char* endpoint = "inproc://bios-legacy-asset-server-test";
+    static const char* endpoint = "inproc://fty_asset_legacy_server-test";
 
     // malamute broker
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
@@ -228,7 +229,7 @@ bios_legacy_asset_server_test (bool verbose)
     zstr_sendx (server, "BIND", endpoint, NULL);
 
     // legacy assets
-    zactor_t *la_server = zactor_new (bios_legacy_asset_server, (void*)"agent-legacy-metrics");
+    zactor_t *la_server = zactor_new (fty_asset_legacy_server, (void*)"agent-legacy-metrics");
     if (verbose)
         zstr_send (la_server, "VERBOSE");
     zstr_sendx (la_server, "CONNECT", endpoint, NULL);
@@ -276,7 +277,6 @@ bios_legacy_asset_server_test (bool verbose)
     bios_agent_destroy (&agent);
     zactor_destroy (&la_server);
     zactor_destroy (&server);
-
     //  @end
     printf ("OK\n");
 }

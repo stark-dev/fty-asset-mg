@@ -1,6 +1,0 @@
-debian/tmp/usr/bin/bios-agent-asset
-debian/tmp/usr/bin/agent-asset-cli
-debian/tmp/usr/lib/systemd/system/bios-agent-asset*.service
-
-
-

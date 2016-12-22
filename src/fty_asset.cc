@@ -1,32 +1,32 @@
 /*  =========================================================================
-    bios_agent_asset - Agent managing assets
+    fty_asset - Agent managing assets
 
-    Copyright (C) 2014 - 2015 Eaton
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
+    Copyright (C) 2014 - 2015 Eaton                                        
+                                                                           
+    This program is free software; you can redistribute it and/or modify   
+    it under the terms of the GNU General Public License as published by   
+    the Free Software Foundation; either version 2 of the License, or      
+    (at your option) any later version.                                    
+                                                                           
+    This program is distributed in the hope that it will be useful,        
+    but WITHOUT ANY WARRANTY; without even the implied warranty of         
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
+    GNU General Public License for more details.                           
+                                                                           
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
     =========================================================================
 */
 
 /*
 @header
-    bios_agent_asset - Agent managing assets
+    fty_asset - Agent managing assets
 @discuss
 @end
 */
 
-#include "agent_asset_classes.h"
+#include "fty_asset_classes.h"
 
 static int
 s_autoupdate_timer (zloop_t *loop, int timer_id, void *output)
@@ -51,7 +51,7 @@ int main (int argc, char *argv [])
     for (argn = 1; argn < argc; argn++) {
         if (streq (argv [argn], "--help")
         ||  streq (argv [argn], "-h")) {
-            puts ("bios-agent-asset [options] ...");
+            puts ("fty-asset [options] ...");
             puts ("  --verbose / -v         verbose test output");
             puts ("  --help / -h            this information");
             return 0;
@@ -65,18 +65,16 @@ int main (int argc, char *argv [])
             return 1;
         }
     }
-    //  Insert main code here
     if (verbose)
-        zsys_info ("bios_agent_asset - Agent managing assets");
-
-    zactor_t *la_server = zactor_new (bios_legacy_asset_server, (void*) "legacy-assets");
+        zsys_info ("fty_asset - Agent managing assets");
+    zactor_t *la_server = zactor_new (fty_asset_legacy_server, (void*) "legacy-assets");
     if (verbose)
         zstr_send (la_server, "VERBOSE");
     zstr_sendx (la_server, "CONNECT", endpoint, NULL);
     zstr_sendx (la_server, "PRODUCER", bios_get_stream_main (), NULL);
     zstr_sendx (la_server, "CONSUMER", "ASSETS", ".*", NULL);
 
-    zactor_t *asset_server = zactor_new (bios_asset_server, (void*) "asset-agent");
+    zactor_t *asset_server = zactor_new (fty_asset_server, (void*) "asset-agent");
     if (verbose)
         zstr_send (asset_server, "VERBOSE");
     zstr_sendx (asset_server, "CONNECT", endpoint, NULL);
@@ -87,7 +85,7 @@ int main (int argc, char *argv [])
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "REPEAT_ALL", NULL);
 
-    zactor_t *autoupdate_server = zactor_new (bios_asset_autoupdate_server, (void*) "asset-autoupdate");
+    zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate");
     if (verbose)
         zstr_send (la_server, "VERBOSE");
     zstr_sendx (autoupdate_server, "CONNECT", endpoint, NULL);

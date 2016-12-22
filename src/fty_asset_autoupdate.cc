@@ -1,5 +1,5 @@
 /*  =========================================================================
-    bios_asset_autoupdate - Asset server, that udates some of asset information on change like IP address in case of DHCP
+    fty_asset_autoupdate - Asset server, that udates some of asset information on change like IP address in case of DHCP
 
     Copyright (C) 2014 - 2015 Eaton                                        
                                                                            
@@ -21,26 +21,32 @@
 
 /*
 @header
-    bios_asset_autoupdate - Asset server, that udates some of asset information on change like IP address in case of DHCP
+    fty_asset_autoupdate - Asset server, that udates some of asset information on change like IP address in case of DHCP
 @discuss
 @end
 */
 
-#include "agent_asset_classes.h"
+#include "fty_asset_classes.h"
 
-typedef struct {
+//  Structure of our class
+
+struct _fty_asset_autoupdate_t {
     mlm_client_t *client = NULL;
     char *name = NULL;
     std::vector<std::string> rcs;
     bool verbose;
-} asset_autoupdate_t;
+};
 
-static void
-asset_autoupdate_destroy (asset_autoupdate_t **self_p)
+
+//  --------------------------------------------------------------------------
+//  Destroy the fty_asset_autoupdate
+
+void
+fty_asset_autoupdate_destroy (fty_asset_autoupdate_t **self_p)
 {
     assert (self_p);
-    asset_autoupdate_t *self = *self_p;
-    if ( self ) {
+    if (*self_p) {
+        fty_asset_autoupdate_t *self = *self_p;
         zstr_free (&self->name);
         mlm_client_destroy (&self->client);
         free (self);
@@ -48,28 +54,29 @@ asset_autoupdate_destroy (asset_autoupdate_t **self_p)
     }
 }
 
-static asset_autoupdate_t*
-asset_autoupdate_new (void)
+//  --------------------------------------------------------------------------
+//  Create a new fty_asset_autoupdate
+
+fty_asset_autoupdate_t *
+fty_asset_autoupdate_new (void)
 {
-    asset_autoupdate_t *self = (asset_autoupdate_t *) zmalloc (sizeof(asset_autoupdate_t));
-    if ( self ) {
-        self->client = mlm_client_new ();
-        if (self->client) {
-            self->verbose = false;
-        }
-        else {
-            asset_autoupdate_destroy (&self);
-        }
+    fty_asset_autoupdate_t *self = (fty_asset_autoupdate_t *) zmalloc (sizeof (fty_asset_autoupdate_t));
+    assert (self);
+    self->client = mlm_client_new ();
+    if (self->client) {
+        self->verbose = false;
+    }
+    else {
+        fty_asset_autoupdate_destroy (&self);
     }
     return self;
 }
-
 
 #define is_ipv6(X) (X.find(':') != std::string::npos)
 #define icase_streq(X,Y) (strcasecmp ((X),(Y)) == 0)
 
 void
-autoupdate_update_rc_self(asset_autoupdate_t *self, const std::string &assetName)
+autoupdate_update_rc_self (fty_asset_autoupdate_t *self, const std::string &assetName)
 {
     bool haveLAN1 = false;
     zhash_t *inventory = zhash_new ();
@@ -99,7 +106,7 @@ autoupdate_update_rc_self(asset_autoupdate_t *self, const std::string &assetName
                 }
             }
         }
-        zmsg_t *msg = bios_proto_encode_asset (
+        zmsg_t *msg = fty_proto_encode_asset (
             aux,
             assetName.c_str (),
             "inventory",
@@ -126,7 +133,7 @@ autoupdate_update_rc_self(asset_autoupdate_t *self, const std::string &assetName
                 zhash_update (inventory, key.c_str(), (void *)addr.c_str ());
             }
         }
-        zmsg_t *msg = bios_proto_encode_asset (
+        zmsg_t *msg = fty_proto_encode_asset (
             aux,
             assetName.c_str (),
             "inventory",
@@ -144,7 +151,7 @@ autoupdate_update_rc_self(asset_autoupdate_t *self, const std::string &assetName
 }
 
 void
-autoupdate_update_rc_information(asset_autoupdate_t *self)
+autoupdate_update_rc_information (fty_asset_autoupdate_t *self)
 {
     assert (self);
     
@@ -185,7 +192,7 @@ autoupdate_update_rc_information(asset_autoupdate_t *self)
 }
 
 void
-autoupdate_request_all_rcs (asset_autoupdate_t *self)
+autoupdate_request_all_rcs (fty_asset_autoupdate_t *self)
 {
     assert (self);
 
@@ -203,14 +210,14 @@ autoupdate_request_all_rcs (asset_autoupdate_t *self)
 }
 
 void
-autoupdate_update (asset_autoupdate_t *self)
+autoupdate_update (fty_asset_autoupdate_t *self)
 {
     assert (self);
     autoupdate_update_rc_information (self);
 }
 
 void
-autoupdate_handle_message (asset_autoupdate_t *self, zmsg_t *message)
+autoupdate_handle_message (fty_asset_autoupdate_t *self, zmsg_t *message)
 {
     if (!self || !message ) return;
 
@@ -241,12 +248,12 @@ autoupdate_handle_message (asset_autoupdate_t *self, zmsg_t *message)
 
 
 void
-bios_asset_autoupdate_server (zsock_t *pipe, void *args)
+fty_asset_autoupdate_server (zsock_t *pipe, void *args)
 {
     assert (pipe);
     assert (args);
 
-    asset_autoupdate_t *self = asset_autoupdate_new ();
+    fty_asset_autoupdate_t *self = fty_asset_autoupdate_new ();
     assert (self);
     self->name = strdup ((char*) args);
     assert (self->name);
@@ -336,16 +343,22 @@ bios_asset_autoupdate_server (zsock_t *pipe, void *args)
  exit:
     zsys_info ("%s:\tended", self->name);
     zpoller_destroy (&poller);
-    asset_autoupdate_destroy (&self);
+    fty_asset_autoupdate_destroy (&self);
 }
 
+//  --------------------------------------------------------------------------
+//  Self test of this class
+
 void
-bios_asset_autoupdate_test (bool verbose)
+fty_asset_autoupdate_test (bool verbose)
 {
-    printf (" * bios_asset_autoupdate: ");
+    printf (" * fty_asset_autoupdate: ");
+
     //  @selftest
-    asset_autoupdate_t *self = asset_autoupdate_new ();
-    asset_autoupdate_destroy (&self);
+    //  Simple create/destroy test
+    fty_asset_autoupdate_t *self = fty_asset_autoupdate_new ();
+    assert (self);
+    fty_asset_autoupdate_destroy (&self);
     //  @end
     printf ("OK\n");
 }

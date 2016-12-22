@@ -1,5 +1,5 @@
 /*  =========================================================================
-    agent_asset_selftest.c - run selftests
+    fty_asset_selftest.c - run selftests
 
     Runs all selftests.
 
@@ -27,7 +27,7 @@
     =========================================================================
 */
 
-#include "agent_asset_classes.h"
+#include "fty_asset_classes.h"
 
 typedef struct {
     const char *testname;
@@ -39,9 +39,9 @@ all_tests [] = {
     { "asset_defs", asset_defs_test },
     { "total_power", total_power_test },
     { "dns", dns_test },
-    { "bios_legacy_asset_server", bios_legacy_asset_server_test },
-    { "bios_asset_server", bios_asset_server_test },
-    { "bios_asset_autoupdate", bios_asset_autoupdate_test },
+    { "fty_asset_legacy_server", fty_asset_legacy_server_test },
+    { "fty_asset_server", fty_asset_server_test },
+    { "fty_asset_autoupdate", fty_asset_autoupdate_test },
     {0, 0}          //  Sentinel
 };
 
@@ -69,7 +69,7 @@ static void
 test_runall (bool verbose)
 {
     test_item_t *item;
-    printf ("Running agent-asset selftests...\n");
+    printf ("Running fty-asset selftests...\n");
     for (item = all_tests; item->test; item++)
         item->test (verbose);
 
@@ -85,7 +85,7 @@ main (int argc, char **argv)
     for (argn = 1; argn < argc; argn++) {
         if (streq (argv [argn], "--help")
         ||  streq (argv [argn], "-h")) {
-            puts ("agent_asset_selftest.c [options] ...");
+            puts ("fty_asset_selftest.c [options] ...");
             puts ("  --verbose / -v         verbose test output");
             puts ("  --number / -n          report number of tests");
             puts ("  --list / -l            list all tests");
@@ -109,9 +109,9 @@ main (int argc, char **argv)
             puts ("    asset_defs");
             puts ("    total_power");
             puts ("    dns");
-            puts ("    bios_legacy_asset_server");
-            puts ("    bios_asset_server");
-            puts ("    bios_asset_autoupdate");
+            puts ("    fty_asset_legacy_server");
+            puts ("    fty_asset_server");
+            puts ("    fty_asset_autoupdate");
             return 0;
         }
         else
@@ -142,7 +142,7 @@ main (int argc, char **argv)
         }
     }
     if (test) {
-        printf ("Running agent-asset test '%s'...\n", test->testname);
+        printf ("Running fty-asset test '%s'...\n", test->testname);
         test->test (verbose);
     }
     else

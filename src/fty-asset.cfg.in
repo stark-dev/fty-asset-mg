@@ -1,4 +1,4 @@
-#   bios-agent-asset configuration
+#   fty-asset configuration
 
 server
     timeout = 10000     #   Client connection timeout, msec

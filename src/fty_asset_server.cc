@@ -1,28 +1,27 @@
 /*  =========================================================================
-    bios_legacy_asset_server - Server translating legacy configure messages to new protocl
+    fty_asset_server - Asset server, that takes care about distribution of asset information across the system
 
-    Copyright (C) 2014 - 2015 Eaton
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
+    Copyright (C) 2014 - 2015 Eaton                                        
+                                                                           
+    This program is free software; you can redistribute it and/or modify   
+    it under the terms of the GNU General Public License as published by   
+    the Free Software Foundation; either version 2 of the License, or      
+    (at your option) any later version.                                    
+                                                                           
+    This program is distributed in the hope that it will be useful,        
+    but WITHOUT ANY WARRANTY; without even the implied warranty of         
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
+    GNU General Public License for more details.                           
+                                                                           
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
     =========================================================================
 */
 
 /*
 @header
-    bios_asset_server - Asset server, that takes care about distribution of
-                                      asset information across the system
+    fty_asset_server - Asset server, that takes care about distribution of asset information across the system
 @discuss
      ASSET PROTOCOL
 
@@ -59,9 +58,9 @@
 
     REQ:
         subject: "ASSET_MANIPULATION"
-        Message is a bios protocol (bios_proto_t) message
+        Message is a fty protocol (fty_proto_t) message
 
-        *) bios_proto ASSET message
+        *) fty_proto ASSET message
 
         where 'operation' is one of [ create | update | delete | retire ].
         Asset messages with different operation value are discarded and not replied to.
@@ -123,25 +122,30 @@
 @end
 */
 
-#include "agent_asset_classes.h"
+#include "fty_asset_classes.h"
 #include <string>
 #include <tntdb/connect.h>
 #include <functional>
 // TODO add dependencies tntdb and cxxtools
 
+//  Structure of our class
 
-typedef struct _agent_cfg_t {
+struct _fty_asset_server_t {
     bool verbose;
     char *name;
     mlm_client_t *client;
-} agent_cfg_t;
+};
 
-static void
-    agent_cfg_destroy (agent_cfg_t **self_p)
+
+//  --------------------------------------------------------------------------
+//  Destroy the fty_asset_server
+
+void
+fty_asset_server_destroy (fty_asset_server_t **self_p)
 {
     assert (self_p);
-    agent_cfg_t *self = *self_p;
-    if ( self ) {
+    if (*self_p) {
+        fty_asset_server_t *self = *self_p;
         zstr_free (&self->name);
         mlm_client_destroy (&self->client);
         free (self);
@@ -149,22 +153,23 @@ static void
     }
 }
 
-static agent_cfg_t*
-    agent_cfg_new (void)
+//  --------------------------------------------------------------------------
+//  Create a new fty_asset_server
+
+fty_asset_server_t *
+fty_asset_server_new (void)
 {
-    agent_cfg_t *self = (agent_cfg_t *) zmalloc (sizeof(agent_cfg_t));
-    if ( self ) {
-        self->client = mlm_client_new ();
-        if (self->client) {
-            self->verbose = false;
-        }
-        else {
-            agent_cfg_destroy (&self);
-        }
+    fty_asset_server_t *self = (fty_asset_server_t *) zmalloc (sizeof (fty_asset_server_t));
+    assert (self);
+    self->client = mlm_client_new ();
+    if (self->client) {
+        self->verbose = false;
+    }
+    else {
+        fty_asset_server_destroy (&self);
     }
     return self;
 }
-
 
 
 // ============================================================
@@ -172,7 +177,7 @@ static agent_cfg_t*
 // ============================================================
 static void
     s_processTopology(
-        agent_cfg_t *cfg,
+        fty_asset_server_t *cfg,
         const std::string &assetName)
 {
     // result of power topology - list of power device names
@@ -214,7 +219,7 @@ static void
 
 static void
     s_handle_subject_topology(
-        agent_cfg_t *cfg,
+        fty_asset_server_t *cfg,
         zmsg_t *zmessage)
 {
     assert (zmessage);
@@ -232,7 +237,7 @@ static void
 
 static void
     s_handle_subject_assets_in_container (
-        agent_cfg_t *cfg,
+        fty_asset_server_t *cfg,
         zmsg_t *msg)
 {
     assert (msg);
@@ -297,7 +302,7 @@ static void
 
 static void
     s_update_asset (
-        agent_cfg_t *cfg,
+        fty_asset_server_t *cfg,
         const std::string &asset_name)
 {
     assert (cfg);
@@ -387,10 +392,10 @@ static void
     subject.append ("@");
     subject.append (asset_name);
 
-    zmsg_t *msg = bios_proto_encode_asset (
+    zmsg_t *msg = fty_proto_encode_asset (
             aux,
             asset_name.c_str(),
-            BIOS_PROTO_ASSET_OP_UPDATE,
+            FTY_PROTO_ASSET_OP_UPDATE,
             ext);
     rv = mlm_client_send (cfg->client, subject.c_str(), &msg);
     zhash_destroy (&ext);
@@ -403,22 +408,22 @@ static void
 
 static void
     s_update_topology(
-        agent_cfg_t *cfg,
-        bios_proto_t *msg)
+        fty_asset_server_t *cfg,
+        fty_proto_t *msg)
 {
     assert (msg);
     assert (cfg);
 
-    if ( !streq (bios_proto_operation (msg),BIOS_PROTO_ASSET_OP_UPDATE)) {
-        zsys_info ("%s:\tIgnore: '%s' on '%s'", cfg->name, bios_proto_operation(msg), bios_proto_name (msg));
+    if ( !streq (fty_proto_operation (msg),FTY_PROTO_ASSET_OP_UPDATE)) {
+        zsys_info ("%s:\tIgnore: '%s' on '%s'", cfg->name, fty_proto_operation(msg), fty_proto_name (msg));
         return;
     }
     // select assets, that were affected by the change
     std::set<std::string> empty;
     std::vector <std::string> asset_names;
-    int rv = select_assets_by_container (bios_proto_name (msg), empty, asset_names);
+    int rv = select_assets_by_container (fty_proto_name (msg), empty, asset_names);
     if ( rv != 0 ) {
-        zsys_warning ("%s:\tCannot select assets in container '%s'", cfg->name, bios_proto_name (msg));
+        zsys_warning ("%s:\tCannot select assets in container '%s'", cfg->name, fty_proto_name (msg));
         return;
     }
 
@@ -429,7 +434,7 @@ static void
 }
 
 static void
-s_repeat_all (agent_cfg_t *cfg, const std::set<std::string>& assets_to_publish)
+s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_publish)
 {
     assert (cfg);
 
@@ -460,18 +465,18 @@ s_repeat_all (agent_cfg_t *cfg, const std::set<std::string>& assets_to_publish)
 }
 
 static void
-s_repeat_all (agent_cfg_t *cfg)
+s_repeat_all (fty_asset_server_t *cfg)
 {
     return s_repeat_all (cfg, {});
 }
 
 void
-bios_asset_server (zsock_t *pipe, void *args)
+fty_asset_server (zsock_t *pipe, void *args)
 {
     assert (pipe);
     assert (args);
 
-    agent_cfg_t *cfg = agent_cfg_new ();
+    fty_asset_server_t *cfg = fty_asset_server_new ();
     assert (cfg);
     cfg->name = strdup ((char*) args);
     assert (cfg->name);
@@ -571,12 +576,12 @@ bios_asset_server (zsock_t *pipe, void *args)
             zsys_debug("%s:\tGot message subject='%s', command='%s'", cfg->name, subject.c_str (), command.c_str ());
 
         if (command == "STREAM DELIVER") {
-            if ( is_bios_proto (zmessage) ) {
-                bios_proto_t *bmsg = bios_proto_decode (&zmessage);
-                if ( bios_proto_id (bmsg) == BIOS_PROTO_ASSET ) {
+            if ( is_fty_proto (zmessage) ) {
+                fty_proto_t *bmsg = fty_proto_decode (&zmessage);
+                if ( fty_proto_id (bmsg) == FTY_PROTO_ASSET ) {
                     s_update_topology (cfg, bmsg);
                 }
-                bios_proto_destroy (&bmsg);
+                fty_proto_destroy (&bmsg);
             }
             else {
                 // DO NOTHING for now
@@ -618,23 +623,26 @@ exit:
     zsys_info ("%s:\tended", cfg->name);
     //TODO:  save info to persistence before I die
     zpoller_destroy (&poller);
-    agent_cfg_destroy (&cfg);
+    fty_asset_server_destroy (&cfg);
 }
 
 //  --------------------------------------------------------------------------
 //  Self test of this class
 
 void
-bios_asset_server_test (bool verbose)
+fty_asset_server_test (bool verbose)
 {
-    printf (" * bios_asset_server: \n");
+    printf (" * fty_asset_server: ");
 
-    agent_cfg_t *cfg = agent_cfg_new();
-    agent_cfg_destroy (&cfg);
-// Everything is commented out because: need to have a proper database
-// --> move it out of "make check"
     //  @selftest
-    static const char* endpoint = "inproc://bios-asset-server-test";
+    //  Simple create/destroy test
+    fty_asset_server_t *self = fty_asset_server_new ();
+    assert (self);
+    fty_asset_server_destroy (&self);
+    // Everything is commented out because: need to have a proper database
+    // --> move it out of "make check"
+    //  @selftest
+    static const char* endpoint = "inproc://fty_asset_server-test";
 
     // malamute broker
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
@@ -643,7 +651,7 @@ bios_asset_server_test (bool verbose)
     zstr_sendx (server, "BIND", endpoint, NULL);
 
     // NOT legacy assets
-    zactor_t *la_server = zactor_new (bios_asset_server, (void*)"AGENT_ASSET");
+    zactor_t *la_server = zactor_new (fty_asset_server, (void*)"AGENT_ASSET");
     if (verbose) {
         zstr_send (la_server, "VERBOSE");
     }
