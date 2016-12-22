@@ -29,9 +29,9 @@
         release = "42ity"
         />
 
-    <use project = "tntdb" test="tntdb::Blob::Blob"
+    <use project = "tntdb" test="tntdb::Date::gmtime"
         repository = "https://github.com/42ity/tntdb"
-        release = "1\.3"
+        release = "1.3"
         />
 
     <use project = "core" libname = "biosapi" prefix="biosapi"

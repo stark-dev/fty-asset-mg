@@ -340,7 +340,7 @@ PKG_CHECK_MODULES([tntdb], [tntdb >= 0.0.0],
         fi
 
 
-        AC_CHECK_LIB([tntdb], [tntdb::Blob::Blob],
+        AC_CHECK_LIB([tntdb], [tntdb::Date::gmtime],
             [
                 CFLAGS="${tntdb_synthetic_cflags} ${CFLAGS}"
                 LDFLAGS="${tntdb_synthetic_libs} ${LDFLAGS}"
