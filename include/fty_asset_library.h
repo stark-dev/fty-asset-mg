@@ -31,6 +31,7 @@
 
 //  External dependencies
 #include <malamute.h>
+#include <magic.h>
 #include <ftyproto.h>
 #include <cxxtools/allocator.h>
 #include <tntdb.h>

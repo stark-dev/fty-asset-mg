@@ -106,6 +106,20 @@ if [ "$BUILD_TYPE" == "default" ] || [ "$BUILD_TYPE" == "default-Werror" ] ; the
     make -j4
     make install
     cd "${BASE_PWD}"
+    git clone --quiet --depth 1 https://github.com/42ity/libmagic magic.git
+    BASE_PWD=${PWD}
+    cd magic.git
+    git --no-pager log --oneline -n1
+    if [ -e autogen.sh ]; then
+        ./autogen.sh 2> /dev/null
+    fi
+    if [ -e buildconf ]; then
+        ./buildconf 2> /dev/null
+    fi
+    ./configure "${CONFIG_OPTS[@]}"
+    make -j4
+    make install
+    cd "${BASE_PWD}"
     git clone --quiet --depth 1 https://github.com/42ity/fty-core core.git
     BASE_PWD=${PWD}
     cd core.git
@@ -137,20 +151,6 @@ if [ "$BUILD_TYPE" == "default" ] || [ "$BUILD_TYPE" == "default-Werror" ] ; the
     git clone --quiet --depth 1 -b 42ity https://github.com/42ity/cxxtools cxxtools.git
     BASE_PWD=${PWD}
     cd cxxtools.git
-    git --no-pager log --oneline -n1
-    if [ -e autogen.sh ]; then
-        ./autogen.sh 2> /dev/null
-    fi
-    if [ -e buildconf ]; then
-        ./buildconf 2> /dev/null
-    fi
-    ./configure "${CONFIG_OPTS[@]}"
-    make -j4
-    make install
-    cd "${BASE_PWD}"
-    git clone --quiet --depth 1 https://github.com/42ity/libmagic magic.git
-    BASE_PWD=${PWD}
-    cd magic.git
     git --no-pager log --oneline -n1
     if [ -e autogen.sh ]; then
         ./autogen.sh 2> /dev/null
