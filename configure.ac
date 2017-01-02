@@ -359,53 +359,6 @@ if test "x$was_tntdb_check_lib_detected" = "xno"; then
     LIBS="${tntdb_LIBS} ${LIBS}"
 fi
 
-was_core_check_lib_detected=no
-
-PKG_CHECK_MODULES([core], [biosapi >= 0.0.0],
-    [
-        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $core_LIBS"
-    ],
-    [
-        AC_ARG_WITH([biosapi],
-            [
-                AS_HELP_STRING([--with-biosapi],
-                [Specify biosapi prefix])
-            ],
-            [search_biosapi="yes"],
-            [])
-
-        core_synthetic_cflags=""
-        core_synthetic_libs="-lbiosapi"
-
-        if test "x$search_biosapi" = "xyes"; then
-            if test -r "${with_biosapi}/include/biosapi.h"; then
-                core_synthetic_cflags="-I${with_biosapi}/include"
-                core_synthetic_libs="-L${with_biosapi}/lib -lbiosapi"
-            else
-                AC_MSG_ERROR([${with_biosapi}/include/biosapi.h not found. Please check biosapi prefix])
-            fi
-        fi
-
-
-        AC_CHECK_LIB([biosapi], [ymsg_test],
-            [
-                CFLAGS="${core_synthetic_cflags} ${CFLAGS}"
-                LDFLAGS="${core_synthetic_libs} ${LDFLAGS}"
-                LIBS="${core_synthetic_libs} ${LIBS}"
-
-                AC_SUBST([core_CFLAGS],[${core_synthetic_cflags}])
-                AC_SUBST([core_LIBS],[${core_synthetic_libs}])
-                was_core_check_lib_detected=yes
-                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lbiosapi"
-            ],
-            [AC_MSG_ERROR([cannot link with -lbiosapi, install biosapi])])
-    ])
-
-if test "x$was_core_check_lib_detected" = "xno"; then
-    CFLAGS="${core_CFLAGS} ${CFLAGS}"
-    LIBS="${core_LIBS} ${LIBS}"
-fi
-
 was_fty_proto_check_lib_detected=no
 
 PKG_CHECK_MODULES([fty_proto], [libfty_proto >= 1.0.0],

@@ -9,8 +9,6 @@
 *.7
 
 # Ignore the source doc texts generated from program sources
-fty_asset_legacy_server.txt
-fty_asset_legacy_server.doc
 fty_asset_server.txt
 fty_asset_server.doc
 fty_asset_autoupdate.txt

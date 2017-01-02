@@ -40,21 +40,6 @@
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef FTY_ASSET_BUILD_DRAFT_API
 
-//  *** Draft method, defined for internal use only ***
-//  Self test of this class.
-FTY_ASSET_PRIVATE void
-    asset_defs_test (bool verbose);
-
-//  *** Draft method, defined for internal use only ***
-//  Self test of this class.
-FTY_ASSET_PRIVATE void
-    total_power_test (bool verbose);
-
-//  *** Draft method, defined for internal use only ***
-//  Self test of this class.
-FTY_ASSET_PRIVATE void
-    dns_test (bool verbose);
-
 #endif // FTY_ASSET_BUILD_DRAFT_API
 
 #endif

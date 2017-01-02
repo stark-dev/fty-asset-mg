@@ -198,14 +198,6 @@ dns_test (bool verbose)
         }
         assert (found == 1);
     }
-    {
-        int found = 0;
-        for (auto a : name_to_ip6 ("localhost")) {
-            if (a == "::1") found++;
-        }
-        assert (found == 1);
-    }
-    assert (! ip_to_name("::1").empty ());
     assert (! ip_to_name("127.0.0.1").empty ());
     /*
     auto i = local_addresses ();

@@ -39,7 +39,6 @@ all_tests [] = {
     { "asset_defs", asset_defs_test },
     { "total_power", total_power_test },
     { "dns", dns_test },
-    { "fty_asset_legacy_server", fty_asset_legacy_server_test },
     { "fty_asset_server", fty_asset_server_test },
     { "fty_asset_autoupdate", fty_asset_autoupdate_test },
     {0, 0}          //  Sentinel
@@ -99,7 +98,7 @@ main (int argc, char **argv)
         else
         if (streq (argv [argn], "--number")
         ||  streq (argv [argn], "-n")) {
-            puts ("6");
+            puts ("5");
             return 0;
         }
         else
@@ -109,7 +108,6 @@ main (int argc, char **argv)
             puts ("    asset_defs");
             puts ("    total_power");
             puts ("    dns");
-            puts ("    fty_asset_legacy_server");
             puts ("    fty_asset_server");
             puts ("    fty_asset_autoupdate");
             return 0;
