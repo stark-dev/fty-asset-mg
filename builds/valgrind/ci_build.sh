@@ -89,7 +89,7 @@ make -j4
 make install
 cd ..
 git clone --quiet --depth 1 -b 1.3 https://github.com/42ity/tntdb tntdb.git
-cd tntdb.git
+cd tntdb.git/tntdb
 git --no-pager log --oneline -n1
 if [ -e autogen.sh ]; then
     ./autogen.sh 2> /dev/null
@@ -100,7 +100,7 @@ fi
 ./configure "${CONFIG_OPTS[@]}"
 make -j4
 make install
-cd ..
+cd ../..
 git clone --quiet --depth 1 https://github.com/42ity/fty-proto fty-proto.git
 cd fty-proto.git
 git --no-pager log --oneline -n1
