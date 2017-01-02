@@ -163,18 +163,6 @@ ELSE (TNTDB_FOUND)
 ENDIF (TNTDB_FOUND)
 
 ########################################################################
-# CORE dependency
-########################################################################
-find_package(core REQUIRED)
-IF (CORE_FOUND)
-    include_directories(${CORE_INCLUDE_DIRS})
-    list(APPEND MORE_LIBRARIES ${CORE_LIBRARIES})
-    set(pkg_config_libs_private "${pkg_config_libs_private} -lbiosapi")
-ELSE (CORE_FOUND)
-    message( FATAL_ERROR "core not found." )
-ENDIF (CORE_FOUND)
-
-########################################################################
 # FTY-PROTO dependency
 ########################################################################
 find_package(fty-proto REQUIRED)
@@ -192,7 +180,6 @@ ENDIF (FTY-PROTO_FOUND)
 set (fty_asset_headers
     include/fty_asset_library.h
     include/fty_asset.h
-    include/fty_asset_legacy_server.h
     include/fty_asset_server.h
     include/fty_asset_autoupdate.h
     src/asset_defs.h
@@ -211,7 +198,6 @@ set (fty_asset_sources
     src/asset_defs.c
     src/total_power.c
     src/dns.c
-    src/fty_asset_legacy_server.c
     src/fty_asset_server.c
     src/fty_asset_autoupdate.c
 )
@@ -275,7 +261,6 @@ target_link_libraries(
     ${MAGIC_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
     ${TNTDB_LIBRARIES}
-    ${CORE_LIBRARIES}
     ${FTY-PROTO_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
@@ -296,7 +281,6 @@ target_link_libraries(
     ${MAGIC_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
     ${TNTDB_LIBRARIES}
-    ${CORE_LIBRARIES}
     ${FTY-PROTO_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
@@ -317,7 +301,6 @@ target_link_libraries(
     ${MAGIC_LIBRARIES}
     ${CXXTOOLS_LIBRARIES}
     ${TNTDB_LIBRARIES}
-    ${CORE_LIBRARIES}
     ${FTY-PROTO_LIBRARIES}
     ${OPTIONAL_LIBRARIES}
 )
@@ -340,7 +323,6 @@ if(UNIX)
 endif()
 
 set(TEST_CLASSES
-    fty_asset_legacy_server
     fty_asset_server
     fty_asset_autoupdate
 )

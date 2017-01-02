@@ -32,11 +32,9 @@
 //  External dependencies
 #include <malamute.h>
 #include <magic.h>
-#include <ftyproto.h>
 #include <cxxtools/allocator.h>
 #include <tntdb.h>
-#include <bios/bios_agent.h>
-#include <bios/agents.h>
+#include <ftyproto.h>
 
 //  FTY_ASSET version macros for compile-time API detection
 #define FTY_ASSET_VERSION_MAJOR 1
@@ -74,8 +72,6 @@
 
 //  Opaque class structures to allow forward references
 //  These classes are stable or legacy and built in all releases
-typedef struct _fty_asset_legacy_server_t fty_asset_legacy_server_t;
-#define FTY_ASSET_LEGACY_SERVER_T_DEFINED
 typedef struct _fty_asset_server_t fty_asset_server_t;
 #define FTY_ASSET_SERVER_T_DEFINED
 typedef struct _fty_asset_autoupdate_t fty_asset_autoupdate_t;
@@ -83,7 +79,6 @@ typedef struct _fty_asset_autoupdate_t fty_asset_autoupdate_t;
 
 
 //  Public classes, each with its own header file
-#include "fty_asset_legacy_server.h"
 #include "fty_asset_server.h"
 #include "fty_asset_autoupdate.h"
 

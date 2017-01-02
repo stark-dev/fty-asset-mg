@@ -67,12 +67,6 @@ int main (int argc, char *argv [])
     }
     if (verbose)
         zsys_info ("fty_asset - Agent managing assets");
-    zactor_t *la_server = zactor_new (fty_asset_legacy_server, (void*) "legacy-assets");
-    if (verbose)
-        zstr_send (la_server, "VERBOSE");
-    zstr_sendx (la_server, "CONNECT", endpoint, NULL);
-    zstr_sendx (la_server, "PRODUCER", bios_get_stream_main (), NULL);
-    zstr_sendx (la_server, "CONSUMER", "ASSETS", ".*", NULL);
 
     zactor_t *asset_server = zactor_new (fty_asset_server, (void*) "asset-agent");
     if (verbose)
@@ -87,7 +81,7 @@ int main (int argc, char *argv [])
 
     zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate");
     if (verbose)
-        zstr_send (la_server, "VERBOSE");
+        zstr_send (autoupdate_server, "VERBOSE");
     zstr_sendx (autoupdate_server, "CONNECT", endpoint, NULL);
     zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "PRODUCER", "ASSETS", NULL);
@@ -109,6 +103,5 @@ int main (int argc, char *argv [])
     zloop_destroy (&loop);
     zactor_destroy (&autoupdate_server);
     zactor_destroy (&asset_server);
-    zactor_destroy (&la_server);
     return 0;
 }
