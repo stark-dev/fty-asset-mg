@@ -41,9 +41,9 @@
         <use project = "malamute"/>
     </use>
 
-    <class name = "asset_defs" private = "1">Some fancy definitions related to assets</class>
-    <class name = "total_power" private = "1"> Calculation of total power for one asset</class>
-    <class name = "dns" private = "1">DNS and networking helper</class>
+    <class name = "asset_defs" private = "1" state = "stable">Some fancy definitions related to assets</class>
+    <class name = "total_power" private = "1" state = "stable"> Calculation of total power for one asset</class>
+    <class name = "dns" private = "1" state = "stable">DNS and networking helper</class>
     <class name = "fty_asset_server" state = "stable" >Asset server, that takes care about distribution of asset information across the system</class>
     <class name = "fty_asset_autoupdate" state = "stable" >Asset server, that udates some of asset information on change like IP address in case of DHCP</class>
     
