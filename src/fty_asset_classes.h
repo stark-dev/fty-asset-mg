@@ -40,10 +40,6 @@
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef FTY_ASSET_BUILD_DRAFT_API
 
-//  Self test for private classes
-FTY_ASSET_PRIVATE void
-    fty_asset_private_selftest (bool verbose);
-
 #endif // FTY_ASSET_BUILD_DRAFT_API
 
 #endif

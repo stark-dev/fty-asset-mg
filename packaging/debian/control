@@ -24,6 +24,7 @@ Maintainer:     fty-asset Developers <eatonipcopensource@eaton.com>
 Standards-Version: 3.9.7
 Build-Depends: debhelper (>= 9),
     pkg-config,
+    dh-autoreconf,
     libzmq3-dev,
     libczmq-dev,
     libmlm-dev,
@@ -33,10 +34,10 @@ Build-Depends: debhelper (>= 9),
     libfty-proto-dev,
     systemd,
     dh-systemd,
-    asciidoc-base | asciidoc, xmlto,
-    dh-autoreconf
+Build-Depends-Indep: asciidoc,
+                     xmlto
 
-Package: libfty-asset0
+Package: libfty-asset1
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: agent managing information about assets shared library
@@ -53,7 +54,7 @@ Depends:
     libcxxtools-dev,
     libtntdb-dev,
     libfty-proto-dev,
-    libfty-asset0 (= ${binary:Version})
+    libfty-asset1 (= ${binary:Version})
 Description: agent managing information about assets development tools
  This package contains development files for fty-asset: agent managing information about assets
 

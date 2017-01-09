@@ -36,12 +36,11 @@ typedef struct {
 
 static test_item_t
 all_tests [] = {
-// Tests for stable public classes:
+    { "asset_defs", asset_defs_test },
+    { "total_power", total_power_test },
+    { "dns", dns_test },
     { "fty_asset_server", fty_asset_server_test },
     { "fty_asset_autoupdate", fty_asset_autoupdate_test },
-#ifdef FTY_ASSET_BUILD_DRAFT_API
-    { "private_classes", fty_asset_private_selftest },
-#endif // FTY_ASSET_BUILD_DRAFT_API
     {0, 0}          //  Sentinel
 };
 
@@ -106,9 +105,11 @@ main (int argc, char **argv)
         if (streq (argv [argn], "--list")
         ||  streq (argv [argn], "-l")) {
             puts ("Available tests:");
-            puts ("    fty_asset_server\t\t- stable");
-            puts ("    fty_asset_autoupdate\t\t- stable");
-            puts ("    private_classes\t- draft");
+            puts ("    asset_defs");
+            puts ("    total_power");
+            puts ("    dns");
+            puts ("    fty_asset_server");
+            puts ("    fty_asset_autoupdate");
             return 0;
         }
         else
