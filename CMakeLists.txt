@@ -212,6 +212,9 @@ set_target_properties(fty_asset
 set_target_properties(fty_asset
     PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${SOURCE_DIR}/src"
 )
+set_target_properties (fty_asset
+    PROPERTIES SOVERSION "0.0.0"
+)
 target_link_libraries(fty_asset
     ${ZEROMQ_LIBRARIES} ${MORE_LIBRARIES}
 )
@@ -268,6 +271,9 @@ set_target_properties(
     fty-asset
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${SOURCE_DIR}/src"
 )
+install(TARGETS fty-asset
+    RUNTIME DESTINATION bin
+)
 add_executable(
     fty-asset-cli
     "${SOURCE_DIR}/src/fty-asset-cli.c"
@@ -287,6 +293,9 @@ target_link_libraries(
 set_target_properties(
     fty-asset-cli
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${SOURCE_DIR}/src"
+)
+install(TARGETS fty-asset-cli
+    RUNTIME DESTINATION bin
 )
 add_executable(
     fty_asset_selftest

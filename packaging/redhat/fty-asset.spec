@@ -62,17 +62,17 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 %description
 fty-asset agent managing information about assets.
 
-%package -n libfty_asset1
+%package -n libfty_asset0
 Group:          System/Libraries
 Summary:        agent managing information about assets shared library
 
-%description -n libfty_asset1
+%description -n libfty_asset0
 This package contains shared library for fty-asset: agent managing information about assets
 
-%post -n libfty_asset1 -p /sbin/ldconfig
-%postun -n libfty_asset1 -p /sbin/ldconfig
+%post -n libfty_asset0 -p /sbin/ldconfig
+%postun -n libfty_asset0 -p /sbin/ldconfig
 
-%files -n libfty_asset1
+%files -n libfty_asset0
 %defattr(-,root,root)
 %doc COPYING
 %{_libdir}/libfty_asset.so.*
@@ -80,7 +80,7 @@ This package contains shared library for fty-asset: agent managing information a
 %package devel
 Summary:        agent managing information about assets
 Group:          System/Libraries
-Requires:       libfty_asset1 = %{version}
+Requires:       libfty_asset0 = %{version}
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
