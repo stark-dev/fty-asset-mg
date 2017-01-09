@@ -1,4 +1,4 @@
-debian/tmp/usr/include/*
-debian/tmp/usr/lib/*/libfty_asset.so
-debian/tmp/usr/lib/*/pkgconfig/libfty_asset.pc
-debian/tmp/usr/share/man/man3/*
+usr/include/*
+usr/lib/*/libfty_asset.so
+usr/lib/*/pkgconfig/libfty_asset.pc
+usr/share/man/man3/*

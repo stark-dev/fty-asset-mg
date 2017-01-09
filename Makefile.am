@@ -36,9 +36,10 @@ noinst_PROGRAMS =
 check_PROGRAMS =
 noinst_LTLIBRARIES =
 TESTS =
+EXTRA_DIST =
 
-EXTRA_DIST = \
-    CMakeLists.txt \
+if ENABLE_DIST_CMAKEFILES
+EXTRA_DIST += \
     Findlibzmq.cmake \
     Findczmq.cmake \
     Findmalamute.cmake \
@@ -46,6 +47,10 @@ EXTRA_DIST = \
     Findcxxtools.cmake \
     Findtntdb.cmake \
     Findfty_proto.cmake \
+    CMakeLists.txt
+endif
+
+EXTRA_DIST += \
     src/asset_defs.h \
     src/total_power.h \
     src/dns.h \
