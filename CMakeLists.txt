@@ -26,7 +26,21 @@ if (NOT CMAKE_BUILD_TYPE)
     if (EXISTS "${SOURCE_DIR}/.git")
         set (CMAKE_BUILD_TYPE Debug)
     else ()
-        set (CMAKE_BUILD_TYPE Release)
+# http://xit0.org/2013/04/cmake-use-git-branch-and-commit-details-in-project/
+# http://stackoverflow.com/questions/6797395/cmake-execute-process-always-fails-with-no-such-file-or-directory-when-i-cal
+        execute_process(
+            COMMAND git rev-parse --show-toplevel
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            RESULT_VARIABLE git_result
+            OUTPUT_VARIABLE git_root
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        message(STATUS "git workspace root [${git_result}]: ${git_root}")
+        if ( "${git_result}" == "0" )
+            set (CMAKE_BUILD_TYPE Debug)
+        else ()
+            set (CMAKE_BUILD_TYPE Release)
+        endif ()
     endif ()
 endif ()
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
@@ -201,6 +215,12 @@ set (fty_asset_sources
     src/fty_asset_server.c
     src/fty_asset_autoupdate.c
 )
+IF (ENABLE_DRAFTS)
+    list (APPEND fty_asset_sources
+        src/fty_asset_private_selftest.cc
+    )
+ENDIF (ENABLE_DRAFTS)
+
 source_group("Source Files" FILES ${fty_asset_sources})
 if (NOT DEFINED BUILD_SHARED_LIBS)
     SET(BUILD_SHARED_LIBS ON)
@@ -335,6 +355,12 @@ set(TEST_CLASSES
     fty_asset_server
     fty_asset_autoupdate
 )
+
+IF (ENABLE_DRAFTS)
+    list (APPEND TEST_CLASSES
+    private_classes
+    )
+ENDIF (ENABLE_DRAFTS)
 
 foreach(TEST_CLASS ${TEST_CLASSES})
     add_test(
