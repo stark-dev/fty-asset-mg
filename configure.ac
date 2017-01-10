@@ -84,6 +84,7 @@ PKG_CHECK_MODULES([libzmq], [libzmq >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $libzmq_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package libzmq not found; falling back to defined compilability tests])
         AC_ARG_WITH([libzmq],
             [
                 AS_HELP_STRING([--with-libzmq],
@@ -131,6 +132,7 @@ PKG_CHECK_MODULES([czmq], [libczmq >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $czmq_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package libczmq not found; falling back to defined compilability tests])
         AC_ARG_WITH([libczmq],
             [
                 AS_HELP_STRING([--with-libczmq],
@@ -178,6 +180,7 @@ PKG_CHECK_MODULES([malamute], [libmlm >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $malamute_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package libmlm not found; falling back to defined compilability tests])
         AC_ARG_WITH([libmlm],
             [
                 AS_HELP_STRING([--with-libmlm],
@@ -225,6 +228,7 @@ PKG_CHECK_MODULES([magic], [libmagic >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $magic_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package libmagic not found; falling back to defined compilability tests])
         AC_ARG_WITH([libmagic],
             [
                 AS_HELP_STRING([--with-libmagic],
@@ -272,6 +276,7 @@ PKG_CHECK_MODULES([cxxtools], [cxxtools >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $cxxtools_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package cxxtools not found; falling back to defined compilability tests])
         AC_ARG_WITH([cxxtools],
             [
                 AS_HELP_STRING([--with-cxxtools],
@@ -319,6 +324,7 @@ PKG_CHECK_MODULES([tntdb], [tntdb >= 0.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $tntdb_LIBS"
     ],
     [
+        AC_MSG_NOTICE([Package tntdb not found; falling back to defined compilability tests])
         AC_ARG_WITH([tntdb],
             [
                 AS_HELP_STRING([--with-tntdb],
@@ -366,7 +372,40 @@ PKG_CHECK_MODULES([fty_proto], [libfty_proto >= 1.0.0],
         PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $fty_proto_LIBS"
     ],
     [
-        AC_MSG_ERROR([Cannot find libfty_proto 1.0.0 or higher])
+        AC_MSG_NOTICE([Package libfty_proto not found with needed constraints; falling back to defined compilability tests])
+        AC_ARG_WITH([libfty_proto],
+            [
+                AS_HELP_STRING([--with-libfty_proto],
+                [Specify libfty_proto prefix])
+            ],
+            [search_libfty_proto="yes"],
+            [])
+
+        fty_proto_synthetic_cflags=""
+        fty_proto_synthetic_libs="-lfty-proto"
+
+        if test "x$search_libfty_proto" = "xyes"; then
+            if test -r "${with_libfty_proto}/include/ftyproto.h"; then
+                fty_proto_synthetic_cflags="-I${with_libfty_proto}/include"
+                fty_proto_synthetic_libs="-L${with_libfty_proto}/lib -lfty-proto"
+            else
+                AC_MSG_ERROR([${with_libfty_proto}/include/ftyproto.h not found. Please check libfty_proto prefix])
+            fi
+        fi
+
+
+        AC_CHECK_LIB([fty-proto], [fty_proto_test],
+            [
+                CFLAGS="${fty_proto_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${fty_proto_synthetic_libs} ${LDFLAGS}"
+                LIBS="${fty_proto_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([fty_proto_CFLAGS],[${fty_proto_synthetic_cflags}])
+                AC_SUBST([fty_proto_LIBS],[${fty_proto_synthetic_libs}])
+                was_fty_proto_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lfty-proto"
+            ],
+            [AC_MSG_ERROR([cannot link with -lfty-proto, install libfty_proto])])
     ])
 
 if test "x$was_fty_proto_check_lib_detected" = "xno"; then
@@ -642,7 +681,13 @@ if test "x$cross_compiling" = "xyes"; then
 else
     # enable draft API by default if we're in a git repository
     # else disable it by default; then allow --enable-drafts=yes/no override
-    AC_CHECK_FILE($srcdir/.git, [defaultval=yes], [defaultval=no])
+    AC_CHECK_FILE($srcdir/.git, [defaultval=yes],
+        [AC_MSG_CHECKING([running under a git repository workspace])
+         AS_IF([git rev-parse --show-toplevel 2>/dev/null],
+            [defaultval=yes],
+            [defaultval=no])
+         AC_MSG_RESULT($defaultval)
+        ])
 fi
 
 AC_ARG_ENABLE([drafts],
@@ -701,6 +746,7 @@ AM_COND_IF([WITH_SYSTEMD_UNITS],
                  src/fty-asset.service
     ])],
     [])
+
 
 
 AC_OUTPUT
