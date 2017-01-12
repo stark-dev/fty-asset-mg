@@ -62,7 +62,6 @@ int main (int argc, char *argv [])
             verbose = true;
         else {
             printf ("Unknown option: %s\n", argv [argn]);
-            return 1;
         }
     }
     if (verbose)
