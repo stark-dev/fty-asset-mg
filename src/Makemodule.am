@@ -16,14 +16,22 @@ include_HEADERS = \
     include/fty_asset.h \
     include/fty_asset_server.h \
     include/fty_asset_autoupdate.h \
+    include/fty_asset_uptime.h \
+    include/fty_asset_uptime_configurator.h \
     include/fty_asset_library.h
 
 src_libfty_asset_la_SOURCES = \
     src/asset_defs.cc \
     src/total_power.cc \
     src/dns.cc \
+    src/defs.cc \
+    src/dbhelpers.cc \
+    src/preproc.cc \
+    src/dbpath.cc \
     src/fty_asset_server.cc \
     src/fty_asset_autoupdate.cc \
+    src/fty_asset_uptime.cc \
+    src/fty_asset_uptime_configurator.cc \
     src/platform.h
 
 if ENABLE_DRAFTS

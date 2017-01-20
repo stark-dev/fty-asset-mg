@@ -36,6 +36,10 @@
 #include "asset_defs.h"
 #include "total_power.h"
 #include "dns.h"
+#include "defs.h"
+#include "dbhelpers.h"
+#include "preproc.h"
+#include "dbpath.h"
 
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef FTY_ASSET_BUILD_DRAFT_API

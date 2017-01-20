@@ -41,6 +41,10 @@ fty_asset_private_selftest (bool verbose)
     asset_defs_test (verbose);
     total_power_test (verbose);
     dns_test (verbose);
+    defs_test (verbose);
+    dbhelpers_test (verbose);
+    preproc_test (verbose);
+    dbpath_test (verbose);
 }
 /*
 ################################################################################

@@ -58,6 +58,10 @@ EXTRA_DIST += \
     src/asset_defs.h \
     src/total_power.h \
     src/dns.h \
+    src/defs.h \
+    src/dbhelpers.h \
+    src/preproc.h \
+    src/dbpath.h \
     src/fty_asset_classes.h
 
 include $(srcdir)/src/Makemodule.am
