@@ -958,6 +958,57 @@ int
     }
 }
 
+int
+process_insert_inventory (
+    const std::string& device_name,
+    zhash_t *ext_attributes)
+{
+    tntdb::Connection conn;
+    try {
+        conn = tntdb::connectCached (url);
+    }
+    catch ( const std::exception &e) {
+        zsys_error ("DB: cannot connect, %s", e.what());
+        return -1;
+    }
+
+    tntdb::Transaction trans (conn);
+    tntdb::Statement st = conn.prepareCached (
+        " INSERT INTO"
+        "   t_bios_asset_ext_attributes"
+        "   (keytag, value, id_asset_element, read_only)"
+        " VALUES"
+        "  ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), 1)"
+        " ON DUPLICATE KEY"
+        "   UPDATE"
+        "       value = VALUES (value),"
+        "       read_only = 1,"
+        "       id_asset_ext_attribute = LAST_INSERT_ID(id_asset_ext_attribute)");
+
+    for (void* it = zhash_first (ext_attributes);
+               it != NULL;
+               it = zhash_next (ext_attributes)) {
+
+        const char *value = (const char*) it;
+        const char *keytag = (const char*)  zhash_cursor (ext_attributes);
+
+        try {
+            st.set ("keytag", keytag).
+               set ("value", value).
+               set ("device_name", device_name).
+               execute ();
+        }
+        catch (const std::exception &e)
+        {
+            zsys_warning ("%s:\texception on updating %s {%s, %s}\n\t%s", "", device_name.c_str (), keytag, value, e.what ());
+            continue;
+        }
+    }
+
+    trans.commit ();
+    return 0;
+}
+
 void
 total_power_test (bool verbose)
 {
