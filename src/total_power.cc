@@ -974,10 +974,16 @@ process_insert_inventory (
 
     tntdb::Transaction trans (conn);
     tntdb::Statement st = conn.prepareCached (
-            " UPDATE "
-            "   t_bios_asset_ext_attributes "
-            " SET keytag = :keytag, value = :value "
-            " WHERE id_asset_element = (SELECT t1.id_asset_element FROM t_bios_asset_element as t1 WHERE t1.name = :device_name)");
+        " INSERT INTO"
+        "   t_bios_asset_ext_attributes"
+        "   (keytag, value, id_asset_element, read_only)"
+        " VALUES"
+        "  ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), 1)"
+        " ON DUPLICATE KEY"
+        "   UPDATE"
+        "       value = VALUES (value),"
+        "       read_only = 1,"
+        "       id_asset_ext_attribute = LAST_INSERT_ID(id_asset_ext_attribute)");
 
     for (void* it = zhash_first (ext_attributes);
                it != NULL;
@@ -985,10 +991,18 @@ process_insert_inventory (
 
         const char *value = (const char*) it;
         const char *keytag = (const char*)  zhash_cursor (ext_attributes);
-        st.set ("keytag", keytag).
-           set ("value", value).
-           set ("device_name", device_name).
-           execute ();
+
+        try {
+            st.set ("keytag", keytag).
+               set ("value", value).
+               set ("device_name", device_name).
+               execute ();
+        }
+        catch (const std::exception &e)
+        {
+            zsys_warning ("%s:\texception on updating %s {%s, %s}\n\t%s", "", device_name.c_str (), keytag, value, e.what ());
+            continue;
+        }
     }
 
     trans.commit ();
