@@ -958,6 +958,43 @@ int
     }
 }
 
+int
+process_insert_inventory (
+    const std::string& device_name,
+    zhash_t *ext_attributes)
+{
+    tntdb::Connection conn;
+    try {
+        conn = tntdb::connectCached (url);
+    }
+    catch ( const std::exception &e) {
+        zsys_error ("DB: cannot connect, %s", e.what());
+        return -1;
+    }
+
+    tntdb::Transaction trans (conn);
+    tntdb::Statement st = conn.prepareCached (
+            " UPDATE "
+            "   t_bios_asset_ext_attributes "
+            " SET keytag = :keytag, value = :value "
+            " WHERE id_asset_element = (SELECT t1.id_asset_element FROM t_bios_asset_element as t1 WHERE t1.name = :device_name)");
+
+    for (void* it = zhash_first (ext_attributes);
+               it != NULL;
+               it = zhash_next (ext_attributes)) {
+
+        const char *value = (const char*) it;
+        const char *keytag = (const char*)  zhash_cursor (ext_attributes);
+        st.set ("keytag", keytag).
+           set ("value", value).
+           set ("device_name", device_name).
+           execute ();
+    }
+
+    trans.commit ();
+    return 0;
+}
+
 void
 total_power_test (bool verbose)
 {

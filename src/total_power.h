@@ -75,6 +75,13 @@ FTY_ASSET_PRIVATE int
                 const tntdb::Row&
                 )>& cb);
 
+// update inventory data of asset in database
+// returns -1 for database failure, otherwise 0
+FTY_ASSET_PRIVATE int
+process_insert_inventory (
+    const std::string& device_name,
+    zhash_t *ext_attributes);
+
 //  Self test of this class
 FTY_ASSET_PRIVATE void
     total_power_test (bool verbose);
