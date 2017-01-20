@@ -47,6 +47,7 @@
     <class name = "dns" private = "1" state = "stable">DNS and networking helper</class>
     <class name = "fty_asset_server" state = "stable" >Asset server, that takes care about distribution of asset information across the system</class>
     <class name = "fty_asset_autoupdate" state = "stable" >Asset server, that udates some of asset information on change like IP address in case of DHCP</class>
+    <class name = "fty_asset_inventory" state = "stable" >Inventory server: process inventory ASSET messages and update extended attributes</class>
     
     <main name = "fty-asset" service = "1" >
         Agent managing assets
