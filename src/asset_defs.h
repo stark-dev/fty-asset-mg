@@ -68,10 +68,10 @@ enum asset_operation
     INVENTORY
 };
 
-//  translate numeric ID to const char*
+//  translate numeric ID to const char* type
 const char *asset_type2str (int asset_type);
 
-//  translate numeric ID to const char*
+//  translate numeric ID to const char* subtype
 const char *asset_subtype2str (int asset_subtype);
 
 //  translate numeric ID to const char*
