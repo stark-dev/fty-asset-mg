@@ -41,42 +41,42 @@
  *         -1 - in case of internal error
  *         -2 - in case the requested asset was not found
  */
-FTY_ASSET_EXPORT int
+FTY_ASSET_PRIVATE int
     select_devices_total_power(
         const std::string &assetName,
         std::vector<std::string> &powerDevices
     );
 
-FTY_ASSET_EXPORT int
+FTY_ASSET_PRIVATE int
     select_assets_by_container (
         const std::string& container_name,
         const std::set <std::string>& filter,
         std::vector <std::string>& assets
     );
 
-FTY_ASSET_EXPORT int
+FTY_ASSET_PRIVATE int
     select_ext_attributes
         (uint32_t asset_id,
          std::function<void(const tntdb::Row&)> cb);
 
-FTY_ASSET_EXPORT int
+FTY_ASSET_PRIVATE int
     select_asset_element_basic
         (const std::string &asset_name,
          std::function<void(const tntdb::Row&)> cb);
 
-FTY_ASSET_EXPORT int
+FTY_ASSET_PRIVATE int
     select_asset_element_super_parent (
         uint32_t id,
         std::function<void(const tntdb::Row&)>& cb);
 
-FTY_ASSET_EXPORT int
+FTY_ASSET_PRIVATE int
     select_assets (
             std::function<void(
                 const tntdb::Row&
                 )>& cb);
 
 //  Self test of this class
-FTY_ASSET_EXPORT void
+FTY_ASSET_PRIVATE void
     total_power_test (bool verbose);
 
 
