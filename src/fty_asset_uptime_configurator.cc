@@ -28,7 +28,7 @@
 
 #include "fty_asset_uptime_configurator.h"
 
-#include <dbhelpers.h>
+#include "dbhelpers.h"
 #include "defs.h"
 #include "dbpath.h"
 #include <tntdb/connect.h>
