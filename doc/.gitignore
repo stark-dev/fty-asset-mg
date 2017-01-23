@@ -11,6 +11,8 @@
 *.xml7
 
 # Ignore the source doc texts generated from program sources
+fty_asset_configurator.txt
+fty_asset_configurator.doc
 fty_asset_server.txt
 fty_asset_server.doc
 fty_asset_autoupdate.txt

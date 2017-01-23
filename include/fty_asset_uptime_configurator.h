@@ -23,9 +23,10 @@
 #define FTY_ASSET_UPTIME_CONFIGURATOR_H_INCLUDED
 #include <string>
 
-#include "fty_asset_configurator.h" // !!!!!
+#include "fty_asset_configurator.h" 
 
-class UptimeConfigurator : public Configurator {
+class UptimeConfigurator : public Configurator
+{
  public:
     bool v_configure (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client);
     bool isApplicable (const AutoConfigurationInfo& info);

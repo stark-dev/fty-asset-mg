@@ -14,6 +14,7 @@ pkgconfig_DATA = src/libfty_asset.pc
 
 include_HEADERS = \
     include/fty_asset.h \
+    include/fty_asset_configurator.h \
     include/fty_asset_server.h \
     include/fty_asset_autoupdate.h \
     include/fty_asset_uptime.h \
@@ -25,6 +26,7 @@ src_libfty_asset_la_SOURCES = \
     src/asset_defs.cc \
     src/total_power.cc \
     src/dns.cc \
+    src/fty_asset_configurator.cc \
     src/defs.cc \
     src/dbhelpers.cc \
     src/preproc.cc \
