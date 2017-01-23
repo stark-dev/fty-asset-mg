@@ -27,56 +27,134 @@
 */
 
 #include "fty_asset_classes.h"
+#include "fty_asset_uptime.h"
+#include "asset_defs.h"
+#include "dbpath.h"
+#include "dbhelpers.h"
+#include "total_power.h"
 
-//  Structure of our class
+const char* MLM_ENDPOINT = "ipc://@/malamute";
 
-struct _fty_asset_uptime_t {
-    int filler;     //  Declare class properties here
-};
-
-
-//  --------------------------------------------------------------------------
-//  Create a new fty_asset_uptime
-
-fty_asset_uptime_t *
-fty_asset_uptime_new (void)
+static zhash_t*
+    s_map2zhash (const std::map<std::string, std::string>& m)
 {
-    fty_asset_uptime_t *self = (fty_asset_uptime_t *) zmalloc (sizeof (fty_asset_uptime_t));
-    assert (self);
-    //  Initialize class properties here
-    return self;
+    zhash_t *ret = zhash_new ();
+    zhash_autofree (ret);
+    for (const auto& it : m) {
+        zhash_insert (ret, ::strdup (it.first.c_str()), ::strdup (it.second.c_str()));
+    }
+    return ret;
 }
-
-
-//  --------------------------------------------------------------------------
-//  Destroy the fty_asset_uptime
 
 void
-fty_asset_uptime_destroy (fty_asset_uptime_t **self_p)
+    send_configure (
+        const std::vector <std::pair<db_a_elmnt_t, asset_operation>> &rows,
+        const std::string &agent_name)
 {
-    assert (self_p);
-    if (*self_p) {
-        fty_asset_uptime_t *self = *self_p;
-        //  Free class properties here
-        //  Free object itself
-        free (self);
-        *self_p = NULL;
+    mlm_client_t *client = mlm_client_new();
+    
+    if ( client == NULL ) {
+        throw std::runtime_error(" mlm_client_new () failed.");
     }
+    int r = mlm_client_connect (client, MLM_ENDPOINT, 1000, agent_name.c_str ());
+    if ( r == -1 ) {
+        mlm_client_destroy (&client);
+        throw std::runtime_error(" mlm_client_connect () failed.");
+    }
+
+    r = mlm_client_set_producer (client, FTY_PROTO_STREAM_ASSETS);
+    if ( r == -1 ) {
+        mlm_client_destroy (&client);
+        throw std::runtime_error(" mlm_client_set_producer () failed.");
+    }
+    tntdb::Connection conn = tntdb::connectCached (url);
+    for ( const  auto &oneRow : rows ) {
+
+        std::string s_priority = std::to_string (oneRow.first.priority);
+        std::string s_parent = std::to_string (oneRow.first.parent_id);
+
+        std::string subject;
+        subject = typeid_to_type (oneRow.first.type_id);
+        subject.append (".");
+        subject.append (subtypeid_to_subtype (oneRow.first.subtype_id));
+        subject.append ("@");
+        subject.append (oneRow.first.name);
+
+        zhash_t *aux = zhash_new ();
+        zhash_autofree (aux);
+        zhash_insert (aux, "priority", (void*) s_priority.c_str ());
+        zhash_insert (aux, "type", (void*) typeid_to_type (oneRow.first.type_id).c_str());
+        zhash_insert (aux, "subtype", (void*) subtypeid_to_subtype (oneRow.first.subtype_id).c_str());
+        zhash_insert (aux, "parent", (void*) s_parent.c_str ());
+        zhash_insert (aux, "status", (void*) oneRow.first.status.c_str());
+
+        std::function<void(const tntdb::Row&)> cb = \
+            [aux](const tntdb::Row &row) {
+                for (const auto& name: {"parent_name1", "parent_name2", "parent_name3", "parent_name4", "parent_name5"}) {
+                    std::string foo;
+                    row [name].get (foo);
+                    std::string hash_name = name;
+                    //                11 == strlen ("parent_name")
+                    hash_name.insert (11, 1, '.');
+                    if (!foo.empty ())
+                        zhash_insert (aux, hash_name.c_str (), (void*) foo.c_str ());
+                }
+            };
+        int r = select_asset_element_super_parent (oneRow.first.id, cb);
+        if (r == -1) {
+            zhash_destroy (&aux);
+            mlm_client_destroy (&client);
+            throw std::runtime_error ("select_asset_element_super_parent () failed.");
+        }
+
+        zhash_t *ext = s_map2zhash (oneRow.first.ext);
+
+        zmsg_t *msg = fty_proto_encode_asset (
+                aux,
+                oneRow.first.name.c_str(),
+                asset_op2str (oneRow.second),
+                ext);
+        r = mlm_client_send (client, subject.c_str (), &msg);
+        zhash_destroy (&ext);
+        zhash_destroy (&aux);
+        if ( r != 0 ) {
+            mlm_client_destroy (&client);
+            throw std::runtime_error("mlm_client_send () failed.");
+        }
+    }
+    zclock_sleep (500); // ensure that everything was send before we destroy the client
+    mlm_client_destroy (&client);
 }
+
+void
+    send_configure (
+        db_a_elmnt_t row,
+        asset_operation action_type,
+        const std::string &agent_name)
+{
+    send_configure(std::vector<std::pair<db_a_elmnt_t, asset_operation>>{std::make_pair(row, action_type)}, agent_name);
+}
+
+void
+    send_configure (
+        const std::pair<db_a_elmnt_t, asset_operation> &row,
+        const std::string &agent_name)
+{
+    send_configure(std::vector<std::pair<db_a_elmnt_t, asset_operation>>{row}, agent_name);
+}
+
+
+
 
 //  --------------------------------------------------------------------------
 //  Self test of this class
 
 void
-fty_asset_uptime_test (bool verbose)
+    fty_asset_uptime_test (bool verbose)
 {
     printf (" * fty_asset_uptime: ");
 
-    //  @selftest
-    //  Simple create/destroy test
-    fty_asset_uptime_t *self = fty_asset_uptime_new ();
-    assert (self);
-    fty_asset_uptime_destroy (&self);
-    //  @end
+
+
     printf ("OK\n");
 }

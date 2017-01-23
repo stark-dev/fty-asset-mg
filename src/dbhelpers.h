@@ -49,6 +49,58 @@
 
 #define MAX_DESCRIPTION_LENGTH  255
 
+
+
+
+/**
+ * \brief helper structure for results of v_bios_asset_element
+ */
+struct db_a_elmnt_t {
+    uint32_t         id;
+    std::string      name;
+    std::string      status;
+    uint32_t         parent_id;
+    uint32_t         priority;
+    uint32_t         type_id;
+    uint32_t         subtype_id;
+    std::string      asset_tag;
+    std::map <std::string, std::string> ext;
+
+    db_a_elmnt_t () :
+        id{},
+        name{},
+        status{},
+        parent_id{},
+        priority{},
+        type_id{},
+        subtype_id{},
+        asset_tag{},
+        ext{}
+    {}
+
+    db_a_elmnt_t (
+        uint32_t         id,
+        std::string      name,
+        std::string      status,
+        uint32_t         parent_id,
+        uint32_t         priority,
+        uint32_t         type_id,
+        uint32_t         subtype_id,
+        std::string      asset_tag) :
+
+        id(id),
+        name(name),
+        status(status),
+        parent_id(parent_id),
+        priority(priority),
+        type_id(type_id),
+        subtype_id(subtype_id),
+        asset_tag(asset_tag),
+        ext{}
+    {}
+};
+
+
 typedef std::function<void(const tntdb::Row&)> row_cb_f ;
 
 template <typename T>
