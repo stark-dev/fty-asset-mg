@@ -26,7 +26,7 @@
 #include <map>
 #include <vector>
 #include <malamute.h>
-#include "preproc.h"
+#include "../src/preproc.h"
 
 
 struct AutoConfigurationInfo
