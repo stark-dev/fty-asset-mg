@@ -28,10 +28,7 @@
 
 #include "fty_asset_classes.h"
 #include "fty_asset_uptime.h"
-#include "asset_defs.h"
-#include "dbpath.h"
-#include "dbhelpers.h"
-#include "total_power.h"
+
 
 const char* MLM_ENDPOINT = "ipc://@/malamute";
 

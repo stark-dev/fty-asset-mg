@@ -27,10 +27,8 @@
 */
 
 #include "fty_asset_uptime_configurator.h"
+#include "fty_asset_classes.h"
 
-#include "dbhelpers.h"
-#include "defs.h"
-#include "dbpath.h"
 #include <tntdb/connect.h>
 #include <tntdb/result.h>
 #include <tntdb/row.h>
@@ -71,7 +69,7 @@ db_reply <std::map <uint32_t, std::string> >
                 "   v.id_type = :typeid AND "
                 "   v.id_subtype = :subtypeid ";
     }
-    try{
+    try { 
         // Can return more than one row.
         tntdb::Statement st = conn.prepareCached(query);
 
