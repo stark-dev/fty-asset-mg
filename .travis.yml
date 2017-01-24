@@ -38,7 +38,10 @@ matrix:
     addons:
       apt:
         packages:
+        - asciidoc
+        - xmlto
         - valgrind
+        - libmagic-dev
 
 addons:
   sources:
