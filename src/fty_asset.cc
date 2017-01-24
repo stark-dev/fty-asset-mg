@@ -91,6 +91,11 @@ int main (int argc, char *argv [])
     char *repeat_interval = getenv("BIOS_ASSETS_REPEAT");
     int repeat_interval_s = repeat_interval ? std::stoi (repeat_interval) : 60*60;
 
+    zactor_t *inventory_server = zactor_new (fty_asset_inventory_server, (void*) "asset-inventory");
+    zstr_sendx (inventory_server, "CONNECT", endpoint, NULL);
+    zsock_wait (inventory_server);
+    zstr_sendx (inventory_server, "CONSUMER", "ASSETS", "inventory@.*", NULL);
+
     // create regular event for autoupdate agent
     zloop_t *loop = zloop_new();
     // once in 5 minutes
@@ -100,6 +105,7 @@ int main (int argc, char *argv [])
     zloop_start (loop);
     // zloop_start takes ownership of this thread! and waits for interrupt!
     zloop_destroy (&loop);
+    zactor_destroy (&inventory_server);
     zactor_destroy (&autoupdate_server);
     zactor_destroy (&asset_server);
     return 0;
