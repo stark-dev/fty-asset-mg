@@ -1,7 +1,7 @@
 /*  =========================================================================
     fty_asset_classes - private header file
 
-    Copyright (C) 2014 - 2015 Eaton                                        
+    Copyright (C) 2014 - 2017 Eaton                                        
                                                                            
     This program is free software; you can redistribute it and/or modify   
     it under the terms of the GNU General Public License as published by   
@@ -31,6 +31,22 @@
 
 //  External API
 #include "../include/fty_asset.h"
+
+//  Extra headers
+
+//  Opaque class structures to allow forward references
+#ifndef ASSET_DEFS_T_DEFINED
+typedef struct _asset_defs_t asset_defs_t;
+#define ASSET_DEFS_T_DEFINED
+#endif
+#ifndef TOTAL_POWER_T_DEFINED
+typedef struct _total_power_t total_power_t;
+#define TOTAL_POWER_T_DEFINED
+#endif
+#ifndef DNS_T_DEFINED
+typedef struct _dns_t dns_t;
+#define DNS_T_DEFINED
+#endif
 
 //  Internal API
 #include "asset_defs.h"
