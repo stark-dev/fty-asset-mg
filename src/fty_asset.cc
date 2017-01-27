@@ -1,7 +1,7 @@
 /*  =========================================================================
     fty_asset - Agent managing assets
 
-    Copyright (C) 2014 - 2015 Eaton                                        
+    Copyright (C) 2014 - 2017 Eaton                                        
                                                                            
     This program is free software; you can redistribute it and/or modify   
     it under the terms of the GNU General Public License as published by   
@@ -96,7 +96,7 @@ int main (int argc, char *argv [])
     zsock_wait (inventory_server);
     zstr_sendx (inventory_server, "CONSUMER", "ASSETS", "inventory@.*", NULL);
 
-    // create regular event for autoupdate agent
+    // create regular event for autoupdate datagent
     zloop_t *loop = zloop_new();
     // once in 5 minutes
     zloop_timer (loop, 5*60*1000, 0, s_autoupdate_timer, autoupdate_server);

@@ -1,7 +1,7 @@
 /*  =========================================================================
-    fty_asset_configurator - Configator class
+    fty_asset_uptime_configurator - Configuration for kpi-uptime
 
-    Copyright (C) 2014 - 2015 Eaton                                        
+    Copyright (C) 2014 - 2017 Eaton                                        
                                                                            
     This program is free software; you can redistribute it and/or modify   
     it under the terms of the GNU General Public License as published by   
@@ -19,53 +19,27 @@
     =========================================================================
 */
 
-#ifndef FTY_ASSET_CONFIGURATOR_H_INCLUDED
-#define FTY_ASSET_CONFIGURATOR_H_INCLUDED
+#ifndef FTY_ASSET_UPTIME_CONFIGURATOR_H_INCLUDED
+#define FTY_ASSET_UPTIME_CONFIGURATOR_H_INCLUDED
 
-#include <string>
-#include <map>
-#include <vector>
-#include <malamute.h>
-#include "../src/preproc.h"
+#include "fty_asset_classes.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-struct AutoConfigurationInfo
-{
-    uint32_t type = 0;
-    uint32_t subtype = 0;
-    int8_t operation;
-    bool configured = false;
-    uint64_t date = 0;
-    std::map <std::string, std::string> attributes;
-};
+void
+    fty_asset_uptime_configurator_test (bool verbose);
 
-class Configurator
-{
- public:
-    bool configure (const std::string& name, const AutoConfigurationInfo& info)
-    {
-        return configure (name, info, NULL);
-    }
+//  @end
 
-    bool configure (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client)
-    {
-        return v_configure (name, info, client);
-    }
+#ifdef __cplusplus
+}
+#endif
 
-    virtual bool isApplicable (UNUSED_PARAM const AutoConfigurationInfo& info)
-    {
-        return false;
-    }
-
-    virtual ~Configurator() {};
-
- protected:
-    virtual bool v_configure (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client) = 0;
-};
+// inserts additional data to aux part of datacenter asset message
+bool
+insert_upses_to_aux (zhash_t *aux, const char *dc_name);
 
 
-void fty_asset_configurator_test (bool verbose);     
-
-
-
-#endif // FTY_ASSET_CONFIGURATOR_H_INCLUDED
+#endif

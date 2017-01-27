@@ -38,13 +38,13 @@ void
 fty_asset_private_selftest (bool verbose)
 {
 // Tests for stable private classes:
+    defs_test (verbose);
+    dbhelpers_test (verbose);
+    dbpath_test (verbose);
+    fty_asset_uptime_configurator_test (verbose);
     asset_defs_test (verbose);
     total_power_test (verbose);
     dns_test (verbose);
-    defs_test (verbose);
-    dbhelpers_test (verbose);
-    preproc_test (verbose);
-    dbpath_test (verbose);
 }
 /*
 ################################################################################

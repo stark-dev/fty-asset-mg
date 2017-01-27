@@ -37,11 +37,8 @@ typedef struct {
 static test_item_t
 all_tests [] = {
 // Tests for stable public classes:
-    { "fty_asset_configurator", fty_asset_configurator_test },
     { "fty_asset_server", fty_asset_server_test },
     { "fty_asset_autoupdate", fty_asset_autoupdate_test },
-    { "fty_asset_uptime", fty_asset_uptime_test },
-    { "fty_asset_uptime_configurator", fty_asset_uptime_configurator_test },
     { "fty_asset_inventory", fty_asset_inventory_test },
 #ifdef FTY_ASSET_BUILD_DRAFT_API
     { "private_classes", fty_asset_private_selftest },
@@ -103,18 +100,15 @@ main (int argc, char **argv)
         else
         if (streq (argv [argn], "--number")
         ||  streq (argv [argn], "-n")) {
-            puts ("13");
+            puts ("10");
             return 0;
         }
         else
         if (streq (argv [argn], "--list")
         ||  streq (argv [argn], "-l")) {
             puts ("Available tests:");
-            puts ("    fty_asset_configurator\t\t- stable");
             puts ("    fty_asset_server\t\t- stable");
             puts ("    fty_asset_autoupdate\t\t- stable");
-            puts ("    fty_asset_uptime\t\t- stable");
-            puts ("    fty_asset_uptime_configurator\t\t- stable");
             puts ("    fty_asset_inventory\t\t- stable");
             puts ("    private_classes\t- draft");
             return 0;

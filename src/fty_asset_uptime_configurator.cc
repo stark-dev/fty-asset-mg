@@ -1,7 +1,7 @@
 /*  =========================================================================
     fty_asset_uptime_configurator - Configuration for kpi-uptime
 
-    Copyright (C) 2014 - 2015 Eaton                                        
+    Copyright (C) 2014 - 2017 Eaton                                        
                                                                            
     This program is free software; you can redistribute it and/or modify   
     it under the terms of the GNU General Public License as published by   
@@ -26,7 +26,6 @@
 @end
 */
 
-#include "fty_asset_uptime_configurator.h"
 #include "fty_asset_classes.h"
 
 #include <tntdb/connect.h>
@@ -35,7 +34,6 @@
 #include <tntdb/error.h>
 #include <exception>
 #include <functional>
-
 
 
 db_reply <std::map <uint32_t, std::string> >
@@ -170,43 +168,9 @@ int
     return select_assets_by_container_(conn, element_id, {}, {}, cb);
 }
 
-
-
 bool
-UptimeConfigurator::sendMessage
-    (std::map <std::string, std::vector <std::string>>& dc_upses, mlm_client_t *client)
-{
-    if (!client)
-        return false;
-
-    // as we have multiple DCs -> we should send multiple messages!!!!!
-    bool result = true;
-    for (const auto& it : dc_upses) {
-        zmsg_t *msg = zmsg_new ();
-        if (!msg) {
-            zsys_error ("zmsg_new () failed.");
-            return false;
-        }
-
-        zmsg_addstrf (msg, "%s", "SET");
-        zmsg_addstrf (msg, "%s", it.first.c_str());
-        for (const auto& it2 : it.second) {
-            zmsg_addstrf (msg, "%s", it2.c_str());
-        }
-        int r = mlm_client_sendto (client, "uptime", "UPTIME", NULL, 1000, &msg);
-        if ( r != 0 ) {
-            zmsg_destroy (&msg);
-            zsys_error ("mlm_client_sendto (address = '%s', subject = '%s', timeout = '1000') failed.",
-                    "uptime", "UPTIME");
-            result = false;
-        }
-    }
-    return result;
-}
-
-bool
-UptimeConfigurator::obtainData
-    (std::map <std::string, std::vector <std::string>>& dc_upses)
+    get_dc_upses
+        (std::map <std::string, std::vector <std::string>>& dc_upses)
 {
     try {
         tntdb::Connection conn = tntdb::connectCached (url);
@@ -260,33 +224,42 @@ UptimeConfigurator::obtainData
 }
 
 bool
-UptimeConfigurator::v_configure
-    (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client)
+    insert_upses_to_aux (zhash_t *aux, const char *dc_name)
 {
-    zsys_debug ("UptimeConfigurator::v_configure (name = '%s', info.type = '%" PRIi32"', info.subtype = '%" PRIi32"')",
-        name.c_str(), info.type, info.subtype);    
-    // dc_name is mapped on the ups names
-    std::map <std::string , std::vector<std::string> > dc_upses;
+    assert (aux);
 
-    if (!obtainData (dc_upses))
-        return false;
-    if (!sendMessage (dc_upses, client))
-        return false;
+    std::map<std::string, std::vector <std::string>> dc_upses;
+    get_dc_upses(dc_upses);
+    
+    for (auto& item : dc_upses)
+    {
+        if (streq (item.first.c_str(), dc_name))
+        {
+            int i = 0;
+            char key[10];
+            for (auto& ups_it : item.second)
+            {
+                sprintf (key,"ups%d",i);
+                zhash_insert (aux, key, (void*) ups_it.c_str());
+                i++;
+            }
+        }
+    }
+    return true; 
+}
+
+// helper for testing
+bool
+    list_zhash_content (zhash_t *zhash)
+{
+    for (void *it = zhash_first (zhash); 
+         it != NULL;                 
+	     it = zhash_next (zhash))
+    {
+        zsys_debug ("--->list: %s\n", (char*) it);
+    }
     return true;
 }
-
-bool
-UptimeConfigurator::isApplicable (const AutoConfigurationInfo& info)
-{
-    if (info.type == 2 || info.subtype == 1)
-    {
-        return true;
-    }
-    return false;
-}
-
-
-
 //  --------------------------------------------------------------------------
 //  Self test of this class
 
@@ -294,10 +267,19 @@ void
 fty_asset_uptime_configurator_test (bool verbose)
 {
     printf (" * fty_asset_uptime_configurator: ");
-
-    //  @selftest
-
-    
     //  @end
+    std::map <std::string, std::vector <std::string>> dc_upses;
+    std::vector <std::string> ups_vector;
+    zhash_t *aux = zhash_new ();
+    assert(aux); 
+    ups_vector.push_back("ups_1");
+    ups_vector.push_back("ups_2");
+    ups_vector.push_back("ups_3");
+    dc_upses.emplace ("dc1", ups_vector);
+    dc_upses.emplace ("dc2", ups_vector);
+   
+    //insert_upses_to_aux (aux, "dc1");
+    //assert (zhash_size (aux) == 3);    
     printf ("OK\n");
-}
+    zhash_destroy (&aux);
+ }

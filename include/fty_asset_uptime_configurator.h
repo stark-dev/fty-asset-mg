@@ -21,24 +21,15 @@
 
 #ifndef FTY_ASSET_UPTIME_CONFIGURATOR_H_INCLUDED
 #define FTY_ASSET_UPTIME_CONFIGURATOR_H_INCLUDED
+
 #include <string>
 
-#include "fty_asset_configurator.h" 
+// inserts additional data to aux part of datacenter asset messages
+bool
+insert_upses_to_aux (zhash_t *aux, const char *datacenter);
 
-class UptimeConfigurator : public Configurator
-{
- public:
-    bool v_configure (const std::string& name, const AutoConfigurationInfo& info, mlm_client_t *client);
-    bool isApplicable (const AutoConfigurationInfo& info);
-
-    // helper methods
-    bool    obtainData (std::map <std::string, std::vector <std::string>>& dc_upses);
-    bool    sendMessage (std::map <std::string, std::vector <std::string>>& dc_upses, mlm_client_t *client);
-
-    virtual ~UptimeConfigurator () {};
-};
-
-
-void fty_asset_uptime_configurator_test (bool verbose);
+// test of the class
+void
+fty_asset_uptime_configurator_test (bool verbose);
 
 #endif

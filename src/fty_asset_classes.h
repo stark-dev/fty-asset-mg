@@ -35,6 +35,22 @@
 //  Extra headers
 
 //  Opaque class structures to allow forward references
+#ifndef DEFS_T_DEFINED
+typedef struct _defs_t defs_t;
+#define DEFS_T_DEFINED
+#endif
+#ifndef DBHELPERS_T_DEFINED
+typedef struct _dbhelpers_t dbhelpers_t;
+#define DBHELPERS_T_DEFINED
+#endif
+#ifndef DBPATH_T_DEFINED
+typedef struct _dbpath_t dbpath_t;
+#define DBPATH_T_DEFINED
+#endif
+#ifndef FTY_ASSET_UPTIME_CONFIGURATOR_T_DEFINED
+typedef struct _fty_asset_uptime_configurator_t fty_asset_uptime_configurator_t;
+#define FTY_ASSET_UPTIME_CONFIGURATOR_T_DEFINED
+#endif
 #ifndef ASSET_DEFS_T_DEFINED
 typedef struct _asset_defs_t asset_defs_t;
 #define ASSET_DEFS_T_DEFINED
@@ -49,13 +65,13 @@ typedef struct _dns_t dns_t;
 #endif
 
 //  Internal API
+#include "defs.h"
+#include "dbhelpers.h"
+#include "dbpath.h"
+#include "fty_asset_uptime_configurator.h"
 #include "asset_defs.h"
 #include "total_power.h"
 #include "dns.h"
-#include "defs.h"
-#include "dbhelpers.h"
-#include "preproc.h"
-#include "dbpath.h"
 
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef FTY_ASSET_BUILD_DRAFT_API

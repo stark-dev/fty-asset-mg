@@ -32,8 +32,9 @@
 #include <vector>
 #include <tuple>
 #include <string>
+#include "fty_asset_classes.h"
+//#include "preproc.h"
 
-#include "preproc.h"
 // all fields called name
 #define MAX_NAME_LENGTH         50
 // t_bios_asset_ext_attributes.keytag
