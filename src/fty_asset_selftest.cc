@@ -100,7 +100,7 @@ main (int argc, char **argv)
         else
         if (streq (argv [argn], "--number")
         ||  streq (argv [argn], "-n")) {
-            puts ("6");
+            puts ("10");
             return 0;
         }
         else

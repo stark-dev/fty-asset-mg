@@ -15,7 +15,7 @@ Project fty-asset aims to ... (short marketing pitch)
 It delivers several programs with their respective man pages:
  fty-asset.1 fty-asset-cli.1
 and public classes in a shared library:
- fty_asset_server.3 fty_asset_autoupdate.3
+ fty_asset_server.3 fty_asset_autoupdate.3 fty_asset_inventory.3
 
 Generally you can compile and link against it like this:
 ----

@@ -68,21 +68,31 @@ enum asset_operation
     INVENTORY
 };
 
-//  translate numeric ID to const char*
-const char *asset_type2str (int asset_type);
+//  translate numeric ID to const char* type
+const char
+*asset_type2str (int asset_type);
+
+//  translate numeric ID to const char* subtype
+const char
+*asset_subtype2str (int asset_subtype);
 
 //  translate numeric ID to const char*
-const char *asset_subtype2str (int asset_subtype);
-
-//  translate numeric ID to const char*
-const char *asset_op2str (int asset_op);
+const char
+*asset_op2str (int asset_op);
 
 uint32_t
-    type_to_typeid
-        (const std::string &type);
+    type_to_typeid (const std::string &type);
+
+std::string
+    typeid_to_type (uint32_t type_id);
+
 uint32_t
     subtype_to_subtypeid
         (const std::string &subtype);
+
+
+std::string
+subtypeid_to_subtype (uint32_t subtype_id);
 
 uint32_t
     str2operation

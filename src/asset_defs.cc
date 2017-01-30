@@ -135,6 +135,29 @@ uint32_t
         return asset_type::TUNKNOWN;
 }
 
+
+std::string
+    typeid_to_type
+        (uint32_t type_id)
+{
+    switch(type_id) {
+        case asset_type::DATACENTER:
+            return "datacenter";
+        case asset_type::ROOM:
+            return "room";
+        case asset_type::ROW:
+            return "row";
+        case asset_type::RACK:
+            return "rack";
+        case asset_type::GROUP:
+            return "group";
+        case asset_type::DEVICE:
+            return "device";
+        default:
+            return "unknown";
+    }
+}
+
 uint32_t
     subtype_to_subtypeid
         (const std::string &subtype)
@@ -190,6 +213,43 @@ uint32_t
         return asset_subtype::SUNKNOWN;
 }
 
+std::string
+    subtypeid_to_subtype
+        (uint32_t subtype_id)
+{
+    switch(subtype_id) {
+        case asset_subtype::UPS:
+            return "ups";
+        case asset_subtype::GENSET:
+            return "genset";
+        case asset_subtype::STORAGE:
+            return "storage";
+        case asset_subtype::STS:
+            return "sts";
+        case asset_subtype::FEED:
+            return "feed";
+        case asset_subtype::EPDU:
+            return "epdu";
+        case asset_subtype::PDU:
+            return "pdu";
+        case asset_subtype::SERVER:
+            return "server";
+        case asset_subtype::SWITCH:
+            return "switch";
+        case asset_subtype::ROUTER:
+            return "router";
+        case asset_subtype::RACKCONTROLLER:
+            return "rack controller";
+        case asset_subtype::SENSOR:
+            return "sensor";
+        case asset_subtype::VIRTUAL:
+            return "vm";
+        case asset_subtype::N_A:
+            return "N_A";
+        default:
+            return "unknown";
+    }
+}
 
 uint32_t
     str2operation

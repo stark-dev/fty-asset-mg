@@ -27,6 +27,7 @@
 */
 
 #include "fty_asset_classes.h"
+#include "dbpath.h"
 #include <tntdb/connect.h>
 #include <tntdb/result.h>
 #include <tntdb/error.h>
@@ -69,13 +70,13 @@ inline bool operator<(const ShortAssetInfo& lhs, const ShortAssetInfo& rhs)
 
 /**
  *  \brief A connection string to the database
- */
+ 
 static std::string url =
     std::string("mysql:db=box_utf8;user=") +
     ((getenv("DB_USER")   == NULL) ? "root" : getenv("DB_USER")) +
     ((getenv("DB_PASSWD") == NULL) ? ""     :
     std::string(";password=") + getenv("DB_PASSWD"));
-
+*/
 
 
 // ============================================================================
