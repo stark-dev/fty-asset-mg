@@ -35,7 +35,7 @@
 #include <exception>
 #include <functional>
 
-
+// returnns map with desired assets and their ids 
 db_reply <std::map <uint32_t, std::string> >
     select_short_elements
         (tntdb::Connection &conn,
@@ -105,11 +105,12 @@ db_reply <std::map <uint32_t, std::string> >
     }
 }
 
-
+// 
 int
     select_assets_by_container_
         (tntdb::Connection &conn,
          uint32_t element_id,
+         std::string asset_name,         
          std::vector<uint32_t> types,
          std::vector<uint32_t> subtypes,
          std::function<void(const tntdb::Row&)> cb
@@ -147,10 +148,18 @@ int
         zsys_debug("[v_bios_asset_element_super_parent]: were selected %" PRIu32 " rows",
                                                             result.size());
         for ( auto &row: result ) {
-            cb(row);
+            std::string _asset_name;
+            row["name"].get (_asset_name);            
+            if (streq (_asset_name.c_str(), asset_name.c_str ()))
+            {
+                for ( auto &row: result ) {                    
+                    cb(row);
+                }                
+                return 0;
+            }
         }
-
-        return 0;
+        
+        return 1;
     }
     catch (const std::exception& e) {
         zsys_error ("Exception caught: select_assets_by_container %s", e.what());
@@ -162,15 +171,16 @@ int
     select_assets_by_container_
         (tntdb::Connection &conn,
          uint32_t element_id,
+         std::string &asset_name,
          std::function<void(const tntdb::Row&)> cb
          )
 {
-    return select_assets_by_container_(conn, element_id, {}, {}, cb);
+    return select_assets_by_container_(conn, element_id, asset_name, {}, {}, cb);
 }
 
 bool
     get_dc_upses
-        (std::map <std::string, std::vector <std::string>>& dc_upses)
+(std::map <std::string, std::vector <std::string>>& dc_upses, std::string &asset_name)
 {
     try {
         tntdb::Connection conn = tntdb::connectCached (url);
@@ -194,23 +204,25 @@ bool
                 }
             };
 
-        // select dcs
+        // select dcs and thei IDs
         db_reply <std::map <uint32_t, std::string> > reply =
             select_short_elements (conn, 2, 11);
         if (reply.status == 0) {
             zsys_error ("Cannot select datacenters");
             return false;
         }
-        for (const auto& dc : reply.item ) {
-            int rv = select_assets_by_container_ (conn, dc.first, func);
-            if (rv != 0) {
-                zsys_error ("Cannot read upses for dc with id = '%" PRIu32"'", dc.first);
-                continue;
+        // for each DC save its devices (/upses...done by fun)
+        for (const auto& dc : reply.item )
+        {
+            int rv = select_assets_by_container_ (conn, dc.first, asset_name, func);            
+            
+            if (rv == 0) {
+                dc_upses.emplace (dc.second, container_upses);
+                break; 
             }
-            dc_upses.emplace (dc.second, container_upses);
-            container_upses.clear();
         }
-        conn.close ();        
+        container_upses.clear();
+        conn.close ();                
     }
     catch (const tntdb::Error& e) {
         zsys_error ("Database error: %s", e.what());
@@ -224,26 +236,23 @@ bool
 }
 
 bool
-    insert_upses_to_aux (zhash_t *aux, const char *dc_name)
+    insert_upses_to_aux (zhash_t *aux, std::string asset_name)
 {
     assert (aux);
 
     std::map<std::string, std::vector <std::string>> dc_upses;
-    get_dc_upses(dc_upses);
+    get_dc_upses(dc_upses, asset_name);
     
     for (auto& item : dc_upses)
     {
-        if (streq (item.first.c_str(), dc_name))
+        int i = 0;
+        char key[10];
+        for (auto& ups_it : item.second)
         {
-            int i = 0;
-            char key[10];
-            for (auto& ups_it : item.second)
-            {
-                sprintf (key,"ups%d",i);
-                zhash_insert (aux, key, (void*) ups_it.c_str());
-                i++;
-            }
-        }
+            sprintf (key,"ups%d", i);
+            zhash_insert (aux, key, (void*) ups_it.c_str());
+            i++;
+        }        
     }
     return true; 
 }

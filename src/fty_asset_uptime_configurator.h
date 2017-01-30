@@ -39,7 +39,7 @@ void
 
 // inserts additional data to aux part of datacenter asset message
 bool
-insert_upses_to_aux (zhash_t *aux, const char *dc_name);
+insert_upses_to_aux (zhash_t *aux, std::string asset_name);
 
 
 #endif

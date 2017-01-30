@@ -321,9 +321,8 @@ static void
             row ["id_type"].get (foo_i);
             zhash_insert (aux, "type", (void*) asset_type2str (foo_i));
                   
-            // additional aux items for datacentes  (requiered by uptime)
-            if (streq (asset_type2str (foo_i), "datacenter"))
-                   insert_upses_to_aux (aux,  asset_name.c_str());
+            // additional aux items (requiered by uptime)
+            insert_upses_to_aux (aux, asset_name);
                        
             foo_i = 0;
             row ["subtype_id"].get (foo_i);
@@ -668,6 +667,7 @@ fty_asset_server_test (bool verbose)
     mlm_client_connect (client, endpoint, 5000, "topology-peer");
     // scenario name
     std::string scenario;
+    
     // all topology messages has the same subject
 
     /*
