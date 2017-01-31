@@ -322,7 +322,8 @@ static void
             zhash_insert (aux, "type", (void*) asset_type2str (foo_i));
                   
             // additional aux items (requiered by uptime)
-            insert_upses_to_aux (aux, asset_name);
+            if (streq (asset_type2str (foo_i), "datacenter"))
+                insert_upses_to_aux (aux, asset_name);
                        
             foo_i = 0;
             row ["subtype_id"].get (foo_i);
