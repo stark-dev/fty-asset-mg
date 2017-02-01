@@ -38,8 +38,10 @@ void
 #endif
 
 // inserts additional data to aux part of datacenter asset message
+// *aux ... aux part of fty-proto message where info about DC and its UPSes is kept
+// dc_name ... datacenter name
 bool
-insert_upses_to_aux (zhash_t *aux, std::string asset_name);
+insert_upses_to_aux (zhash_t *aux, std::string dc_name);
 
 
 #endif

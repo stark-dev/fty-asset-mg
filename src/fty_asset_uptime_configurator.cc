@@ -110,7 +110,6 @@ int
     select_assets_by_container_
         (tntdb::Connection &conn,
          uint32_t element_id,
-         std::string asset_name,         
          std::vector<uint32_t> types,
          std::vector<uint32_t> subtypes,
          std::function<void(const tntdb::Row&)> cb
@@ -148,18 +147,10 @@ int
         zsys_debug("[v_bios_asset_element_super_parent]: were selected %" PRIu32 " rows",
                                                             result.size());
         for ( auto &row: result ) {
-            std::string _asset_name;
-            row["name"].get (_asset_name);            
-            if (streq (_asset_name.c_str(), asset_name.c_str ()))
-            {
-                for ( auto &row: result ) {                    
-                    cb(row);
-                }                
-                return 0;
+            cb(row);                
             }
-        }
-        
-        return 1;
+               
+        return 0;
     }
     catch (const std::exception& e) {
         zsys_error ("Exception caught: select_assets_by_container %s", e.what());
@@ -171,11 +162,10 @@ int
     select_assets_by_container_
         (tntdb::Connection &conn,
          uint32_t element_id,
-         std::string &asset_name,
          std::function<void(const tntdb::Row&)> cb
          )
 {
-    return select_assets_by_container_(conn, element_id, asset_name, {}, {}, cb);
+    return select_assets_by_container_(conn, element_id, {}, {}, cb);
 }
 
 bool
@@ -199,7 +189,6 @@ bool
                 {
                     std::string device_name = "";
                     row["name"].get(device_name);
-
                     container_upses.push_back(device_name);
                 }
             };
@@ -214,14 +203,14 @@ bool
         // for each DC save its devices (/upses...done by fun)
         for (const auto& dc : reply.item )
         {
-            int rv = select_assets_by_container_ (conn, dc.first, asset_name, func);            
-            
-            if (rv == 0) {
-                dc_upses.emplace (dc.second, container_upses);
-                break; 
+            int rv = select_assets_by_container_ (conn, dc.first, func);
+            if (rv != 0) {
+                zsys_error ("Cannot read upses for dc with id = '%" PRIu32"'", dc.first);
+                continue;
             }
-        }
-        container_upses.clear();
+            dc_upses.emplace (dc.second, container_upses);
+            container_upses.clear();
+        }        
         conn.close ();                
     }
     catch (const tntdb::Error& e) {
@@ -236,12 +225,12 @@ bool
 }
 
 bool
-    insert_upses_to_aux (zhash_t *aux, std::string asset_name)
+    insert_upses_to_aux (zhash_t *aux, std::string dc_name)
 {
     assert (aux);
 
     std::map<std::string, std::vector <std::string>> dc_upses;
-    get_dc_upses(dc_upses, asset_name);
+    get_dc_upses(dc_upses, dc_name);
     
     for (auto& item : dc_upses)
     {
