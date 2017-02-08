@@ -42,6 +42,11 @@
         <use project = "malamute"/>
     </use>
 
+    <class name = "defs" state="stable" private = "1"> Defines constants </class>
+    <class name = "dbhelpers" state="stable" private = "1"> Helpers functions for database </class>
+    <class name = "dbpath" state = "stable" private = "1">Connection to database </class>
+    <class name = "fty_asset_uptime_configurator" state = "stable" private = "1">Configuration for kpi-uptime </class>
+
     <class name = "asset_defs" private = "1" state = "stable">Some fancy definitions related to assets</class>
     <class name = "total_power" private = "1" state = "stable"> Calculation of total power for one asset</class>
     <class name = "dns" private = "1" state = "stable">DNS and networking helper</class>

@@ -1,7 +1,7 @@
 /*  =========================================================================
     fty_asset_server - Asset server, that takes care about distribution of asset information across the system
 
-    Copyright (C) 2014 - 2015 Eaton                                        
+    Copyright (C) 2014 - 2017 Eaton                                        
                                                                            
     This program is free software; you can redistribute it and/or modify   
     it under the terms of the GNU General Public License as published by   
@@ -309,8 +309,9 @@ static void
     zhash_t *aux = zhash_new ();
     zhash_autofree (aux);
     uint32_t asset_id = 0;
+    
     std::function<void(const tntdb::Row&)> cb1 = \
-        [aux, &asset_id](const tntdb::Row &row)
+        [aux, &asset_id, asset_name](const tntdb::Row &row)
         {
             int foo_i = 0;
             row ["priority"].get (foo_i);
@@ -319,7 +320,11 @@ static void
             foo_i = 0;
             row ["id_type"].get (foo_i);
             zhash_insert (aux, "type", (void*) asset_type2str (foo_i));
-
+                  
+            // additional aux items (requiered by uptime)
+            if (streq (asset_type2str (foo_i), "datacenter"))
+                insert_upses_to_aux (aux, asset_name);
+                       
             foo_i = 0;
             row ["subtype_id"].get (foo_i);
             zhash_insert (aux, "subtype", (void*) asset_subtype2str (foo_i));
@@ -334,6 +339,7 @@ static void
 
             row ["id"].get (asset_id);
         };
+
     // select basic info
     int rv = select_asset_element_basic (asset_name, cb1);
     if ( rv != 0 ) {
@@ -662,6 +668,7 @@ fty_asset_server_test (bool verbose)
     mlm_client_connect (client, endpoint, 5000, "topology-peer");
     // scenario name
     std::string scenario;
+    
     // all topology messages has the same subject
 
     /*
