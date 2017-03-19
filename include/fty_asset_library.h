@@ -30,6 +30,7 @@
 //  Set up environment for the application
 
 //  External dependencies
+#include <czmq.h>
 #include <malamute.h>
 #include <magic.h>
 #include <cxxtools/allocator.h>
