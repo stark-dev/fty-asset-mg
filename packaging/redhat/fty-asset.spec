@@ -53,7 +53,7 @@ BuildRequires:  gcc-c++
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
-BuildRequires:  magic-devel
+BuildRequires:  file-devel
 BuildRequires:  cxxtools-devel
 BuildRequires:  tntdb-devel
 BuildRequires:  fty-proto-devel
@@ -84,7 +84,7 @@ Requires:       libfty_asset1 = %{version}
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
-Requires:       magic-devel
+Requires:       file-devel
 Requires:       cxxtools-devel
 Requires:       tntdb-devel
 Requires:       fty-proto-devel
