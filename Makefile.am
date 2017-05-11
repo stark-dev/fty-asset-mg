@@ -23,10 +23,11 @@ AM_CPPFLAGS = \
     ${cxxtools_CFLAGS} \
     ${tntdb_CFLAGS} \
     ${fty_proto_CFLAGS} \
+    ${openssl_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${fty_proto_LIBS}
+project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${fty_proto_LIBS} ${openssl_LIBS}
 
 SUBDIRS = doc
 DIST_SUBDIRS = doc
@@ -51,6 +52,7 @@ EXTRA_DIST += \
     Findcxxtools.cmake \
     Findtntdb.cmake \
     Findfty_proto.cmake \
+    Findopenssl.cmake \
     CMakeLists.txt
 endif
 
@@ -59,6 +61,7 @@ EXTRA_DIST += \
     src/dbhelpers.h \
     src/dbpath.h \
     src/fty_asset_uptime_configurator.h \
+    src/fty_uuid.h \
     src/asset_defs.h \
     src/total_power.h \
     src/dns.h \

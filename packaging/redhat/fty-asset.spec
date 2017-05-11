@@ -57,6 +57,7 @@ BuildRequires:  file-devel
 BuildRequires:  cxxtools-devel
 BuildRequires:  tntdb-devel
 BuildRequires:  fty-proto-devel
+BuildRequires:  openssl-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
@@ -88,6 +89,7 @@ Requires:       file-devel
 Requires:       cxxtools-devel
 Requires:       tntdb-devel
 Requires:       fty-proto-devel
+Requires:       openssl-devel
 
 %description devel
 agent managing information about assets development tools
