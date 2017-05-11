@@ -24,6 +24,7 @@ src_libfty_asset_la_SOURCES = \
     src/dbhelpers.cc \
     src/dbpath.cc \
     src/fty_asset_uptime_configurator.cc \
+    src/fty_uuid.cc \
     src/asset_defs.cc \
     src/total_power.cc \
     src/dns.cc \

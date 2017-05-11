@@ -42,6 +42,7 @@ fty_asset_private_selftest (bool verbose)
     dbhelpers_test (verbose);
     dbpath_test (verbose);
     fty_asset_uptime_configurator_test (verbose);
+    fty_uuid_test (verbose);
     asset_defs_test (verbose);
     total_power_test (verbose);
     dns_test (verbose);

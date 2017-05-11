@@ -36,6 +36,7 @@
 #include <cxxtools/allocator.h>
 #include <tntdb.h>
 #include <ftyproto.h>
+#include <openssl/sha.h>
 
 //  FTY_ASSET version macros for compile-time API detection
 #define FTY_ASSET_VERSION_MAJOR 1
