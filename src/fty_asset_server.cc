@@ -1,21 +1,21 @@
 /*  =========================================================================
     fty_asset_server - Asset server, that takes care about distribution of asset information across the system
 
-    Copyright (C) 2014 - 2017 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2017 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -54,7 +54,7 @@
 
 
     ------------------------------------------------------------------------
-    ## Asset manipulation protocol 
+    ## Asset manipulation protocol
 
     REQ:
         subject: "ASSET_MANIPULATION"
@@ -73,15 +73,15 @@
         * ERROR/<reason>
 
         where:
- (OPTIONAL)     <asset_id>  = asset id (in case of create, update operation) 
-                <reason>    = Error message/code TODO  
+ (OPTIONAL)     <asset_id>  = asset id (in case of create, update operation)
+                <reason>    = Error message/code TODO
 
     Note: in REQ message certain asset information are encoded as follows
 
       'ext' field
           Power Links - key: "power_link.<device_name>", value: "<first_outlet_num>/<second_outlet_num>", i.e. 1 --> 2 == "1/2"
           Groups - key: "group", value: "<group_name_1>/.../<group_name_N>"
-            
+
 
     ------------------------------------------------------------------------
     ## ASSETS in container
@@ -309,7 +309,7 @@ static void
     zhash_t *aux = zhash_new ();
     zhash_autofree (aux);
     uint32_t asset_id = 0;
-    
+
     std::function<void(const tntdb::Row&)> cb1 = \
         [aux, &asset_id, asset_name](const tntdb::Row &row)
         {
@@ -320,11 +320,11 @@ static void
             foo_i = 0;
             row ["id_type"].get (foo_i);
             zhash_insert (aux, "type", (void*) asset_type2str (foo_i));
-                  
+
             // additional aux items (requiered by uptime)
             if (streq (asset_type2str (foo_i), "datacenter"))
                 insert_upses_to_aux (aux, asset_name);
-                       
+
             foo_i = 0;
             row ["subtype_id"].get (foo_i);
             zhash_insert (aux, "subtype", (void*) asset_subtype2str (foo_i));
@@ -367,6 +367,32 @@ static void
         zhash_destroy (&aux);
         zhash_destroy (&ext);
         return;
+    }
+
+    // create uuid ext attribute if missing
+    if (! zhash_lookup (ext, "uuid") ) {
+        const char *serial = (const char *) zhash_lookup (ext, "serial_no");
+        const char *model = (const char *) zhash_lookup (ext, "model");
+        const char *mfr = (const char *) zhash_lookup (ext, "manufacturer");
+        const char *type = (const char *) zhash_lookup (aux, "type");
+        if (! type) type = "";
+        fty_uuid_t *uuid = fty_uuid_new ();
+        if (serial && model && mfr) {
+            // we have all information => create uuid
+            zhash_insert (ext, "uuid", (void *) fty_uuid_calculate (uuid, mfr, model, serial));
+            process_insert_inventory (asset_name.c_str (), ext);
+        } else {
+            if (streq (type, "device")) {
+                // it is device, put FFF... and wait for information
+                zhash_insert (ext, "uuid", (void *) fty_uuid_calculate (uuid, NULL, NULL, NULL));
+            } else {
+                // it is not device, we will probably not get more information
+                // lets generate random uuid and save it
+                zhash_insert (ext, "uuid", (void *) fty_uuid_generate (uuid));
+                process_insert_inventory (asset_name.c_str (), ext);
+            }
+        }
+        fty_uuid_destroy (&uuid);
     }
 
     std::function<void(const tntdb::Row&)> cb3 = \
@@ -463,7 +489,7 @@ s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_pu
         zsys_warning ("%s:\tCannot list all assets", cfg->name);
         return;
     }
-    
+
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
         s_update_asset (cfg, asset_name);
@@ -668,7 +694,7 @@ fty_asset_server_test (bool verbose)
     mlm_client_connect (client, endpoint, 5000, "topology-peer");
     // scenario name
     std::string scenario;
-    
+
     // all topology messages has the same subject
 
     /*
