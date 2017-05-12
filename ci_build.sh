@@ -397,7 +397,7 @@ if [ "$BUILD_TYPE" == "default" ] || [ "$BUILD_TYPE" == "default-Werror" ] || [ 
     fi
 
     # Start of recipe for dependency: openssl
-    if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list openssl-dev >/dev/null 2>&1) || \
+    if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list libssl-dev >/dev/null 2>&1) || \
            (command -v brew >/dev/null 2>&1 && brew ls --versions openssl >/dev/null 2>&1) \
     ; then
         echo ""
