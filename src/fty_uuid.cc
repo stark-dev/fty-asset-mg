@@ -63,7 +63,7 @@ unsigned char *fty_sha1 (const char *data)
 }
 
 //  --------------------------------------------------------------------------
-//  Generate EATON uuid
+//  Calculate UUID v5 in EATON namespace base on manufacturer, model and serial number
 
 const char*
 fty_uuid_calculate (fty_uuid_t *self, const char *mfr, const char *model, const char *serial)
@@ -82,6 +82,17 @@ fty_uuid_calculate (fty_uuid_t *self, const char *mfr, const char *model, const 
     zuuid_set (self->uuid, hash);
     zstr_free ((char **)&hash);
     zstr_free (&src);
+    return zuuid_str_canonical (self->uuid);
+}
+
+//  --------------------------------------------------------------------------
+//  Generate random UUID
+
+const char*
+fty_uuid_generate (fty_uuid_t *self)
+{
+    zuuid_destroy (&self->uuid);
+    self->uuid = zuuid_new ();
     return zuuid_str_canonical (self->uuid);
 }
 

@@ -35,8 +35,13 @@ FTY_ASSET_PRIVATE fty_uuid_t *
 FTY_ASSET_PRIVATE void
     fty_uuid_destroy (fty_uuid_t **self_p);
 
+//  Calculate UUID v5 in EATON namespace base on manufacturer, model and serial number
 FTY_ASSET_PRIVATE const char*
     fty_uuid_calculate (fty_uuid_t *self, const char *mfr, const char *model, const char *serial);
+
+//  Generate random UUID
+FTY_ASSET_PRIVATE const char*
+    fty_uuid_generate (fty_uuid_t *self);
 
 //  Self test of this class
 FTY_ASSET_PRIVATE void
