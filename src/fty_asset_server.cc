@@ -94,6 +94,7 @@
 
         where:
             <container name>        = Name of the container things belongs to that
+                                      when empty, no container is used, so all assets are take in account
             <type X>                = Type or subtype to be returned. Possible values are
                                       ups
                                       TODO: add more
@@ -109,6 +110,27 @@
         where:
             <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR / BAD_COMMAND
 
+    REQ:
+        subject: "ASSETS"
+        Message is a multipart string message
+
+        * GET/<type 1>/.../<type n>
+
+        where:
+            <type X>                = Type or subtype to be returned. Possible values are
+                                      ups
+                                      TODO: add more
+                                      when empty, no filtering is done
+    REP:
+        subject: "ASSETS"
+        Message is a multipart message:
+
+        * OK                         = empty container
+        * OK/<asset 1>/.../<asset N> = non-empty
+        * ERROR/<reason>
+
+        where:
+            <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR / BAD_COMMAND
     ------------------------------------------------------------------------
     ## REPUBLISH
 
@@ -273,7 +295,7 @@ static void
 
     // if there is no error msg prepared, call SQL
     if (zmsg_size (msg) == 0)
-        rv = select_assets_by_container (container_name, filters, assets);
+            rv = select_assets_by_container (container_name, filters, assets);
 
     if (rv == -1)
     {
@@ -297,6 +319,65 @@ static void
     rv = mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
     if (rv == -1)
         zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
+
+}
+
+
+
+static void
+    s_handle_subject_assets (
+        fty_asset_server_t *cfg,
+        zmsg_t *msg)
+{
+    assert (msg);
+    assert (cfg);
+
+    char* c_command = zmsg_popstr (msg);
+    zmsg_t *reply = zmsg_new ();
+
+    if (! streq (c_command, "GET")) {
+        zsys_error ("%s:\tASSETS: bad command '%s', expected GET", cfg->name, c_command);
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_COMMAND");
+    }
+    zstr_free (&c_command);
+
+    std::set <std::string> filters;
+    while (zmsg_size (msg) > 0) {
+        char *filter = zmsg_popstr (msg);
+        filters.insert (filter);
+        zstr_free (&filter);
+    }
+    std::vector <std::string> assets;
+    int rv = 0;
+
+    // if there is no error msg prepared, call SQL
+    if (zmsg_size (msg) == 0){
+            rv = select_assets_by_filter(filters, assets);
+    }
+
+    if (rv == -1)
+    {
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "INTERNAL_ERROR");
+    }
+    else
+    if (rv == -2)
+    {
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "ASSET_NOT_FOUND");
+    }
+    else
+    {
+        zmsg_addstr (reply, "OK");
+        for (const auto& dev : assets)
+            zmsg_addstr (reply, dev.c_str ());
+    }
+
+    // send the reply
+    rv = mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSETS", NULL, 5000, &reply);
+    if (rv == -1)
+        zsys_error ("%s:\tASSETS: mlm_client_sendto failed", cfg->name);
 
 }
 
@@ -626,6 +707,8 @@ fty_asset_server (zsock_t *pipe, void *args)
             else
             if (subject == "ASSETS_IN_CONTAINER")
                 s_handle_subject_assets_in_container (cfg, zmessage);
+            if (subject == "ASSETS")
+                s_handle_subject_assets (cfg, zmessage);
             else
             if (subject == "REPUBLISH") {
 
