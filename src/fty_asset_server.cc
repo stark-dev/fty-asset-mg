@@ -707,6 +707,7 @@ fty_asset_server (zsock_t *pipe, void *args)
             else
             if (subject == "ASSETS_IN_CONTAINER")
                 s_handle_subject_assets_in_container (cfg, zmessage);
+            else
             if (subject == "ASSETS")
                 s_handle_subject_assets (cfg, zmessage);
             else
