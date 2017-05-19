@@ -55,6 +55,12 @@ FTY_ASSET_PRIVATE int
     );
 
 FTY_ASSET_PRIVATE int
+    select_assets_by_filter (
+        const std::set <std::string>& filter,
+        std::vector <std::string>& assets
+    );
+
+FTY_ASSET_PRIVATE int
     select_ext_attributes
         (uint32_t asset_id,
          std::function<void(const tntdb::Row&)> cb);
