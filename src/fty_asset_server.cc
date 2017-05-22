@@ -1,21 +1,21 @@
 /*  =========================================================================
     fty_asset_server - Asset server, that takes care about distribution of asset information across the system
 
-    Copyright (C) 2014 - 2017 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2017 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -54,7 +54,7 @@
 
 
     ------------------------------------------------------------------------
-    ## Asset manipulation protocol 
+    ## Asset manipulation protocol
 
     REQ:
         subject: "ASSET_MANIPULATION"
@@ -73,15 +73,15 @@
         * ERROR/<reason>
 
         where:
- (OPTIONAL)     <asset_id>  = asset id (in case of create, update operation) 
-                <reason>    = Error message/code TODO  
+ (OPTIONAL)     <asset_id>  = asset id (in case of create, update operation)
+                <reason>    = Error message/code TODO
 
     Note: in REQ message certain asset information are encoded as follows
 
       'ext' field
           Power Links - key: "power_link.<device_name>", value: "<first_outlet_num>/<second_outlet_num>", i.e. 1 --> 2 == "1/2"
           Groups - key: "group", value: "<group_name_1>/.../<group_name_N>"
-            
+
 
     ------------------------------------------------------------------------
     ## ASSETS in container
@@ -94,6 +94,7 @@
 
         where:
             <container name>        = Name of the container things belongs to that
+                                      when empty, no container is used, so all assets are take in account
             <type X>                = Type or subtype to be returned. Possible values are
                                       ups
                                       TODO: add more
@@ -109,6 +110,27 @@
         where:
             <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR / BAD_COMMAND
 
+    REQ:
+        subject: "ASSETS"
+        Message is a multipart string message
+
+        * GET/<type 1>/.../<type n>
+
+        where:
+            <type X>                = Type or subtype to be returned. Possible values are
+                                      ups
+                                      TODO: add more
+                                      when empty, no filtering is done
+    REP:
+        subject: "ASSETS"
+        Message is a multipart message:
+
+        * OK                         = empty container
+        * OK/<asset 1>/.../<asset N> = non-empty
+        * ERROR/<reason>
+
+        where:
+            <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR / BAD_COMMAND
     ------------------------------------------------------------------------
     ## REPUBLISH
 
@@ -273,7 +295,7 @@ static void
 
     // if there is no error msg prepared, call SQL
     if (zmsg_size (msg) == 0)
-        rv = select_assets_by_container (container_name, filters, assets);
+            rv = select_assets_by_container (container_name, filters, assets);
 
     if (rv == -1)
     {
@@ -300,6 +322,65 @@ static void
 
 }
 
+
+
+static void
+    s_handle_subject_assets (
+        fty_asset_server_t *cfg,
+        zmsg_t *msg)
+{
+    assert (msg);
+    assert (cfg);
+
+    char* c_command = zmsg_popstr (msg);
+    zmsg_t *reply = zmsg_new ();
+
+    if (! streq (c_command, "GET")) {
+        zsys_error ("%s:\tASSETS: bad command '%s', expected GET", cfg->name, c_command);
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_COMMAND");
+    }
+    zstr_free (&c_command);
+
+    std::set <std::string> filters;
+    while (zmsg_size (msg) > 0) {
+        char *filter = zmsg_popstr (msg);
+        filters.insert (filter);
+        zstr_free (&filter);
+    }
+    std::vector <std::string> assets;
+    int rv = 0;
+
+    // if there is no error msg prepared, call SQL
+    if (zmsg_size (msg) == 0){
+            rv = select_assets_by_filter(filters, assets);
+    }
+
+    if (rv == -1)
+    {
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "INTERNAL_ERROR");
+    }
+    else
+    if (rv == -2)
+    {
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "ASSET_NOT_FOUND");
+    }
+    else
+    {
+        zmsg_addstr (reply, "OK");
+        for (const auto& dev : assets)
+            zmsg_addstr (reply, dev.c_str ());
+    }
+
+    // send the reply
+    rv = mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSETS", NULL, 5000, &reply);
+    if (rv == -1)
+        zsys_error ("%s:\tASSETS: mlm_client_sendto failed", cfg->name);
+
+}
+
 static void
     s_update_asset (
         fty_asset_server_t *cfg,
@@ -309,7 +390,7 @@ static void
     zhash_t *aux = zhash_new ();
     zhash_autofree (aux);
     uint32_t asset_id = 0;
-    
+
     std::function<void(const tntdb::Row&)> cb1 = \
         [aux, &asset_id, asset_name](const tntdb::Row &row)
         {
@@ -320,11 +401,11 @@ static void
             foo_i = 0;
             row ["id_type"].get (foo_i);
             zhash_insert (aux, "type", (void*) asset_type2str (foo_i));
-                  
+
             // additional aux items (requiered by uptime)
             if (streq (asset_type2str (foo_i), "datacenter"))
                 insert_upses_to_aux (aux, asset_name);
-                       
+
             foo_i = 0;
             row ["subtype_id"].get (foo_i);
             zhash_insert (aux, "subtype", (void*) asset_subtype2str (foo_i));
@@ -367,6 +448,32 @@ static void
         zhash_destroy (&aux);
         zhash_destroy (&ext);
         return;
+    }
+
+    // create uuid ext attribute if missing
+    if (! zhash_lookup (ext, "uuid") ) {
+        const char *serial = (const char *) zhash_lookup (ext, "serial_no");
+        const char *model = (const char *) zhash_lookup (ext, "model");
+        const char *mfr = (const char *) zhash_lookup (ext, "manufacturer");
+        const char *type = (const char *) zhash_lookup (aux, "type");
+        if (! type) type = "";
+        fty_uuid_t *uuid = fty_uuid_new ();
+        if (serial && model && mfr) {
+            // we have all information => create uuid
+            zhash_insert (ext, "uuid", (void *) fty_uuid_calculate (uuid, mfr, model, serial));
+            process_insert_inventory (asset_name.c_str (), ext);
+        } else {
+            if (streq (type, "device")) {
+                // it is device, put FFF... and wait for information
+                zhash_insert (ext, "uuid", (void *) fty_uuid_calculate (uuid, NULL, NULL, NULL));
+            } else {
+                // it is not device, we will probably not get more information
+                // lets generate random uuid and save it
+                zhash_insert (ext, "uuid", (void *) fty_uuid_generate (uuid));
+                process_insert_inventory (asset_name.c_str (), ext);
+            }
+        }
+        fty_uuid_destroy (&uuid);
     }
 
     std::function<void(const tntdb::Row&)> cb3 = \
@@ -463,7 +570,7 @@ s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_pu
         zsys_warning ("%s:\tCannot list all assets", cfg->name);
         return;
     }
-    
+
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
         s_update_asset (cfg, asset_name);
@@ -601,6 +708,9 @@ fty_asset_server (zsock_t *pipe, void *args)
             if (subject == "ASSETS_IN_CONTAINER")
                 s_handle_subject_assets_in_container (cfg, zmessage);
             else
+            if (subject == "ASSETS")
+                s_handle_subject_assets (cfg, zmessage);
+            else
             if (subject == "REPUBLISH") {
 
                 zmsg_print (zmessage);
@@ -668,7 +778,7 @@ fty_asset_server_test (bool verbose)
     mlm_client_connect (client, endpoint, 5000, "topology-peer");
     // scenario name
     std::string scenario;
-    
+
     // all topology messages has the same subject
 
     /*

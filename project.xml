@@ -15,12 +15,15 @@
     <include filename = "license.xml" />
     <version major = "1" minor = "0" patch = "0" />
     <abi current = "1" revision = "0" age = "0" />
+
+    <use project = "czmq" min_major = "3" release = "v3.0.2"
+        repository="https://github.com/42ity/czmq.git"/>
     <use project = "malamute" />
 
     <use project = "magic" libname = "libmagic"
         repository = "https://github.com/42ity/libmagic"
         test = "magic_close"
-        spec_name = "file-devel"
+        redhat_name = "file-devel"
         >
     </use>
 
@@ -42,10 +45,13 @@
         <use project = "malamute"/>
     </use>
 
+    <use project = "openssl" header = "openssl/sha.h" debian_name="libssl-dev"/>
+
     <class name = "defs" state="stable" private = "1"> Defines constants </class>
     <class name = "dbhelpers" state="stable" private = "1"> Helpers functions for database </class>
     <class name = "dbpath" state = "stable" private = "1">Connection to database </class>
     <class name = "fty_asset_uptime_configurator" state = "stable" private = "1">Configuration for kpi-uptime </class>
+    <class name = "fty_uuid" state = "stable" private = "1">UUID generating</class>
 
     <class name = "asset_defs" private = "1" state = "stable">Some fancy definitions related to assets</class>
     <class name = "total_power" private = "1" state = "stable"> Calculation of total power for one asset</class>

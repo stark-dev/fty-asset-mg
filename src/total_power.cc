@@ -917,6 +917,81 @@ int
 }
 
 int
+    select_assets_by_filter (
+        tntdb::Connection &conn,
+        const std::set<std::string> &types_and_subtypes,
+        std::function<void(const tntdb::Row&)> cb
+    )
+{
+    try {
+        std::string request =
+            " SELECT "
+            "   v.name, "
+            "   v.id_asset_element as asset_id, "
+            "   v.id_asset_device_type as subtype_id, "
+            "   v.type_name as subtype_name, "
+            "   v.id_type as type_id "
+            " FROM "
+            "   v_bios_asset_element_super_parent v ";
+        
+        if(!types_and_subtypes.empty())
+            request += " WHERE " + select_assets_by_container_filter (types_and_subtypes);
+        
+        // Can return more than one row.
+        tntdb::Statement st = conn.prepareCached(request);
+        tntdb::Result result = st.select();
+        zsys_debug("[v_bios_asset_element_super_parent]: were selected %" PRIu32 " rows",
+                                                            result.size());
+        for ( auto &row: result ) {
+            cb(row);
+        }
+        return 0;
+    }
+    catch (const std::exception& e) {
+        zsys_error ("Error: ",e.what());
+        return -1;
+    }
+}
+
+int
+select_assets_by_filter (
+        tntdb::Connection &conn,
+        const std::set <std::string>& filter,
+        std::vector <std::string>& assets)
+{
+    
+    std::function<void(const tntdb::Row&)> func =
+        [&assets](const tntdb::Row& row)
+        {
+            std::string name;
+            row["name"].get (name);
+            assets.push_back (name);
+        };
+
+    return select_assets_by_filter (conn, filter, func);
+}
+
+int
+select_assets_by_filter (
+        const std::set <std::string>& filter,
+        std::vector <std::string>& assets)
+{
+    tntdb::Connection conn;
+    try {
+        conn = tntdb::connectCached (url);
+    }
+    catch ( const std::exception &e) {
+        zsys_error ("DB: cannot connect, %s", e.what());
+        return -1;
+    }
+    return select_assets_by_filter (conn, filter, assets);
+}
+
+
+
+
+
+int
     select_assets (
             std::function<void(
                 const tntdb::Row&
