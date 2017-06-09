@@ -404,8 +404,10 @@ static void
 
             // additional aux items (requiered by uptime)
             if (streq (asset_type2str (foo_i), "datacenter"))
-                insert_upses_to_aux (aux, asset_name);
-
+            {
+                if (!insert_upses_to_aux (aux, asset_name))
+                    zsys_error ("insert_upses_to_aux: failed to insert upses");
+            }
             foo_i = 0;
             row ["subtype_id"].get (foo_i);
             zhash_insert (aux, "subtype", (void*) asset_subtype2str (foo_i));
@@ -458,10 +460,14 @@ static void
         const char *type = (const char *) zhash_lookup (aux, "type");
         if (! type) type = "";
         fty_uuid_t *uuid = fty_uuid_new ();
+        zhash_t *ext_new = zhash_new ();
+
         if (serial && model && mfr) {
             // we have all information => create uuid
-            zhash_insert (ext, "uuid", (void *) fty_uuid_calculate (uuid, mfr, model, serial));
-            process_insert_inventory (asset_name.c_str (), ext);
+            const char *uuid_new = fty_uuid_calculate (uuid, mfr, model, serial);
+            zhash_insert (ext, "uuid", (void *) uuid_new);
+            zhash_insert (ext_new, "uuid", (void *) uuid_new);
+            process_insert_inventory (asset_name.c_str (), ext_new);
         } else {
             if (streq (type, "device")) {
                 // it is device, put FFF... and wait for information
@@ -469,11 +475,14 @@ static void
             } else {
                 // it is not device, we will probably not get more information
                 // lets generate random uuid and save it
-                zhash_insert (ext, "uuid", (void *) fty_uuid_generate (uuid));
-                process_insert_inventory (asset_name.c_str (), ext);
+                const char *uuid_new = fty_uuid_generate (uuid);
+                zhash_insert (ext, "uuid", (void *) uuid_new);
+                zhash_insert (ext_new, "uuid", (void *) uuid_new);
+                process_insert_inventory (asset_name.c_str (), ext_new);
             }
         }
         fty_uuid_destroy (&uuid);
+        zhash_destroy (&ext_new);
     }
 
     std::function<void(const tntdb::Row&)> cb3 = \
