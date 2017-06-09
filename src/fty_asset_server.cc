@@ -764,7 +764,7 @@ fty_asset_server_test (bool verbose)
     fty_asset_server_t *self = fty_asset_server_new ();
     assert (self);
     fty_asset_server_destroy (&self);
-    // Everything is commented ouecause: need to have a proper database
+    // Everything is commented out because: need to have a proper database
     // --> move it out of "make check"
     //  @selftest
     static const char* endpoint = "inproc://fty_asset_server-test";
