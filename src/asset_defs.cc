@@ -78,7 +78,7 @@ const char *asset_subtype2str (int asset_subtype)
         case ROUTER:
             return "router";
         case RACKCONTROLLER:
-            return "rack controller";
+            return "rackcontroller";
         case VIRTUAL:
             return "virtual";
         case SENSOR:
@@ -200,6 +200,9 @@ uint32_t
     else if (st == "rack controller") {
         return asset_subtype::RACKCONTROLLER;
     }
+    else if (st == "rackcontroller") {
+        return asset_subtype::RACKCONTROLLER;
+    }
     else if (st == "sensor") {
         return asset_subtype::SENSOR;
     }
@@ -239,7 +242,7 @@ std::string
         case asset_subtype::ROUTER:
             return "router";
         case asset_subtype::RACKCONTROLLER:
-            return "rack controller";
+            return "rackcontroller";
         case asset_subtype::SENSOR:
             return "sensor";
         case asset_subtype::VIRTUAL:
