@@ -1,21 +1,21 @@
 /*  =========================================================================
     fty_asset_autoupdate - Asset server, that udates some of asset information on change like IP address in case of DHCP
 
-    Copyright (C) 2014 - 2015 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2015 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -154,7 +154,7 @@ void
 autoupdate_update_rc_information (fty_asset_autoupdate_t *self)
 {
     assert (self);
-    
+
     if (self->rcs.empty() )
         return;
     if (self->rcs.size() == 1) {
@@ -201,7 +201,7 @@ autoupdate_request_all_rcs (fty_asset_autoupdate_t *self)
     zmsg_t *msg = zmsg_new ();
     zmsg_addstr (msg, "GET");
     zmsg_addstr (msg, "");
-    zmsg_addstr (msg, "rack controller");
+    zmsg_addstr (msg, "rackcontroller");
     int rv = mlm_client_sendto (self->client, "asset-agent", "ASSETS_IN_CONTAINER", NULL, 5000, &msg);
     if (rv != 0) {
         zsys_error ("%s:\tRequest RC list failed", self->name);
