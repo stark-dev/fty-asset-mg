@@ -382,6 +382,34 @@ static void
 }
 
 static void
+    s_handle_subject_asset_manipulation (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
+{
+    if (!cfg || !zmessage_p || !*zmessage_p) return;
+    zmsg_t *zmessage = *zmessage_p;
+    if (!is_fty_proto (zmessage)) {
+        zsys_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
+        return;
+    }
+    fty_proto_t *fmsg = fty_proto_decode (zmessage_p);
+    if (! fmsg) {
+        zsys_error ("%s:\tASSET_MANIPULATION: failed to decode message", cfg->name);
+        return;
+    }
+
+    zmsg_t *reply = zmsg_new ();
+    const char *operation = fty_proto_operation (fmsg);
+
+    // so far no operation implemented
+    zsys_error ("%s:\tASSET_MANIPULATION: asset operation %s is not implemented", cfg->name, operation);
+    zmsg_addstr (reply, "ERROR");
+    zmsg_addstr (reply, "OPERATION_NOT_IMPLEMENTED");
+    mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+
+    fty_proto_destroy (&fmsg);
+    zmsg_destroy (&reply);
+}
+
+static void
     s_update_asset (
         fty_asset_server_t *cfg,
         const std::string &asset_name)
@@ -735,6 +763,10 @@ fty_asset_server (zsock_t *pipe, void *args)
                     }
                     s_repeat_all (cfg, assets_to_publish);
                 }
+            }
+            else
+            if (subject == "ASSET_MANIPULATION") {
+                s_handle_subject_asset_manipulation (cfg, &zmessage);
             }
             else
                 zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
