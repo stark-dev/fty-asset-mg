@@ -83,6 +83,8 @@ const char *asset_subtype2str (int asset_subtype)
             return "virtual";
         case SENSOR:
             return "sensor";
+        case SENSORGPIO:
+            return "sensorgpio";
         case N_A:
             return "N_A";
         default:
@@ -206,6 +208,9 @@ uint32_t
     else if (st == "sensor") {
         return asset_subtype::SENSOR;
     }
+    else if (st == "sensorgpio") {
+        return asset_subtype::SENSORGPIO;
+    }
     else if(st == "n_a") {
         return asset_subtype::N_A;
     }
@@ -245,6 +250,8 @@ std::string
             return "rackcontroller";
         case asset_subtype::SENSOR:
             return "sensor";
+        case asset_subtype::SENSORGPIO:
+            return "sensorgpio";
         case asset_subtype::VIRTUAL:
             return "vm";
         case asset_subtype::N_A:
