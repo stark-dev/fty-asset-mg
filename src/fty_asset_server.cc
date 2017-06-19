@@ -382,6 +382,34 @@ static void
 }
 
 static void
+    s_handle_subject_asset_manipulation (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
+{
+    if (!cfg || !zmessage_p || !*zmessage_p) return;
+    zmsg_t *zmessage = *zmessage_p;
+    if (!is_fty_proto (zmessage)) {
+        zsys_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
+        return;
+    }
+    fty_proto_t *fmsg = fty_proto_decode (zmessage_p);
+    if (! fmsg) {
+        zsys_error ("%s:\tASSET_MANIPULATION: failed to decode message", cfg->name);
+        return;
+    }
+
+    zmsg_t *reply = zmsg_new ();
+    const char *operation = fty_proto_operation (fmsg);
+
+    // so far no operation implemented
+    zsys_error ("%s:\tASSET_MANIPULATION: asset operation %s is not implemented", cfg->name, operation);
+    zmsg_addstr (reply, "ERROR");
+    zmsg_addstr (reply, "OPERATION_NOT_IMPLEMENTED");
+    mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+
+    fty_proto_destroy (&fmsg);
+    zmsg_destroy (&reply);
+}
+
+static void
     s_update_asset (
         fty_asset_server_t *cfg,
         const std::string &asset_name)
@@ -404,8 +432,10 @@ static void
 
             // additional aux items (requiered by uptime)
             if (streq (asset_type2str (foo_i), "datacenter"))
-                insert_upses_to_aux (aux, asset_name);
-
+            {
+                if (!insert_upses_to_aux (aux, asset_name))
+                    zsys_error ("insert_upses_to_aux: failed to insert upses");
+            }
             foo_i = 0;
             row ["subtype_id"].get (foo_i);
             zhash_insert (aux, "subtype", (void*) asset_subtype2str (foo_i));
@@ -458,10 +488,14 @@ static void
         const char *type = (const char *) zhash_lookup (aux, "type");
         if (! type) type = "";
         fty_uuid_t *uuid = fty_uuid_new ();
+        zhash_t *ext_new = zhash_new ();
+
         if (serial && model && mfr) {
             // we have all information => create uuid
-            zhash_insert (ext, "uuid", (void *) fty_uuid_calculate (uuid, mfr, model, serial));
-            process_insert_inventory (asset_name.c_str (), ext);
+            const char *uuid_new = fty_uuid_calculate (uuid, mfr, model, serial);
+            zhash_insert (ext, "uuid", (void *) uuid_new);
+            zhash_insert (ext_new, "uuid", (void *) uuid_new);
+            process_insert_inventory (asset_name.c_str (), ext_new);
         } else {
             if (streq (type, "device")) {
                 // it is device, put FFF... and wait for information
@@ -469,11 +503,14 @@ static void
             } else {
                 // it is not device, we will probably not get more information
                 // lets generate random uuid and save it
-                zhash_insert (ext, "uuid", (void *) fty_uuid_generate (uuid));
-                process_insert_inventory (asset_name.c_str (), ext);
+                const char *uuid_new = fty_uuid_generate (uuid);
+                zhash_insert (ext, "uuid", (void *) uuid_new);
+                zhash_insert (ext_new, "uuid", (void *) uuid_new);
+                process_insert_inventory (asset_name.c_str (), ext_new);
             }
         }
         fty_uuid_destroy (&uuid);
+        zhash_destroy (&ext_new);
     }
 
     std::function<void(const tntdb::Row&)> cb3 = \
@@ -726,6 +763,10 @@ fty_asset_server (zsock_t *pipe, void *args)
                     }
                     s_repeat_all (cfg, assets_to_publish);
                 }
+            }
+            else
+            if (subject == "ASSET_MANIPULATION") {
+                s_handle_subject_asset_manipulation (cfg, &zmessage);
             }
             else
                 zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
