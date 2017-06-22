@@ -2,8 +2,8 @@
     name = "fty-asset"
     description = "Agent managing information about assets"
     script = "zproject.gsl"
-    email = "EatonIPCOpensource@eaton.com"
-    url = "https://42ity.org/"
+    email = "EatonIPCOpenSource@eaton.com"
+    url = "https://42ity.org"
     license = "GPL-2.0+"
     repository = "https://github.com/42ity/fty-asset"
     >
@@ -16,9 +16,10 @@
     <version major = "1" minor = "0" patch = "0" />
     <abi current = "1" revision = "0" age = "0" />
 
-    <use project = "czmq" min_major = "3" release = "v3.0.2"
-        repository="https://github.com/42ity/czmq.git"/>
-    <use project = "malamute" />
+    <use project = "czmq"
+        repository="https://github.com/42ity/czmq.git" release = "v3.0.2"
+        min_major = "3" min_minor = "0" min_patch = "2" />
+    <use project = "malamute" min_major = "1" test = "mlm_server_test" />
 
     <use project = "magic" libname = "libmagic"
         repository = "https://github.com/42ity/libmagic"
@@ -38,7 +39,7 @@
         builddir = "tntdb"
         />
 
-    <use project = "fty-proto" libname = "libfty_proto" header = "ftyproto.h"
+    <use project = "fty-proto" libname = "libfty_proto" header="ftyproto.h" prefix="fty_proto"
         min_major = "1" min_minor = "0" min_patch = "0"
         repository = "https://github.com/42ity/fty-proto"
         test = "fty_proto_test">
