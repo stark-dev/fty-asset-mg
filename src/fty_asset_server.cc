@@ -329,16 +329,25 @@ static void
         fty_asset_server_t *cfg,
         zmsg_t *msg)
 {
+    zmsg_t *reply = zmsg_new ();
+    if (zmsg_size (msg) < 1) {
+        zsys_error ("%s:\tASSETS: incoming message have less than 1 frame", cfg->name);
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "MISSING_COMMAND");
+        mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSETS", NULL, 5000, &reply);
+        return;
+    }
     assert (msg);
     assert (cfg);
 
     char* c_command = zmsg_popstr (msg);
-    zmsg_t *reply = zmsg_new ();
-
     if (! streq (c_command, "GET")) {
         zsys_error ("%s:\tASSETS: bad command '%s', expected GET", cfg->name, c_command);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
+        mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSETS", NULL, 5000, &reply);
+        zstr_free (&c_command);
+        return;
     }
     zstr_free (&c_command);
 
