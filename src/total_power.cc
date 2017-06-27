@@ -590,8 +590,7 @@ int
     zsys_debug ("container element_id = %" PRIu32, element_id);
 
     try {
-        // Can return more than one row.
-        tntdb::Statement st = conn.prepareCached(
+        std::string request =
             " SELECT "
             "   v.name, "
             "   v.id_asset_element as asset_id, "
@@ -601,10 +600,14 @@ int
             " FROM "
             "   v_bios_asset_element_super_parent v "
             " WHERE "
-            "   (:containerid in (v.id_parent1, v.id_parent2, v.id_parent3, v.id_parent4, v.id_parent5) OR :containerid = 0 ) "
-            "   AND "
-            + select_assets_by_container_filter (types_and_subtypes) + " )"
-        );
+            "   (:containerid in (v.id_parent1, v.id_parent2, v.id_parent3, v.id_parent4, v.id_parent5) OR :containerid = 0 ) ";
+        
+        if(!types_and_subtypes.empty())
+            request += " AND ( " + select_assets_by_container_filter (types_and_subtypes) +")";
+        zsys_debug("[v_bios_asset_element_super_parent]: %s", request.c_str());
+        
+        // Can return more than one row.
+        tntdb::Statement st = conn.prepareCached(request);
 
         tntdb::Result result = st.set("containerid", element_id).
                                   select();
