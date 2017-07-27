@@ -208,6 +208,21 @@ uint32_t
     else if (st == "sensor") {
         return asset_subtype::SENSOR;
     }
+    else if (st == "appliance") {
+        return asset_subtype::APPLIANCE;
+    }
+    else if (st == "chassis") {
+        return asset_subtype::CHASSIS;
+    }
+    else if (st == "patch panel") {
+        return asset_subtype::PATCHPANEL;
+    }
+    else if (st == "patchpanel") {
+        return asset_subtype::PATCHPANEL;
+    }
+    else if (st == "other") {
+        return asset_subtype::OTHER;
+    }
     else if (st == "sensorgpio") {
         return asset_subtype::SENSORGPIO;
     }
