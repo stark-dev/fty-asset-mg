@@ -1,21 +1,21 @@
 /*  =========================================================================
     fty_asset - Agent managing assets
 
-    Copyright (C) 2014 - 2017 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2017 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -70,11 +70,13 @@ int main (int argc, char *argv [])
     zactor_t *asset_server = zactor_new (fty_asset_server, (void*) "asset-agent");
     if (verbose)
         zstr_send (asset_server, "VERBOSE");
-    zstr_sendx (asset_server, "CONNECT", endpoint, NULL);
+    zstr_sendx (asset_server, "CONNECTSTREAM", endpoint, NULL);
+    zsock_wait (asset_server);
+    zstr_sendx (asset_server, "PRODUCER", "ASSETS", NULL);
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONSUMER", "ASSETS", ".*", NULL);
     zsock_wait (asset_server);
-    zstr_sendx (asset_server, "PRODUCER", "ASSETS", NULL);
+    zstr_sendx (asset_server, "CONNECTMAILBOX", endpoint, NULL);
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "REPEAT_ALL", NULL);
 

@@ -155,7 +155,8 @@
 struct _fty_asset_server_t {
     bool verbose;
     char *name;
-    mlm_client_t *client;
+    mlm_client_t *mailbox_client;
+    mlm_client_t *stream_client;
 };
 
 
@@ -169,7 +170,8 @@ fty_asset_server_destroy (fty_asset_server_t **self_p)
     if (*self_p) {
         fty_asset_server_t *self = *self_p;
         zstr_free (&self->name);
-        mlm_client_destroy (&self->client);
+        mlm_client_destroy (&self->mailbox_client);
+        mlm_client_destroy (&self->stream_client);
         free (self);
         *self_p = NULL;
     }
@@ -183,8 +185,15 @@ fty_asset_server_new (void)
 {
     fty_asset_server_t *self = (fty_asset_server_t *) zmalloc (sizeof (fty_asset_server_t));
     assert (self);
-    self->client = mlm_client_new ();
-    if (self->client) {
+    self->mailbox_client = mlm_client_new ();
+    if (self->mailbox_client) {
+        self->verbose = false;
+    }
+    else {
+        fty_asset_server_destroy (&self);
+    }
+    self->stream_client = mlm_client_new ();
+    if (self->stream_client) {
         self->verbose = false;
     }
     else {
@@ -234,7 +243,7 @@ static void
             zmsg_addstr (msg, powerDeviceName.c_str());
         }
     }
-    rv = mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "TOPOLOGY", NULL, 5000, &msg);
+    rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &msg);
     if ( rv != 0 )
         zsys_error ("%s:\tTOPOLOGY_POWER: cannot send response message", cfg->name);
 }
@@ -316,7 +325,7 @@ static void
     }
 
     // send the reply
-    rv = mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
+    rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
     if (rv == -1)
         zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
 
@@ -334,7 +343,7 @@ static void
         zsys_error ("%s:\tASSETS: incoming message have less than 1 frame", cfg->name);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "MISSING_COMMAND");
-        mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSETS", NULL, 5000, &reply);
+        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
         return;
     }
     assert (msg);
@@ -345,7 +354,7 @@ static void
         zsys_error ("%s:\tASSETS: bad command '%s', expected GET", cfg->name, c_command);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
-        mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSETS", NULL, 5000, &reply);
+        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
         zstr_free (&c_command);
         return;
     }
@@ -384,7 +393,7 @@ static void
     }
 
     // send the reply
-    rv = mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSETS", NULL, 5000, &reply);
+    rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
     if (rv == -1)
         zsys_error ("%s:\tASSETS: mlm_client_sendto failed", cfg->name);
 
@@ -583,7 +592,7 @@ static void
             }
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, fty_proto_name (fmsg));
-            mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+            mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
             fty_proto_destroy (&fmsg);
             zmsg_destroy (&reply);
             return;
@@ -592,7 +601,7 @@ static void
             zsys_error ("DB: cannot connect, %s", e.what());
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, e.what ());
-            mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+            mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
             fty_proto_destroy (&fmsg);
             zmsg_destroy (&reply);
             return;
@@ -602,7 +611,7 @@ static void
     zsys_error ("%s:\tASSET_MANIPULATION: asset operation %s is not implemented", cfg->name, operation);
     zmsg_addstr (reply, "ERROR");
     zmsg_addstr (reply, "OPERATION_NOT_IMPLEMENTED");
-    mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+    mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
 
     fty_proto_destroy (&fmsg);
     zmsg_destroy (&reply);
@@ -746,7 +755,7 @@ static void
             asset_name.c_str(),
             FTY_PROTO_ASSET_OP_UPDATE,
             ext);
-    rv = mlm_client_send (cfg->client, subject.c_str(), &msg);
+    rv = mlm_client_send (cfg->stream_client, subject.c_str(), &msg);
     zhash_destroy (&ext);
     zhash_destroy (&aux);
     if ( rv != 0 ) {
@@ -830,7 +839,7 @@ fty_asset_server (zsock_t *pipe, void *args)
     cfg->name = strdup ((char*) args);
     assert (cfg->name);
 
-    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(cfg->client), NULL);
+    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(cfg->mailbox_client), mlm_client_msgpipe(cfg->stream_client), NULL);
     assert (poller);
 
     // Signal need to be send as it is required by "actor_new"
@@ -865,9 +874,9 @@ fty_asset_server (zsock_t *pipe, void *args)
                 cfg->verbose = true;
             }
             else
-            if (streq (cmd, "CONNECT")) {
+            if (streq (cmd, "CONNECTSTREAM")) {
                 char* endpoint = zmsg_popstr (msg);
-                int rv = mlm_client_connect (cfg->client, endpoint, 1000, cfg->name);
+                int rv = mlm_client_connect (cfg->stream_client, endpoint, 1000, cfg->name);
                 if (rv == -1) {
                     zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", cfg->name, endpoint);
                 }
@@ -877,7 +886,7 @@ fty_asset_server (zsock_t *pipe, void *args)
             else
             if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
-                int rv = mlm_client_set_producer (cfg->client, stream);
+                int rv = mlm_client_set_producer (cfg->stream_client, stream);
                 if (rv == -1) {
                     zsys_error ("%s:\tCan't set producer on stream '%s'", cfg->name, stream);
                 }
@@ -888,12 +897,22 @@ fty_asset_server (zsock_t *pipe, void *args)
             if (streq (cmd, "CONSUMER")) {
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
-                int rv = mlm_client_set_consumer (cfg->client, stream, pattern);
+                int rv = mlm_client_set_consumer (cfg->stream_client, stream, pattern);
                 if (rv == -1) {
                     zsys_error ("%s:\tCan't set consumer on stream '%s', '%s'", cfg->name, stream, pattern);
                 }
                 zstr_free (&pattern);
                 zstr_free (&stream);
+                zsock_signal (pipe, 0);
+            }
+            else
+            if (streq (cmd, "CONNECTMAILBOX")) {
+                char* endpoint = zmsg_popstr (msg);
+                int rv = mlm_client_connect (cfg->mailbox_client, endpoint, 1000, cfg->name);
+                if (rv == -1) {
+                    zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", cfg->name, endpoint);
+                }
+                zstr_free (&endpoint);
                 zsock_signal (pipe, 0);
             }
             else
@@ -915,29 +934,12 @@ fty_asset_server (zsock_t *pipe, void *args)
 
         // This agent is a reactive agent, it reacts only on messages
         // and doesn't do anything if there are no messages
-        zmsg_t *zmessage = mlm_client_recv (cfg->client);
-        if ( zmessage == NULL ) {
-            continue;
-        }
-        std::string subject = mlm_client_subject (cfg->client);
-        std::string command = mlm_client_command (cfg->client);
-        if ( cfg->verbose )
-            zsys_debug("%s:\tGot message subject='%s', command='%s'", cfg->name, subject.c_str (), command.c_str ());
-
-        if (command == "STREAM DELIVER") {
-            if ( is_fty_proto (zmessage) ) {
-                fty_proto_t *bmsg = fty_proto_decode (&zmessage);
-                if ( fty_proto_id (bmsg) == FTY_PROTO_ASSET ) {
-                    s_update_topology (cfg, bmsg);
-                }
-                fty_proto_destroy (&bmsg);
+        else if (which == mlm_client_msgpipe (cfg->mailbox_client)) {
+            zmsg_t *zmessage = mlm_client_recv (cfg->mailbox_client);
+            if ( zmessage == NULL ) {
+                continue;
             }
-            else {
-                // DO NOTHING for now
-            }
-        }
-        else
-        if (command == "MAILBOX DELIVER") {
+            std::string subject = mlm_client_subject (cfg->mailbox_client);
             if (subject == "TOPOLOGY")
                 s_handle_subject_topology (cfg, zmessage);
             else
@@ -969,11 +971,28 @@ fty_asset_server (zsock_t *pipe, void *args)
             }
             else
                 zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
+            zmsg_destroy (&zmessage);
+        }
+        else if (which == mlm_client_msgpipe (cfg->stream_client)) {
+            zmsg_t *zmessage = mlm_client_recv (cfg->stream_client);
+            if ( zmessage == NULL ) {
+                continue;
+            }
+            if ( is_fty_proto (zmessage) ) {
+                fty_proto_t *bmsg = fty_proto_decode (&zmessage);
+                if ( fty_proto_id (bmsg) == FTY_PROTO_ASSET ) {
+                    s_update_topology (cfg, bmsg);
+                }
+                fty_proto_destroy (&bmsg);
+            }
+            else {
+                // DO NOTHING for now
+            }
+            zmsg_destroy (&zmessage);
         }
         else {
             // DO NOTHING for now
         }
-        zmsg_destroy (&zmessage);
     }
 exit:
     zsys_info ("%s:\tended", cfg->name);
@@ -1011,7 +1030,7 @@ fty_asset_server_test (bool verbose)
     if (verbose) {
         zstr_send (la_server, "VERBOSE");
     }
-    zstr_sendx (la_server, "CONNECT", endpoint, NULL);
+    zstr_sendx (la_server, "CONNECTSTREAM", endpoint, NULL);
     zsock_wait (la_server);
 
     mlm_client_t *client = mlm_client_new ();
