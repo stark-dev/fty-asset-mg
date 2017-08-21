@@ -1012,34 +1012,51 @@ fty_asset_server_test (bool verbose)
     printf (" * fty_asset_server: ");
 
     //  @selftest
-    //  Simple create/destroy test
-    fty_asset_server_t *self = fty_asset_server_new ();
-    assert (self);
-    fty_asset_server_destroy (&self);
-    // Everything is commented out because: need to have a proper database
-    // --> move it out of "make check"
-    //  @selftest
+    // Test #1:  Simple create/destroy test
+    {
+        zsys_debug ("fty-asset-server-test:Test #1");
+        fty_asset_server_t *self = fty_asset_server_new ();
+        assert (self);
+        fty_asset_server_destroy (&self);
+        zsys_info ("fty-asset-server-test:Test #1: OK");
+    }
+
     static const char* endpoint = "inproc://fty_asset_server-test";
 
-    // malamute broker
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     assert ( server != NULL );
-
     zstr_sendx (server, "BIND", endpoint, NULL);
+    if (verbose)
+                zstr_send (server, "VERBOSE");
 
-    // NOT legacy assets
-    zactor_t *la_server = zactor_new (fty_asset_server, (void*)"AGENT_ASSET");
+    mlm_client_t *ui = mlm_client_new ();
+    mlm_client_connect (ui, endpoint, 5000, "fty-asset-ui");
+
+    zactor_t *asset_server = zactor_new (fty_asset_server, (void*)"asset-agent-test");
     if (verbose) {
-        zstr_send (la_server, "VERBOSE");
+        zstr_send (asset_server, "VERBOSE");
     }
-    zstr_sendx (la_server, "CONNECTSTREAM", endpoint, NULL);
-    zsock_wait (la_server);
+    zstr_sendx (asset_server, "CONNECTSTREAM", endpoint, NULL);
+    zsock_wait (asset_server);
+    zstr_sendx (asset_server, "PRODUCER", "ASSETS", NULL);
+    zsock_wait (asset_server);
+    zstr_sendx (asset_server, "CONSUMER", "ASSETS", ".*", NULL);
+    zsock_wait (asset_server);
+    zstr_sendx (asset_server, "CONNECTMAILBOX", endpoint, NULL);
+    zsock_wait (asset_server);
 
-    mlm_client_t *client = mlm_client_new ();
-    mlm_client_connect (client, endpoint, 5000, "topology-peer");
-    // scenario name
-    std::string scenario;
 
+    zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate-test");
+    if (verbose)
+        zstr_send (autoupdate_server, "VERBOSE");
+    zstr_sendx (autoupdate_server, "CONNECT", endpoint, NULL);
+    zsock_wait (autoupdate_server);
+    zstr_sendx (autoupdate_server, "PRODUCER", "ASSETS-TEST", NULL);
+    zsock_wait (autoupdate_server);
+
+
+    // Everything is commented out because: need to have a proper database
+    // --> move it out of "make check"
     // all topology messages has the same subject
 
     /*
@@ -1134,9 +1151,9 @@ fty_asset_server_test (bool verbose)
     // zstr_free (&reason);
 
     // selftest should clear after itself
-    mlm_client_destroy (&client);
-    zactor_destroy (&la_server);
-
+    zactor_destroy (&autoupdate_server);
+    zactor_destroy (&asset_server);
+    mlm_client_destroy (&ui);
     zactor_destroy (&server);
 
     //  @end
