@@ -876,11 +876,13 @@ fty_asset_server (zsock_t *pipe, void *args)
             else
             if (streq (cmd, "CONNECTSTREAM")) {
                 char* endpoint = zmsg_popstr (msg);
-                int rv = mlm_client_connect (cfg->stream_client, endpoint, 1000, cfg->name);
+                char *stream_name = zsys_sprintf ("%s-stream", cfg->name);
+                int rv = mlm_client_connect (cfg->stream_client, endpoint, 1000, stream_name);
                 if (rv == -1) {
-                    zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", cfg->name, endpoint);
+                    zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", stream_name, endpoint);
                 }
                 zstr_free (&endpoint);
+                zstr_free (&stream_name);
                 zsock_signal (pipe, 0);
             }
             else
