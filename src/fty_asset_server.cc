@@ -549,7 +549,7 @@ s_create_or_update_asset (
         else {
             // went well some lines changed
             zsys_debug ("Insert went well, processing inventory.");
-            process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg));
+            process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), false);
             ret.status = 1;
         }
         return ret;
@@ -703,7 +703,7 @@ static void
             const char *uuid_new = fty_uuid_calculate (uuid, mfr, model, serial);
             zhash_insert (ext, "uuid", (void *) uuid_new);
             zhash_insert (ext_new, "uuid", (void *) uuid_new);
-            process_insert_inventory (asset_name.c_str (), ext_new);
+            process_insert_inventory (asset_name.c_str (), ext_new, false);
         } else {
             if (streq (type, "device")) {
                 // it is device, put FFF... and wait for information
@@ -714,7 +714,7 @@ static void
                 const char *uuid_new = fty_uuid_generate (uuid);
                 zhash_insert (ext, "uuid", (void *) uuid_new);
                 zhash_insert (ext_new, "uuid", (void *) uuid_new);
-                process_insert_inventory (asset_name.c_str (), ext_new);
+                process_insert_inventory (asset_name.c_str (), ext_new, false);
             }
         }
         fty_uuid_destroy (&uuid);

@@ -240,9 +240,10 @@ FTY_ASSET_PRIVATE int
 // update inventory data of asset in database
 // returns -1 for database failure, otherwise 0
 FTY_ASSET_PRIVATE int
-process_insert_inventory (
-    const std::string& device_name,
-    zhash_t *ext_attributes);
+    process_insert_inventory
+    (const std::string& device_name,
+    zhash_t *ext_attributes,
+    bool test);
 
 //  Self test of this class
 void

@@ -527,10 +527,13 @@ int
 }
 
 int
-process_insert_inventory (
-    const std::string& device_name,
-    zhash_t *ext_attributes)
+process_insert_inventory
+    (const std::string& device_name,
+    zhash_t *ext_attributes,
+    bool test)
 {
+    if (test)
+        return 0;
     tntdb::Connection conn;
     try {
         conn = tntdb::connectCached (url);
