@@ -322,7 +322,35 @@ static void
 
 }
 
-
+static void
+    s_handle_subject_ename_from_iname(
+        fty_asset_server_t *cfg,
+        zmsg_t *msg)
+{
+    zmsg_t *reply = zmsg_new ();
+    if (zmsg_size(msg) < 1) {
+        zsys_error("%s:\tASSETS: incoming message have less than 1 frame", cfg->name);
+        zmsg_addstr(reply, "ERROR");
+        zmsg_addstr(reply, "MISSING_INAME");
+        mlm_client_sendto(cfg->client, mlm_client_sender(cfg->client), "ENAME_FROM_INAME", NULL, 5000, &reply);
+        return;
+    }
+    char *iname = zmsg_popstr(msg);
+    char *ename = name_to_extname(iname);
+    if (!enname)
+    {
+        zmsg_addstr(reply, "ERROR");
+        zmsg_addstr(reply, "ASSET_NOT_FOUND");
+    }
+    else
+    {
+        zmsg_addstr(reply, "OK");
+        zmsg_addstr(reply, ename);
+    }
+    rv = mlm_client_sendto (cfg->client, mlm_client_sender (cfg->client), "ENAME_FROM_INAME", NULL, 5000, &reply);
+    if (rv == -1)
+        zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
+}
 
 static void
     s_handle_subject_assets (
@@ -946,6 +974,10 @@ fty_asset_server (zsock_t *pipe, void *args)
             else
             if (subject == "ASSETS")
                 s_handle_subject_assets (cfg, zmessage);
+            else
+            if (subject == "ENAME_FROM_INAME") {
+                s_handle_subject_ename_from_iname(cfg, zmessage);
+            }
             else
             if (subject == "REPUBLISH") {
 
