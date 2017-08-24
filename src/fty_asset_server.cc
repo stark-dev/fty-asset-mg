@@ -306,7 +306,7 @@ static void
 
     // if there is no error msg prepared, call SQL
     if (zmsg_size (msg) == 0)
-            rv = select_assets_by_container (container_name, filters, assets);
+            rv = select_assets_by_container (container_name, filters, assets, false);
 
     if (rv == -1)
     {
@@ -608,7 +608,7 @@ static void
     // select assets, that were affected by the change
     std::set<std::string> empty;
     std::vector <std::string> asset_names;
-    int rv = select_assets_by_container (fty_proto_name (msg), empty, asset_names);
+    int rv = select_assets_by_container (fty_proto_name (msg), empty, asset_names, cfg->test);
     if ( rv != 0 ) {
         zsys_warning ("%s:\tCannot select assets in container '%s'", cfg->name, fty_proto_name (msg));
         return;
@@ -897,6 +897,19 @@ fty_asset_server_test (bool verbose)
         zstr_free (&str);
         zmsg_destroy (&reply) ;
         zsys_info ("fty-asset-server-test:Test #2: OK");
+    }
+
+    // Test #3: message fty_proto_t *asset
+    {
+        zsys_debug ("fty-asset-server-test:Test #3");
+        zmsg_t *msg = fty_proto_encode_asset (
+            NULL,
+            "DC-1",
+            FTY_PROTO_ASSET_OP_UPDATE,
+            NULL);
+        int rv = mlm_client_send (ui, "update-test", &msg);
+        assert (rv == 0);
+        zsys_info ("fty-asset-server-test:Test #3: OK");
     }
 
     zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate-test");
