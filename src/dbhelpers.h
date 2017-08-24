@@ -156,7 +156,6 @@ inline db_reply<T> db_reply_new(T& item) {
 
 FTY_ASSET_PRIVATE int
     select_asset_id (
-        tntdb::Connection &conn,
         const std::string &name,
         a_elmnt_id_t &id
     );
@@ -182,7 +181,6 @@ FTY_ASSET_PRIVATE int
  */
 FTY_ASSET_PRIVATE int
     select_assets_by_container_cb (
-        tntdb::Connection &conn,
         a_elmnt_id_t element_id,
         std::function<void(const tntdb::Row&)> cb
     );
@@ -211,7 +209,6 @@ FTY_ASSET_PRIVATE int
  */
 FTY_ASSET_PRIVATE int
     select_links_by_container (
-        tntdb::Connection &conn,
         a_elmnt_id_t element_id,
         std::set <std::pair<a_elmnt_id_t ,a_elmnt_id_t> > &links
     );

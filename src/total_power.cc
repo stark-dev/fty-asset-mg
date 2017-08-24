@@ -339,7 +339,7 @@ static int
                     }
                 };
 
-    auto rv = select_assets_by_container_cb (conn, assetId, func);
+    auto rv = select_assets_by_container_cb (assetId, func);
 
     // here would be placed names of devices to summ up
     if ( rv != 0 ) {
@@ -356,7 +356,7 @@ static int
         return 0;
     }
     std::set <std::pair<a_elmnt_id_t ,a_elmnt_id_t> > links{};
-    rv = select_links_by_container (conn, assetId, links);
+    rv = select_links_by_container (assetId, links);
     if ( rv != 0 ) {
         zsys_warning ("asset_id='%" PRIu32 "': internal problems in links detecting",
                 assetId);
@@ -384,7 +384,7 @@ int
 {
     tntdb::Connection conn = tntdb::connectCached (url);
     a_elmnt_id_t assetId = 0;
-    int rv = select_asset_id (conn, assetName, assetId);
+    int rv = select_asset_id (assetName, assetId);
     if ( rv != 0 ) {
         return rv;
     }

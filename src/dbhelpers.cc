@@ -42,12 +42,12 @@
  */
 int
     select_asset_id (
-        tntdb::Connection &conn,
         const std::string &name,
         a_elmnt_id_t &id
     )
 {
     try {
+        tntdb::Connection conn = tntdb::connectCached (url);
         tntdb::Statement st = conn.prepareCached(
             " SELECT "
             "   v.id "
@@ -110,7 +110,6 @@ select_assets_by_container_filter (
 
 int
     select_links_by_container (
-        tntdb::Connection &conn,
         a_elmnt_id_t element_id,
         std::set <std::pair<a_elmnt_id_t ,a_elmnt_id_t> > &links
     )
@@ -123,6 +122,7 @@ int
     try{
         // v_bios_asset_link are only devices,
         // so there is no need to add more constrains
+        tntdb::Connection conn = tntdb::connectCached (url);
         tntdb::Statement st = conn.prepareCached(
             " SELECT"
             "   v.id_asset_element_src,"
@@ -175,7 +175,6 @@ int
 
 int
     select_assets_by_container_cb (
-        tntdb::Connection &conn,
         a_elmnt_id_t element_id,
         const std::set<std::string> &types_and_subtypes,
         std::function<void(const tntdb::Row&)> cb
@@ -184,6 +183,7 @@ int
     zsys_debug ("container element_id = %" PRIu32, element_id);
 
     try {
+        tntdb::Connection conn = tntdb::connectCached (url);
         std::string request =
             " SELECT "
             "   v.name, "
@@ -220,19 +220,17 @@ int
 
 int
     select_assets_by_container_cb (
-        tntdb::Connection &conn,
         a_elmnt_id_t element_id,
         std::function<void(const tntdb::Row&)> cb
     )
 {
 
     std::set <std::string> empty;
-    return select_assets_by_container_cb (conn, element_id, empty, cb);
+    return select_assets_by_container_cb (element_id, empty, cb);
 }
 
 int
 select_assets_by_container (
-        tntdb::Connection &conn,
         const std::string& container_name,
         const std::set <std::string>& filter,
         std::vector <std::string>& assets)
@@ -241,7 +239,7 @@ select_assets_by_container (
 
     // get container asset id
     if (! container_name.empty ()) {
-        if (select_asset_id (conn, container_name, id) != 0) {
+        if (select_asset_id (container_name, id) != 0) {
             return -1;
         }
     }
@@ -254,24 +252,7 @@ select_assets_by_container (
             assets.push_back (name);
         };
 
-    return select_assets_by_container_cb (conn, id, filter, func);
-}
-
-int
-select_assets_by_container (
-        const std::string& container_name,
-        const std::set <std::string>& filter,
-        std::vector <std::string>& assets)
-{
-    tntdb::Connection conn;
-    try {
-        conn = tntdb::connectCached (url);
-    }
-    catch ( const std::exception &e) {
-        zsys_error ("DB: cannot connect, %s", e.what());
-        return -1;
-    }
-    return select_assets_by_container (conn, container_name, filter, assets);
+    return select_assets_by_container_cb (id, filter, func);
 }
 
 int
@@ -413,13 +394,13 @@ int
 }
 
 int
-    select_assets_by_filter (
-        tntdb::Connection &conn,
+    select_assets_by_filter_cb (
         const std::set<std::string> &types_and_subtypes,
         std::function<void(const tntdb::Row&)> cb
     )
 {
     try {
+        tntdb::Connection conn = tntdb::connectCached (url);
         std::string request =
             " SELECT "
             "   v.name, "
@@ -451,7 +432,6 @@ int
 
 int
 select_assets_by_filter (
-        tntdb::Connection &conn,
         const std::set <std::string>& filter,
         std::vector <std::string>& assets)
 {
@@ -464,23 +444,7 @@ select_assets_by_filter (
             assets.push_back (name);
         };
 
-    return select_assets_by_filter (conn, filter, func);
-}
-
-int
-select_assets_by_filter (
-        const std::set <std::string>& filter,
-        std::vector <std::string>& assets)
-{
-    tntdb::Connection conn;
-    try {
-        conn = tntdb::connectCached (url);
-    }
-    catch ( const std::exception &e) {
-        zsys_error ("DB: cannot connect, %s", e.what());
-        return -1;
-    }
-    return select_assets_by_filter (conn, filter, assets);
+    return select_assets_by_filter_cb (filter, func);
 }
 
 int
