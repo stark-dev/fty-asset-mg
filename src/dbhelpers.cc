@@ -464,8 +464,10 @@ int
     select_assets (
             std::function<void(
                 const tntdb::Row&
-                )>& cb)
+                )>& cb, bool test)
 {
+    if (test)
+        return 0;
     tntdb::Connection conn;
     try {
         conn = tntdb::connectCached (url);

@@ -639,7 +639,7 @@ s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_pu
         };
 
     // select all assets
-    int rv = select_assets (cb);
+    int rv = select_assets (cb, cfg->test);
     if ( rv != 0 ) {
         zsys_warning ("%s:\tCannot list all assets", cfg->name);
         return;
@@ -785,8 +785,12 @@ fty_asset_server (zsock_t *pipe, void *args)
 
                 zmsg_print (zmessage);
                 char *asset = zmsg_popstr (zmessage);
-                if (!asset || streq (asset, "$all"))
+                if (!asset)
                     s_repeat_all (cfg);
+                else if (streq (asset, "$all")) {
+                    zstr_free (&asset);
+                    s_repeat_all (cfg);
+                }
                 else {
                     std::set <std::string> assets_to_publish;
                     while (asset) {
@@ -941,7 +945,7 @@ fty_asset_server_test (bool verbose)
         zmsg_destroy (&reply) ;
         zsys_info ("fty-asset-server-test:Test #4: OK");
     }
-    // Test #5: subject ASSETS_IN_CONTAINER
+    // Test #5: subject ASSETS_IN_CONTAINER, message GET
     {
         zsys_debug ("fty-asset-server-test:Test #5");
         const char* subject = "ASSETS_IN_CONTAINER";
@@ -959,6 +963,45 @@ fty_asset_server_test (bool verbose)
         zstr_free (&str);
         zmsg_destroy (&reply) ;
         zsys_info ("fty-asset-server-test:Test #5: OK");
+    }
+    // Test #6: subject ASSETS, message GET
+    {
+        zsys_debug ("fty-asset-server-test:Test #6");
+        const char* subject = "ASSETS_IN_CONTAINER";
+        const char *command = "GET";
+        zmsg_t *msg = zmsg_new();
+        zmsg_addstr (msg, command);
+        zmsg_addstr (msg, asset_name);
+        int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        assert (rv == 0);
+        zmsg_t *reply = mlm_client_recv (ui);
+        assert (streq (mlm_client_subject (ui), subject));
+        assert (zmsg_size (reply) == 1);
+        char *str = zmsg_popstr (reply);
+        assert (streq (str, "OK"));
+        zstr_free (&str);
+        zmsg_destroy (&reply) ;
+        zsys_info ("fty-asset-server-test:Test #6: OK");
+    }
+    // Test #7: message REPEAT_ALL
+    {
+        zsys_debug ("fty-asset-server-test:Test #7");
+        const char *command = "REPEAT_ALL";
+        int rv = zstr_sendx (asset_server, command, NULL);
+        assert (rv == 0);
+        zclock_sleep (200);
+        zsys_info ("fty-asset-server-test:Test #7: OK");
+    }
+    // Test #8: subject REPUBLISH, message $all
+    {
+        zsys_debug ("fty-asset-server-test:Test #8");
+        const char *subject = "REPUBLISH";
+        zmsg_t *msg = zmsg_new();
+        zmsg_addstr (msg, "$all");
+        int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        assert (rv == 0);
+        zclock_sleep (200);
+        zsys_info ("fty-asset-server-test:Test #8: OK");
     }
 
     zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate-test");

@@ -236,7 +236,7 @@ FTY_ASSET_PRIVATE int
     select_assets (
             std::function<void(
                 const tntdb::Row&
-                )>& cb);
+                )>& cb, bool test);
 
 // update inventory data of asset in database
 // returns -1 for database failure, otherwise 0
