@@ -33,6 +33,7 @@
 struct _fty_asset_autoupdate_t {
     mlm_client_t *client = NULL;
     char *name = NULL;
+    char *asset_agent_name = NULL;
     std::vector<std::string> rcs;
     bool verbose;
 };
@@ -48,6 +49,7 @@ fty_asset_autoupdate_destroy (fty_asset_autoupdate_t **self_p)
     if (*self_p) {
         fty_asset_autoupdate_t *self = *self_p;
         zstr_free (&self->name);
+        zstr_free (&self->asset_agent_name);
         mlm_client_destroy (&self->client);
         free (self);
         *self_p = NULL;
@@ -202,7 +204,7 @@ autoupdate_request_all_rcs (fty_asset_autoupdate_t *self)
     zmsg_addstr (msg, "GET");
     zmsg_addstr (msg, "");
     zmsg_addstr (msg, "rackcontroller");
-    int rv = mlm_client_sendto (self->client, "asset-agent", "ASSETS_IN_CONTAINER", NULL, 5000, &msg);
+    int rv = mlm_client_sendto (self->client, self->asset_agent_name, "ASSETS_IN_CONTAINER", NULL, 5000, &msg);
     if (rv != 0) {
         zsys_error ("%s:\tRequest RC list failed", self->name);
         zmsg_destroy (&msg);
@@ -223,7 +225,7 @@ autoupdate_handle_message (fty_asset_autoupdate_t *self, zmsg_t *message)
 
     const char *sender = mlm_client_sender (self->client);
     const char *subj = mlm_client_subject (self->client);
-    if (streq (sender, "asset-agent")) {
+    if (streq (sender, self->asset_agent_name)) {
         if (streq (subj, "ASSETS_IN_CONTAINER")) {
             if ( self->verbose ) {
                 zsys_debug ("%s:\tGot reply with RC:", self->name);
@@ -325,6 +327,11 @@ fty_asset_autoupdate_server (zsock_t *pipe, void *args)
             else
             if (streq (cmd, "WAKEUP")) {
                 autoupdate_request_all_rcs (self);
+            }
+            else
+            if (streq (cmd, "ASSET_AGENT_NAME")) {
+                char *name = zmsg_popstr (msg);
+                self->asset_agent_name = name;
             }
             else
             {

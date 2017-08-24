@@ -1011,104 +1011,18 @@ fty_asset_server_test (bool verbose)
     zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "PRODUCER", "ASSETS-TEST", NULL);
     zsock_wait (autoupdate_server);
+    zstr_sendx (autoupdate_server, "ASSET_AGENT_NAME", asset_server_test_name, NULL);
 
-
-    // Everything is commented out because: need to have a proper database
-    // --> move it out of "make check"
-    // all topology messages has the same subject
-
-    /*
-    static const char* subject = "TOPOLOGY";
-
-    // ====================================================
-    scenario = "scenario 1";
-    zsys_info ("# %s:", scenario.c_str());
-    //      prepare and send request message
-    zmsg_t *msg = zmsg_new();
-    zmsg_addstr (msg, "TOPOLOGY_POWER");
-    zmsg_addstr (msg, "RACK1-LAB");
-    mlm_client_sendto (client, "AGENT_ASSET", subject, NULL, 5000, &msg);
-
-    //      wait for a responce from asset agent
-    zpoller_t *poller = zpoller_new (mlm_client_msgpipe(client), NULL);
-    void *which = zpoller_wait (poller, 1000);
-    assert ( which != NULL );
-    zpoller_destroy (&poller);
-
-    //      receive a responce
-    msg = mlm_client_recv (client);
-
-    //      check the response
-    assert ( zmsg_size (msg) == 5 );
-    std::vector <std::string> expectedMessageGeneral =
-        {"TOPOLOGY_POWER", "RACK1-LAB", "OK"};
-    for ( int i = 0 ; i < 3 ; i++ ) {
-        char *somestring = zmsg_popstr (msg);
-        assert ( expectedMessageGeneral.at(i) == somestring );
-        free (somestring);
-    }
-    std::set <std::string> expectedMessageDevices =
-        {"UPS1-LAB", "UPS2-LAB"};
-    for ( int i = 3 ; i < 5 ; i++ ) {
-        char *somestring = zmsg_popstr (msg);
-        assert ( expectedMessageDevices.count(somestring) == 1 );
-        free (somestring);
-    }
-    //       crear
-    zmsg_destroy (&msg);
-    expectedMessageGeneral.clear();
-    zsys_info ("### %s: OK", scenario.c_str());
-
-
-    // ====================================================
-    scenario = "scenario 2";
-    zsys_info ("# %s:", scenario.c_str());
-    //      prepare and send request message
-    msg = zmsg_new();
-    zmsg_addstr (msg, "TOPOLOGY_POWER");
-    zmsg_addstr (msg, "NOTFOUNDASSET");
-    mlm_client_sendto (client, "AGENT_ASSET", subject, NULL, 5000, &msg);
-
-    //      wait for a responce from asset agent
-    poller = zpoller_new (mlm_client_msgpipe(client), NULL);
-    which = zpoller_wait (poller, 1000);
-    assert ( which != NULL );
-    zpoller_destroy (&poller);
-
-    //      receive a responce
-    msg = mlm_client_recv (client);
-    //      check the response
-    assert ( zmsg_size (msg) == 4 );
-    expectedMessageGeneral =
-        {"TOPOLOGY_POWER", "NOTFOUNDASSET", "ERROR", "ASSET_NOT_FOUND"};
-    for ( int i = 0 ; i < 4 ; i++ ) {
-        char *somestring = zmsg_popstr (msg);
-        assert ( expectedMessageGeneral.at(i) == somestring );
-        free (somestring);
+    // Test #9: message WAKEUP
+    {
+        zsys_debug ("fty-asset-server-test:Test #9");
+        const char *command = "WAKEUP";
+        int rv = zstr_sendx (autoupdate_server, command, NULL);
+        assert (rv == 0);
+        zclock_sleep (200);
+        zsys_info ("fty-asset-server-test:Test #9: OK");
     }
 
-    //       crear
-    zmsg_destroy (&msg);
-    expectedMessageGeneral.clear();
-    zsys_info ("### %s: OK", scenario.c_str());
-    */
-
-    // commented out - test doesnt work
-    // // scenario3 ASSETS_IN_CONTAINER
-    // mlm_client_sendtox (client, "AGENT_ASSET", "ASSETS_IN_CONTAINER", "GET", "DC007", NULL);
-
-    // char *recv_subject, *reply, *reason;
-    // mlm_client_recvx (client, &recv_subject, &reply, &reason, NULL);
-
-    // assert (streq (recv_subject, "ASSETS_IN_CONTAINER"));
-    // assert (streq (reply, "ERROR"));
-    // assert (streq (reason, "INTERNAL_ERROR"));
-
-    // zstr_free (&recv_subject);
-    // zstr_free (&reply);
-    // zstr_free (&reason);
-
-    // selftest should clear after itself
     zactor_destroy (&autoupdate_server);
     zactor_destroy (&asset_server);
     mlm_client_destroy (&ui);
