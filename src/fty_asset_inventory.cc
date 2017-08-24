@@ -103,6 +103,8 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
             {
                 zsys_info ("%s:\tUnhandled command %s", name, cmd);
             }
+            zstr_free (&cmd);
+            zmsg_destroy (&msg);
         }
         else
         if (which == mlm_client_msgpipe (client)) {

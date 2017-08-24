@@ -157,6 +157,7 @@ struct _fty_asset_server_t {
     char *name;
     mlm_client_t *mailbox_client;
     mlm_client_t *stream_client;
+    bool test;
 };
 
 
@@ -199,6 +200,7 @@ fty_asset_server_new (void)
     else {
         fty_asset_server_destroy (&self);
     }
+    self->test = false;
     return self;
 }
 
@@ -399,171 +401,6 @@ static void
 
 }
 
-// ----------------------------------------------------------------------------
-// Get datacenter ID if there is just one. Other ways return 0
-
-static uint64_t s_get_datacenter (tntdb::Connection &conn)
-{
-    try {
-        uint64_t id = 0;
-
-        tntdb::Statement statement;
-        statement = conn.prepareCached (
-            " SELECT id_asset_element from t_bios_asset_element where id_type = 2"
-        );
-        auto result = statement.select();
-        if (result.size () != 1) {
-            // there is not one DC => do not assigne
-            zsys_info ("there is not just one DC. Can't add it automatically.");
-            return 0;
-        }
-        auto row = result[0]; //result.getRow();
-        row[0].get (id);
-        return id;
-    }
-    catch (const std::exception &e) {
-        zsys_error ("Exception in DC lookup: %s", e.what ());
-        return 0;
-    }
-}
-
-db_reply_t
-s_create_or_update_asset (
-    tntdb::Connection &conn,
-    fty_proto_t *fmsg
-) {
-    const char   *element_name;
-    uint64_t      type_id;
-    unsigned int  subtype_id;
-    uint64_t      parent_id;
-    const char   *status;
-    unsigned int  priority;
-    const char   *operation;
-    bool          update;
-
-    type_id = type_to_typeid (fty_proto_aux_string (fmsg, "type", ""));
-    subtype_id = subtype_to_subtypeid (fty_proto_aux_string (fmsg, "subtype", ""));
-    if (subtype_id == 0) subtype_id = asset_subtype::N_A;
-    parent_id = fty_proto_aux_number (fmsg, "parent", 0);
-    status = fty_proto_aux_string (fmsg, "status", "nonactive");
-    priority = fty_proto_aux_number (fmsg, "priority", 5);
-    element_name = fty_proto_name (fmsg);
-    // TODO: element name from ext.name?
-    operation = fty_proto_operation (fmsg);
-    update = streq (operation, "update");
-
-    if (!update) {
-        if (streq (element_name,"")) {
-            if (type_id == asset_type::DEVICE) {
-                element_name = asset_subtype2str (subtype_id);
-            } else {
-                element_name = asset_type2str (type_id);
-            }
-        }
-        // TODO: sanitize name ("rack controller")
-    }
-    zsys_debug ("  element_name = '%s'", element_name);
-
-    db_reply_t ret = db_reply_new ();
-
-    // ASSUMPTION: all datacenters are unlockated elements
-    if (type_id == asset_type::DATACENTER && parent_id != 0)
-    {
-        ret.status     = 0;
-        ret.errtype    = DB_ERR;
-        ret.errsubtype = DB_ERROR_BADINPUT;
-        // bios_error_idx (ret.rowid, ret.msg, "request-param-bad", "location", parent_id, "<nothing for type datacenter>");
-        return ret;
-    } else {
-        if (parent_id == 0) {
-            parent_id = s_get_datacenter (conn);
-        }
-    }
-    try {
-        // TODO: check whether asset exists and drop?
-
-        // this concat with last_insert_id may have raise condition issue but hopefully is not important
-        tntdb::Statement statement;
-        if (update) {
-            statement = conn.prepareCached (
-                " INSERT INTO t_bios_asset_element "
-                " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
-                " VALUES "
-                " (:name, :id_type, :id_subtype, :id_parent, :status, :priority, :asset_tag) "
-                " ON DUPLICATE KEY UPDATE name = :name "
-            );
-        } else {
-            // @ is prohibited in name => name-@@-342 is unique
-            statement = conn.prepareCached (
-                " INSERT INTO t_bios_asset_element "
-                " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
-                " VALUES "
-                " (concat (:name, '-@@-', " + std::to_string (rand ())  + "), :id_type, :id_subtype, :id_parent, :status, :priority, :asset_tag) "
-            );
-        }
-        if (parent_id == 0)
-        {
-            ret.affected_rows = statement.
-                set ("name", element_name).
-                set ("id_type", type_id).
-                set ("id_subtype", subtype_id).
-                setNull ("id_parent").
-                set ("status", status).
-                set ("priority", priority).
-                set ("asset_tag", "").
-                execute();
-        }
-        else
-        {
-            ret.affected_rows = statement.
-                set ("name", element_name).
-                set ("id_type", type_id).
-                set ("id_subtype", subtype_id).
-                set ("id_parent", parent_id).
-                set ("status", status).
-                set ("priority", priority).
-                set ("asset_tag", "").
-                execute();
-        }
-
-        ret.rowid = conn.lastInsertId ();
-        zsys_debug ("[t_bios_asset_element]: was inserted %" PRIu64 " rows", ret.affected_rows);
-        if (! update) {
-            // it is insert, fix the name
-            statement = conn.prepareCached (
-                " UPDATE t_bios_asset_element "
-                "  set name = concat(:name, '-', :id) "
-                " WHERE id_asset_element = :id "
-            );
-            statement.set ("name", element_name).
-                set ("id", ret.rowid).
-                execute();
-            // also set name to fty_proto
-            fty_proto_set_name (fmsg, "%s-%" PRIu64, element_name, ret.rowid);
-        }
-        if (ret.affected_rows == 0) {
-            ret.status = 0;
-            //TODO: rework to bad param
-            // bios_error_idx(ret.rowid, ret.msg, "data-conflict", element_name, "Most likely duplicate entry.");
-        }
-        else {
-            // went well some lines changed
-            zsys_debug ("Insert went well, processing inventory.");
-            process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), false);
-            ret.status = 1;
-        }
-        return ret;
-    }
-    catch (const std::exception &e) {
-        ret.status     = 0;
-        ret.errtype    = DB_ERR;
-        ret.errsubtype = DB_ERROR_INTERNAL;
-        // bios_error_idx(ret.rowid, ret.msg, "internal-error", "Unspecified issue with database.");
-        return ret;
-    }
-}
-
-
 static void
     s_handle_subject_asset_manipulation (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
 {
@@ -583,12 +420,14 @@ static void
     const char *operation = fty_proto_operation (fmsg);
 
     if (streq (operation, "create") || streq (operation, "update")) {
-        try {
-            tntdb::Connection conn = tntdb::connectCached (url);
-            db_reply_t dbreply = s_create_or_update_asset (conn, fmsg);
+            db_reply_t dbreply = create_or_update_asset (fmsg, cfg->test);
             if (! dbreply.status) {
                 zsys_error ("Failed to create asset!");
                 fty_proto_print (fmsg);
+                zmsg_addstr (reply, "ERROR");
+                mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+                fty_proto_destroy (&fmsg);
+                zmsg_destroy (&reply);
             }
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, fty_proto_name (fmsg));
@@ -596,16 +435,6 @@ static void
             fty_proto_destroy (&fmsg);
             zmsg_destroy (&reply);
             return;
-        }
-        catch ( const std::exception &e) {
-            zsys_error ("DB: cannot connect, %s", e.what());
-            zmsg_addstr (reply, "ERROR");
-            zmsg_addstr (reply, e.what ());
-            mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
-            fty_proto_destroy (&fmsg);
-            zmsg_destroy (&reply);
-            return;
-        }
     }
     // so far no operation implemented
     zsys_error ("%s:\tASSET_MANIPULATION: asset operation %s is not implemented", cfg->name, operation);
@@ -660,7 +489,7 @@ static void
         };
 
     // select basic info
-    int rv = select_asset_element_basic (asset_name, cb1);
+    int rv = select_asset_element_basic (asset_name, cb1, cfg->test);
     if ( rv != 0 ) {
         zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
         zhash_destroy (&aux);
@@ -680,7 +509,7 @@ static void
                 zhash_insert (ext, keytag.c_str(), (void*) value.c_str());
             };
     // select ext attributes
-    rv = select_ext_attributes (asset_id, cb2);
+    rv = select_ext_attributes (asset_id, cb2, cfg->test);
     if ( rv != 0 ) {
         zsys_warning ("%s:\tCannot select ext attributes for '%s'", cfg->name, asset_name.c_str());
         zhash_destroy (&aux);
@@ -703,7 +532,7 @@ static void
             const char *uuid_new = fty_uuid_calculate (uuid, mfr, model, serial);
             zhash_insert (ext, "uuid", (void *) uuid_new);
             zhash_insert (ext_new, "uuid", (void *) uuid_new);
-            process_insert_inventory (asset_name.c_str (), ext_new, false);
+            process_insert_inventory (asset_name.c_str (), ext_new, cfg->test);
         } else {
             if (streq (type, "device")) {
                 // it is device, put FFF... and wait for information
@@ -714,7 +543,7 @@ static void
                 const char *uuid_new = fty_uuid_generate (uuid);
                 zhash_insert (ext, "uuid", (void *) uuid_new);
                 zhash_insert (ext_new, "uuid", (void *) uuid_new);
-                process_insert_inventory (asset_name.c_str (), ext_new, false);
+                process_insert_inventory (asset_name.c_str (), ext_new, cfg->test);
             }
         }
         fty_uuid_destroy (&uuid);
@@ -735,7 +564,7 @@ static void
             }
         };
     // select "physical topology"
-    rv = select_asset_element_super_parent (asset_id, cb3);
+    rv = select_asset_element_super_parent (asset_id, cb3, cfg->test);
     if (rv != 0) {
         zhash_destroy (&aux);
         zhash_destroy (&ext);
@@ -888,6 +717,7 @@ fty_asset_server (zsock_t *pipe, void *args)
             else
             if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
+                cfg->test = streq (stream, "ASSETS-TEST");
                 int rv = mlm_client_set_producer (cfg->stream_client, stream);
                 if (rv == -1) {
                     zsys_error ("%s:\tCan't set producer on stream '%s'", cfg->name, stream);
@@ -1031,6 +861,8 @@ fty_asset_server_test (bool verbose)
 
     mlm_client_t *ui = mlm_client_new ();
     mlm_client_connect (ui, endpoint, 5000, "fty-asset-ui");
+    mlm_client_set_producer (ui, "ASSETS-TEST");
+    mlm_client_set_consumer (ui, "ASSETS-TEST", ".*");
 
     zactor_t *asset_server = zactor_new (fty_asset_server, (void*)"asset-agent-test");
     if (verbose) {
@@ -1038,13 +870,34 @@ fty_asset_server_test (bool verbose)
     }
     zstr_sendx (asset_server, "CONNECTSTREAM", endpoint, NULL);
     zsock_wait (asset_server);
-    zstr_sendx (asset_server, "PRODUCER", "ASSETS", NULL);
+    zstr_sendx (asset_server, "PRODUCER", "ASSETS-TEST", NULL);
     zsock_wait (asset_server);
-    zstr_sendx (asset_server, "CONSUMER", "ASSETS", ".*", NULL);
+    zstr_sendx (asset_server, "CONSUMER", "ASSETS-TEST", ".*", NULL);
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONNECTMAILBOX", endpoint, NULL);
     zsock_wait (asset_server);
 
+    // Test #2: subject ASSET_MANIPULATION, message fty_proto_t *asset
+    {
+        zsys_debug ("fty-asset-server-test:Test #2");
+        const char *asset_name = "DC-1";
+        zmsg_t *msg = fty_proto_encode_asset (
+                NULL,
+                asset_name,
+                "create",
+                NULL);
+        int rv = mlm_client_sendto (ui, "asset-agent-test", "ASSET_MANIPULATION", NULL, 5000, &msg);
+        assert (rv == 0);
+        zmsg_t *reply = mlm_client_recv (ui);
+        char *str = zmsg_popstr (reply);
+        assert (streq (str, "OK"));
+        zstr_free (&str);
+        str = zmsg_popstr (reply);
+        assert (streq (str, asset_name));
+        zstr_free (&str);
+        zmsg_destroy (&reply) ;
+        zsys_info ("fty-asset-server-test:Test #2: OK");
+    }
 
     zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate-test");
     if (verbose)

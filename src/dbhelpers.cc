@@ -258,8 +258,11 @@ select_assets_by_container (
 int
     select_asset_element_basic
         (const std::string &asset_name,
-         std::function<void(const tntdb::Row&)> cb)
+         std::function<void(const tntdb::Row&)> cb,
+         bool test)
 {
+    if (test)
+        return 0;
     zsys_debug ("asset_name = %s", asset_name.c_str());
     tntdb::Connection conn;
     try {
@@ -302,8 +305,11 @@ int
 int
     select_ext_attributes
         (uint32_t asset_id,
-         std::function<void(const tntdb::Row&)> cb)
+         std::function<void(const tntdb::Row&)> cb,
+         bool test)
 {
+    if (test)
+        return 0;
     tntdb::Connection conn;
     try {
         conn = tntdb::connectCached (url);
@@ -343,8 +349,11 @@ int
             uint32_t id,
             std::function<void(
                 const tntdb::Row&
-                )>& cb)
+                )>& cb,
+            bool test)
 {
+    if (test)
+        return 0;
     tntdb::Connection conn;
     try {
         conn = tntdb::connectCached (url);
@@ -550,4 +559,174 @@ dbhelpers_test (bool verbose)
     printf (" * dbhelpers: ");
 
     printf ("OK\n");
+}
+
+// ----------------------------------------------------------------------------
+// Get datacenter ID if there is just one. Other ways return 0
+
+static uint64_t s_get_datacenter (bool test)
+{
+    if (test)
+        return 0;
+    try {
+        uint64_t id = 0;
+
+        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Statement statement;
+        statement = conn.prepareCached (
+            " SELECT id_asset_element from t_bios_asset_element where id_type = 2"
+        );
+        auto result = statement.select();
+        if (result.size () != 1) {
+            // there is not one DC => do not assigne
+            zsys_info ("there is not just one DC. Can't add it automatically.");
+            return 0;
+        }
+        auto row = result[0]; //result.getRow();
+        row[0].get (id);
+        return id;
+    }
+    catch (const std::exception &e) {
+        zsys_error ("Exception in DC lookup: %s", e.what ());
+        return 0;
+    }
+}
+
+db_reply_t
+    create_or_update_asset (fty_proto_t *fmsg, bool test)
+{
+    const char   *element_name;
+    uint64_t      type_id;
+    unsigned int  subtype_id;
+    uint64_t      parent_id;
+    const char   *status;
+    unsigned int  priority;
+    const char   *operation;
+    bool          update;
+
+    type_id = type_to_typeid (fty_proto_aux_string (fmsg, "type", ""));
+    subtype_id = subtype_to_subtypeid (fty_proto_aux_string (fmsg, "subtype", ""));
+    if (subtype_id == 0) subtype_id = asset_subtype::N_A;
+    parent_id = fty_proto_aux_number (fmsg, "parent", 0);
+    status = fty_proto_aux_string (fmsg, "status", "nonactive");
+    priority = fty_proto_aux_number (fmsg, "priority", 5);
+    element_name = fty_proto_name (fmsg);
+    // TODO: element name from ext.name?
+    operation = fty_proto_operation (fmsg);
+    update = streq (operation, "update");
+
+    if (!update) {
+        if (streq (element_name,"")) {
+            if (type_id == asset_type::DEVICE) {
+                element_name = asset_subtype2str (subtype_id);
+            } else {
+                element_name = asset_type2str (type_id);
+            }
+        }
+        // TODO: sanitize name ("rack controller")
+    }
+    zsys_debug ("  element_name = '%s'", element_name);
+
+    db_reply_t ret = db_reply_new ();
+
+    // ASSUMPTION: all datacenters are unlocated elements
+        if (type_id == asset_type::DATACENTER && parent_id != 0)
+        {
+            ret.status     = 0;
+            ret.errtype    = DB_ERR;
+            ret.errsubtype = DB_ERROR_BADINPUT;
+            // bios_error_idx (ret.rowid, ret.msg, "request-param-bad", "location", parent_id, "<nothing for type datacenter>");
+            return ret;
+        } else {
+            if (parent_id == 0) {
+                parent_id = s_get_datacenter (test);
+            }
+        }
+        // TODO: check whether asset exists and drop?
+
+    if (test) {
+        ret.status = 1;
+        return ret;
+    }
+    try {
+        // this concat with last_insert_id may have race condition issue but hopefully is not important
+        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Statement statement;
+        if (update) {
+            statement = conn.prepareCached (
+                " INSERT INTO t_bios_asset_element "
+                " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
+                " VALUES "
+                " (:name, :id_type, :id_subtype, :id_parent, :status, :priority, :asset_tag) "
+                " ON DUPLICATE KEY UPDATE name = :name "
+            );
+        } else {
+            // @ is prohibited in name => name-@@-342 is unique
+            statement = conn.prepareCached (
+                " INSERT INTO t_bios_asset_element "
+                " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
+                " VALUES "
+                " (concat (:name, '-@@-', " + std::to_string (rand ())  + "), :id_type, :id_subtype, :id_parent, :status, :priority, :asset_tag) "
+            );
+        }
+        if (parent_id == 0)
+        {
+            ret.affected_rows = statement.
+                set ("name", element_name).
+                set ("id_type", type_id).
+                set ("id_subtype", subtype_id).
+                setNull ("id_parent").
+                set ("status", status).
+                set ("priority", priority).
+                set ("asset_tag", "").
+                execute();
+        }
+        else
+        {
+            ret.affected_rows = statement.
+                set ("name", element_name).
+                set ("id_type", type_id).
+                set ("id_subtype", subtype_id).
+                set ("id_parent", parent_id).
+                set ("status", status).
+                set ("priority", priority).
+                set ("asset_tag", "").
+                execute();
+        }
+
+        ret.rowid = conn.lastInsertId ();
+        zsys_debug ("[t_bios_asset_element]: was inserted %" PRIu64 " rows", ret.affected_rows);
+        if (! update) {
+            // it is insert, fix the name
+            statement = conn.prepareCached (
+                " UPDATE t_bios_asset_element "
+                "  set name = concat(:name, '-', :id) "
+                " WHERE id_asset_element = :id "
+            );
+            statement.set ("name", element_name).
+                set ("id", ret.rowid).
+                execute();
+            // also set name to fty_proto
+            fty_proto_set_name (fmsg, "%s-%" PRIu64, element_name, ret.rowid);
+        }
+        if (ret.affected_rows == 0) {
+            ret.status = 0;
+            //TODO: rework to bad param
+            // bios_error_idx(ret.rowid, ret.msg, "data-conflict", element_name, "Most likely duplicate entry.");
+        }
+        else {
+            // went well some lines changed
+            zsys_debug ("Insert went well, processing inventory.");
+            process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), false);
+            ret.status = 1;
+        }
+        return ret;
+    }
+    catch (const std::exception &e) {
+        ret.status     = 0;
+        ret.errtype    = DB_ERR;
+        ret.errsubtype = DB_ERROR_INTERNAL;
+        // bios_error_idx(ret.rowid, ret.msg, "internal-error", "Unspecified issue with database.");
+        return ret;
+    }
 }

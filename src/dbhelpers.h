@@ -216,17 +216,20 @@ FTY_ASSET_PRIVATE int
 FTY_ASSET_PRIVATE int
     select_ext_attributes
         (uint32_t asset_id,
-         std::function<void(const tntdb::Row&)> cb);
+         std::function<void(const tntdb::Row&)> cb,
+         bool test);
 
 FTY_ASSET_PRIVATE int
     select_asset_element_basic
         (const std::string &asset_name,
-         std::function<void(const tntdb::Row&)> cb);
+         std::function<void(const tntdb::Row&)> cb,
+         bool test);
 
 FTY_ASSET_PRIVATE int
     select_asset_element_super_parent (
         uint32_t id,
-        std::function<void(const tntdb::Row&)>& cb);
+        std::function<void(const tntdb::Row&)>& cb,
+        bool test);
 
 FTY_ASSET_PRIVATE int
     select_assets (
@@ -246,6 +249,10 @@ FTY_ASSET_PRIVATE int
 void
     dbhelpers_test (bool verbose);
 
+FTY_ASSET_PRIVATE db_reply_t
+    create_or_update_asset
+    (fty_proto_t *fmsg,
+     bool test);
 //  @end
 
 
