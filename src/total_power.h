@@ -45,7 +45,8 @@
 FTY_ASSET_PRIVATE int
     select_devices_total_power(
         const std::string &assetName,
-        std::vector<std::string> &powerDevices
+        std::vector<std::string> &powerDevices,
+        bool test
     );
 
 FTY_ASSET_PRIVATE void

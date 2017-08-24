@@ -217,7 +217,7 @@ static void
     std::vector<std::string> powerDevices{};
 
     // select power devices
-    int rv = select_devices_total_power(assetName, powerDevices);
+    int rv = select_devices_total_power(assetName, powerDevices, cfg->test);
 
     // message to be sent as reply
     zmsg_t *msg = zmsg_new ();
@@ -864,7 +864,8 @@ fty_asset_server_test (bool verbose)
     mlm_client_set_producer (ui, "ASSETS-TEST");
     mlm_client_set_consumer (ui, "ASSETS-TEST", ".*");
 
-    zactor_t *asset_server = zactor_new (fty_asset_server, (void*)"asset-agent-test");
+    const char *asset_server_test_name = "asset_agent_test";
+    zactor_t *asset_server = zactor_new (fty_asset_server, (void*) asset_server_test_name);
     if (verbose) {
         zstr_send (asset_server, "VERBOSE");
     }
@@ -877,18 +878,21 @@ fty_asset_server_test (bool verbose)
     zstr_sendx (asset_server, "CONNECTMAILBOX", endpoint, NULL);
     zsock_wait (asset_server);
 
+    static const char *asset_name = "DC-1";
     // Test #2: subject ASSET_MANIPULATION, message fty_proto_t *asset
     {
         zsys_debug ("fty-asset-server-test:Test #2");
-        const char *asset_name = "DC-1";
+        const char* subject = "ASSET_MANIPULATION";
         zmsg_t *msg = fty_proto_encode_asset (
                 NULL,
                 asset_name,
-                "create",
+                FTY_PROTO_ASSET_OP_CREATE,
                 NULL);
-        int rv = mlm_client_sendto (ui, "asset-agent-test", "ASSET_MANIPULATION", NULL, 5000, &msg);
+        int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
         assert (rv == 0);
         zmsg_t *reply = mlm_client_recv (ui);
+        assert (streq (mlm_client_subject (ui), subject));
+        assert (zmsg_size (reply) == 2);
         char *str = zmsg_popstr (reply);
         assert (streq (str, "OK"));
         zstr_free (&str);
@@ -904,12 +908,38 @@ fty_asset_server_test (bool verbose)
         zsys_debug ("fty-asset-server-test:Test #3");
         zmsg_t *msg = fty_proto_encode_asset (
             NULL,
-            "DC-1",
+            asset_name,
             FTY_PROTO_ASSET_OP_UPDATE,
             NULL);
         int rv = mlm_client_send (ui, "update-test", &msg);
         assert (rv == 0);
+        zclock_sleep (200);
         zsys_info ("fty-asset-server-test:Test #3: OK");
+    }
+    // Test #4: subject TOPOLOGY, message TOPOLOGY_POWER
+    {
+        zsys_debug ("fty-asset-server-test:Test #4");
+        const char* subject = "TOPOLOGY";
+        const char *command = "TOPOLOGY_POWER";
+        zmsg_t *msg = zmsg_new();
+        zmsg_addstr (msg, command);
+        zmsg_addstr (msg, asset_name);
+        int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        assert (rv == 0);
+        zmsg_t *reply = mlm_client_recv (ui);
+        assert (streq (mlm_client_subject (ui), subject));
+        assert (zmsg_size (reply) == 3);
+        char *str = zmsg_popstr (reply);
+        assert (streq (str, command));
+        zstr_free (&str);
+        str = zmsg_popstr (reply);
+        assert (streq (str, asset_name));
+        zstr_free (&str);
+        str = zmsg_popstr (reply);
+        assert (streq (str, "OK"));
+        zstr_free (&str);
+        zmsg_destroy (&reply) ;
+        zsys_info ("fty-asset-server-test:Test #4: OK");
     }
 
     zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate-test");

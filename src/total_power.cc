@@ -379,9 +379,12 @@ static int
 int
     select_devices_total_power(
         const std::string &assetName,
-        std::vector<std::string> &powerDevices
+        std::vector<std::string> &powerDevices,
+        bool test
     )
 {
+    if (test)
+        return 0;
     tntdb::Connection conn = tntdb::connectCached (url);
     a_elmnt_id_t assetId = 0;
     int rv = select_asset_id (assetName, assetId);
