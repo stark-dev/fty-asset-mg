@@ -331,7 +331,53 @@ static void
 
 }
 
+static void
+    s_handle_subject_ename_from_iname(
+        fty_asset_server_t *cfg,
+        zmsg_t *msg)
+{
+    zmsg_t *reply = zmsg_new ();
+    if (zmsg_size (msg) < 1) {
+        zsys_error ("%s:\tASSETS: incoming message have less than 1 frame", cfg->name);
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "MISSING_INAME");
+        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply);
+        return;
+    }
+    std::string iname (zmsg_popstr (msg));
+    std::string ename;
+    try
+    {
+        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Statement st = conn.prepareCached (
+            " SELECT a.name FROM t_bios_asset_element AS a "
+            " INNER JOIN t_bios_asset_ext_attributes AS e "
+            " ON a.id_asset_element = e.id_asset_element "
+            " WHERE keytag = 'name' and value = :extname "
+        );
 
+        tntdb::Row row = st.set ("extname", iname).selectRow ();
+        zsys_debug ("[s_handle_subject_ename_from_iname]: were selected %" PRIu32 " rows", 1);
+
+        row [0].get (ename);
+    }
+    catch (const std::exception &e)
+    {
+        zsys_error ("exception caught %s for element '%s'", e.what (), ename.c_str ());
+    }
+    if (ename.empty ())
+    {
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "ASSET_NOT_FOUND");
+    }
+    else
+    {
+        zmsg_addstr (reply, "OK");
+        zmsg_addstr (reply, ename.c_str());
+    }
+    if (-1 == mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply))
+        zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
+}
 
 static void
     s_handle_subject_assets (
@@ -950,6 +996,10 @@ fty_asset_server (zsock_t *pipe, void *args)
             else
             if (subject == "ASSETS")
                 s_handle_subject_assets (cfg, zmessage);
+            else
+            if (subject == "ENAME_FROM_INAME") {
+                s_handle_subject_ename_from_iname(cfg, zmessage);
+            }
             else
             if (subject == "REPUBLISH") {
 
