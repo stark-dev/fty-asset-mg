@@ -306,7 +306,7 @@ static void
 
     // if there is no error msg prepared, call SQL
     if (zmsg_size (msg) == 0)
-            rv = select_assets_by_container (container_name, filters, assets, false);
+            rv = select_assets_by_container (container_name, filters, assets, cfg->test);
 
     if (rv == -1)
     {
@@ -940,6 +940,25 @@ fty_asset_server_test (bool verbose)
         zstr_free (&str);
         zmsg_destroy (&reply) ;
         zsys_info ("fty-asset-server-test:Test #4: OK");
+    }
+    // Test #5: subject ASSETS_IN_CONTAINER
+    {
+        zsys_debug ("fty-asset-server-test:Test #5");
+        const char* subject = "ASSETS_IN_CONTAINER";
+        const char *command = "GET";
+        zmsg_t *msg = zmsg_new();
+        zmsg_addstr (msg, command);
+        zmsg_addstr (msg, asset_name);
+        int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        assert (rv == 0);
+        zmsg_t *reply = mlm_client_recv (ui);
+        assert (streq (mlm_client_subject (ui), subject));
+        assert (zmsg_size (reply) == 1);
+        char *str = zmsg_popstr (reply);
+        assert (streq (str, "OK"));
+        zstr_free (&str);
+        zmsg_destroy (&reply) ;
+        zsys_info ("fty-asset-server-test:Test #5: OK");
     }
 
     zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate-test");
