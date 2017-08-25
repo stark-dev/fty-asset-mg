@@ -87,6 +87,7 @@ int main (int argc, char *argv [])
     zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "PRODUCER", "ASSETS", NULL);
     zsock_wait (autoupdate_server);
+    zstr_sendx (autoupdate_server, "ASSET_AGENT_NAME", "asset-agent", NULL);
     zstr_sendx (autoupdate_server, "WAKEUP", NULL);
 
     // set up how ofter assets should be repeated
