@@ -352,13 +352,14 @@ static void
     {
         tntdb::Connection conn = tntdb::connectCached (url);
         tntdb::Statement st = conn.prepareCached (
-            " SELECT a.name FROM t_bios_asset_element AS a "
-            " INNER JOIN t_bios_asset_ext_attributes AS e "
-            " ON a.id_asset_element = e.id_asset_element "
-            " WHERE keytag = 'name' and value = :extname "
+            "SELECT e.value FROM  t_bios_asset_ext_attributes AS e "
+            "INNER JOIN t_bios_asset_element AS a "
+            "ON a.id_asset_element = e.id_asset_element  "
+            "WHERE keytag = 'name' and a.name = :iname; "
+
         );
 
-        tntdb::Row row = st.set ("extname", iname).selectRow ();
+        tntdb::Row row = st.set ("iname", iname).selectRow ();
         zsys_debug ("[s_handle_subject_ename_from_iname]: were selected %" PRIu32 " rows", 1);
 
         row [0].get (ename);
