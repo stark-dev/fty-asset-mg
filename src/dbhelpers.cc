@@ -137,9 +137,9 @@ int
             "   v.id_asset_element_src = v1.id_asset_element AND"
             "   ("
             "       ( :containerid IN (v2.id_parent1, v2.id_parent2 ,v2.id_parent3,"
-            "               v2.id_parent4, v2.id_parent5) ) OR"
+            "               v2.id_parent4, v2.id_parent5, v2.id_parent6) ) OR"
             "       ( :containerid IN (v1.id_parent1, v1.id_parent2 ,v1.id_parent3,"
-            "               v1.id_parent4, v1.id_parent5) )"
+            "               v1.id_parent4, v1.id_parent5, v1.id_parent6) )"
             "   )"
         );
 
@@ -194,7 +194,7 @@ int
             " FROM "
             "   v_bios_asset_element_super_parent v "
             " WHERE "
-            "   (:containerid in (v.id_parent1, v.id_parent2, v.id_parent3, v.id_parent4, v.id_parent5) OR :containerid = 0 ) ";
+            "   (:containerid in (v.id_parent1, v.id_parent2, v.id_parent3, v.id_parent4, v.id_parent5, v.id_parent6) OR :containerid = 0 ) ";
 
         if(!types_and_subtypes.empty())
             request += " AND ( " + select_assets_by_container_filter (types_and_subtypes) +")";
@@ -375,11 +375,13 @@ int
             "   v.id_parent3 as id_parent3, "
             "   v.id_parent4 as id_parent4, "
             "   v.id_parent5 as id_parent5, "
+            "   v.id_parent6 as id_parent6, "
             "   v.name_parent1 as parent_name1, "
             "   v.name_parent2 as parent_name2, "
             "   v.name_parent3 as parent_name3, "
             "   v.name_parent4 as parent_name4, "
             "   v.name_parent5 as parent_name5, "
+            "   v.name_parent6 as parent_name6, "
             "   v.name as name, "
             "   v.type_name as type_name, "
             "   v.id_asset_device_type as device_type, "
