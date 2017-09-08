@@ -128,7 +128,10 @@ int
             " FROM "
             "   v_bios_asset_element_super_parent v "
             " WHERE "
-            "   :containerid in (v.id_parent1, v.id_parent2, v.id_parent3, v.id_parent4, v.id_parent5, v.id_parent6)";
+            "   :containerid in (v.id_parent1, v.id_parent2, v.id_parent3, "
+            "                    v.id_parent4, v.id_parent5, v.id_parent6, "
+            "                    v.id_parent7, v.id_parent8, v.id_parent9, "
+            "                    v.id_parent10)";
         if (!subtypes.empty()) {
             std::string list;
             for( auto &id: subtypes) list += std::to_string(id) + ",";
