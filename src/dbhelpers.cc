@@ -584,37 +584,6 @@ dbhelpers_test (bool verbose)
     printf ("OK\n");
 }
 
-// ----------------------------------------------------------------------------
-// Get datacenter ID if there is just one. Other ways return 0
-
-static uint64_t s_get_datacenter (bool test)
-{
-    if (test)
-        return 0;
-    try {
-        uint64_t id = 0;
-
-        tntdb::Connection conn = tntdb::connectCached (url);
-        tntdb::Statement statement;
-        statement = conn.prepareCached (
-            " SELECT id_asset_element from t_bios_asset_element where id_type = 2"
-        );
-        auto result = statement.select();
-        if (result.size () != 1) {
-            // there is not one DC => do not assigne
-            zsys_info ("there is not just one DC. Can't add it automatically.");
-            return 0;
-        }
-        auto row = result[0]; //result.getRow();
-        row[0].get (id);
-        return id;
-    }
-    catch (const std::exception &e) {
-        zsys_error ("Exception in DC lookup: %s", e.what ());
-        return 0;
-    }
-}
-
 db_reply_t
     create_or_update_asset (fty_proto_t *fmsg, bool test)
 {
@@ -660,10 +629,6 @@ db_reply_t
             ret.errsubtype = DB_ERROR_BADINPUT;
             // bios_error_idx (ret.rowid, ret.msg, "request-param-bad", "location", parent_id, "<nothing for type datacenter>");
             return ret;
-        } else {
-            if (parent_id == 0) {
-                parent_id = s_get_datacenter (test);
-            }
         }
         // TODO: check whether asset exists and drop?
 
