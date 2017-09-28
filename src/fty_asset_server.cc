@@ -624,15 +624,13 @@ static void
                 zmsg_addstr (reply, "ERROR");
                 mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
                 fty_proto_destroy (&fmsg);
-                zmsg_destroy (&reply);
             }
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, fty_proto_name (fmsg));
             mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
-            //publisn on stream ASSETS
+            //publish on stream ASSETS
             s_publish_create_or_update_asset (cfg, fty_proto_name (fmsg), operation);
             fty_proto_destroy (&fmsg);
-            zmsg_destroy (&reply);
             return;
     }
     // so far no operation implemented
@@ -642,7 +640,6 @@ static void
     mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
 
     fty_proto_destroy (&fmsg);
-    zmsg_destroy (&reply);
 }
 
 static void
