@@ -449,54 +449,10 @@ static void
 }
 
 static void
-    s_handle_subject_asset_manipulation (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
-{
-    if (!cfg || !zmessage_p || !*zmessage_p) return;
-    zmsg_t *zmessage = *zmessage_p;
-    if (!is_fty_proto (zmessage)) {
-        zsys_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
-        return;
-    }
-    fty_proto_t *fmsg = fty_proto_decode (zmessage_p);
-    if (! fmsg) {
-        zsys_error ("%s:\tASSET_MANIPULATION: failed to decode message", cfg->name);
-        return;
-    }
-
-    zmsg_t *reply = zmsg_new ();
-    const char *operation = fty_proto_operation (fmsg);
-
-    if (streq (operation, "create") || streq (operation, "update")) {
-            db_reply_t dbreply = create_or_update_asset (fmsg, cfg->test);
-            if (! dbreply.status) {
-                zsys_error ("Failed to create asset!");
-                fty_proto_print (fmsg);
-                zmsg_addstr (reply, "ERROR");
-                mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
-                fty_proto_destroy (&fmsg);
-                zmsg_destroy (&reply);
-            }
-            zmsg_addstr (reply, "OK");
-            zmsg_addstr (reply, fty_proto_name (fmsg));
-            mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
-            fty_proto_destroy (&fmsg);
-            zmsg_destroy (&reply);
-            return;
-    }
-    // so far no operation implemented
-    zsys_error ("%s:\tASSET_MANIPULATION: asset operation %s is not implemented", cfg->name, operation);
-    zmsg_addstr (reply, "ERROR");
-    zmsg_addstr (reply, "OPERATION_NOT_IMPLEMENTED");
-    mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
-
-    fty_proto_destroy (&fmsg);
-    zmsg_destroy (&reply);
-}
-
-static void
-    s_update_asset (
+    s_publish_create_or_update_asset (
         fty_asset_server_t *cfg,
-        const std::string &asset_name)
+        const std::string &asset_name,
+        const char* operation)
 {
     assert (cfg);
     zhash_t *aux = zhash_new ();
@@ -631,7 +587,7 @@ static void
     zmsg_t *msg = fty_proto_encode_asset (
             aux,
             asset_name.c_str(),
-            FTY_PROTO_ASSET_OP_UPDATE,
+            operation,
             ext);
     rv = mlm_client_send (cfg->stream_client, subject.c_str(), &msg);
     zhash_destroy (&ext);
@@ -640,6 +596,53 @@ static void
         zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
         return;
     }
+}
+
+static void
+    s_handle_subject_asset_manipulation (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
+{
+    if (!cfg || !zmessage_p || !*zmessage_p) return;
+    zmsg_t *zmessage = *zmessage_p;
+    if (!is_fty_proto (zmessage)) {
+        zsys_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
+        return;
+    }
+    fty_proto_t *fmsg = fty_proto_decode (zmessage_p);
+    if (! fmsg) {
+        zsys_error ("%s:\tASSET_MANIPULATION: failed to decode message", cfg->name);
+        return;
+    }
+
+    zmsg_t *reply = zmsg_new ();
+    const char *operation = fty_proto_operation (fmsg);
+
+    if (streq (operation, "create") || streq (operation, "update")) {
+            db_reply_t dbreply = create_or_update_asset (fmsg, cfg->test);
+            if (! dbreply.status) {
+                zsys_error ("Failed to create asset!");
+                fty_proto_print (fmsg);
+                zmsg_addstr (reply, "ERROR");
+                mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+                fty_proto_destroy (&fmsg);
+                zmsg_destroy (&reply);
+            }
+            zmsg_addstr (reply, "OK");
+            zmsg_addstr (reply, fty_proto_name (fmsg));
+            mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+            //publisn on stream ASSETS
+            s_publish_create_or_update_asset (cfg, fty_proto_name (fmsg), operation);
+            fty_proto_destroy (&fmsg);
+            zmsg_destroy (&reply);
+            return;
+    }
+    // so far no operation implemented
+    zsys_error ("%s:\tASSET_MANIPULATION: asset operation %s is not implemented", cfg->name, operation);
+    zmsg_addstr (reply, "ERROR");
+    zmsg_addstr (reply, "OPERATION_NOT_IMPLEMENTED");
+    mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+
+    fty_proto_destroy (&fmsg);
+    zmsg_destroy (&reply);
 }
 
 static void
@@ -665,7 +668,7 @@ static void
 
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
-        s_update_asset (cfg, asset_name);
+        s_publish_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE);
     }
 }
 
@@ -696,7 +699,7 @@ s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_pu
 
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
-        s_update_asset (cfg, asset_name);
+        s_publish_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE);
     }
 }
 
