@@ -579,10 +579,10 @@ static void
     // other information like, groups, power chain for now are not included in the message
     std::string subject;
     const char* type = (const char*) zhash_lookup (aux, "type");
-    subject=(type==NULL)?"UNKNOWN":type;
+    subject=(type==NULL)?"unknown":type;
     subject.append (".");
     const char* subtype =(const char*)zhash_lookup (aux, "subtype");
-    subject.append ((subtype==NULL)?"UNKNOWN":subtype);
+    subject.append ((subtype==NULL)?"unknown":subtype);
     subject.append ("@");
     subject.append (asset_name);
     zsys_debug("notifing ASSETS %s %s ..",operation,subject.c_str());
@@ -962,7 +962,7 @@ fty_asset_server_test (bool verbose)
         reply = mlm_client_recv (ui);
         assert (is_fty_proto (reply));
         fty_proto_t *fmsg = fty_proto_decode (&reply);
-        std::string expected_subject="UNKNOWN.UNKNOWN@";
+        std::string expected_subject="unknown.unknown@";
         expected_subject.append(asset_name);
         assert(streq(mlm_client_subject (ui),expected_subject.c_str()));
         assert (streq (fty_proto_operation (fmsg), FTY_PROTO_ASSET_OP_CREATE));
