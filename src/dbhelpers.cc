@@ -622,15 +622,14 @@ db_reply_t
     db_reply_t ret = db_reply_new ();
 
     // ASSUMPTION: all datacenters are unlocated elements
-        if (type_id == asset_type::DATACENTER && parent_id != 0)
-        {
-            ret.status     = 0;
-            ret.errtype    = DB_ERR;
-            ret.errsubtype = DB_ERROR_BADINPUT;
-            // bios_error_idx (ret.rowid, ret.msg, "request-param-bad", "location", parent_id, "<nothing for type datacenter>");
-            return ret;
-        }
-        // TODO: check whether asset exists and drop?
+    if (type_id == asset_type::DATACENTER && parent_id != 0)
+    {
+        ret.status     = 0;
+        ret.errtype    = DB_ERR;
+        ret.errsubtype = DB_ERROR_BADINPUT;
+        return ret;
+    }
+    // TODO: check whether asset exists and drop?
 
     if (test) {
         ret.status = 1;
