@@ -554,7 +554,7 @@ static void
     }
     
     // create timestamp ext attribute if missing
-    if (! zhash_lookup (ext, "created_ts") ) {
+    if (! zhash_lookup (ext, "create_ts") ) {
         zhash_t *ext_new = zhash_new ();
 
         std::time_t timestamp = std::time(NULL);
@@ -562,8 +562,8 @@ static void
         
         std::strftime(mbstr, sizeof (mbstr), "%FT%T%z", std::localtime(&timestamp));
         
-        zhash_insert (ext, "created_ts", (void *) mbstr);
-        zhash_insert (ext_new, "created_ts", (void *) mbstr);
+        zhash_insert (ext, "create_ts", (void *) mbstr);
+        zhash_insert (ext_new, "create_ts", (void *) mbstr);
         
         process_insert_inventory (asset_name.c_str (), ext_new, cfg->test);
         
