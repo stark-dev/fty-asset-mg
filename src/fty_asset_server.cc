@@ -449,7 +449,7 @@ static void
 }
 
 static zmsg_t *
-    s_publish_create_or_update_asset (
+    s_publish_create_or_update_asset_msg (
         fty_asset_server_t *cfg,
         const std::string &asset_name,
         const char* operation,
@@ -614,12 +614,13 @@ static zmsg_t *
 }
 
 static void
-    s_update_asset (
+    s_publish_create_or_update_asset (
         fty_asset_server_t *cfg,
-        const std::string &asset_name)
+        const std::string &asset_name,
+        const char* operation)
 {
     std::string subject;
-    auto msg = s_update_asset_msg(cfg, asset_name, subject);
+    auto msg = s_publish_create_or_update_asset_msg(cfg, asset_name, operation, subject);
     if (NULL == msg || 0 != mlm_client_send (cfg->stream_client, subject.c_str(), &msg)) {
         zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
         return;
@@ -627,17 +628,46 @@ static void
 }
 
 static void
-    s_update_asset (
+    s_publish_create_or_update_asset (
         fty_asset_server_t *cfg,
         const std::string &asset_name,
+        const char* operation,
         const char *address)
 {
     std::string subject;
-    auto msg = s_update_asset_msg(cfg, asset_name, subject);
+    auto msg = s_publish_create_or_update_asset_msg(cfg, asset_name, operation, subject);
     if (NULL == msg || 0 != mlm_client_sendto (cfg->mailbox_client, address, subject.c_str(), NULL, 5000, &msg)) {
         zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
         return;
     }
+}
+
+static void
+    s_handle_subject_asset_detail (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
+{
+    if (!cfg || !zmessage_p || !*zmessage_p) return;
+    zmsg_t *zmessage = *zmessage_p;
+    if (!is_fty_proto (zmessage)) {
+        zsys_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
+        return;
+    }
+    char* c_command = zmsg_popstr (zmessage);
+    if (! streq (c_command, "GET")) {
+        zmsg_t *reply = zmsg_new ();
+        zsys_error ("%s:\tASSETS: bad command '%s', expected GET", cfg->name, c_command);
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_COMMAND");
+        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
+        zstr_free (&c_command);
+        zmsg_destroy (&reply);
+        return;
+    }
+    zstr_free (&c_command);
+
+    // select an asset and publish it through mailbox
+    char *asset_name = zmsg_popstr (zmessage);
+    s_publish_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, mlm_client_sender (cfg->mailbox_client));
+    zstr_free (&asset_name);
 }
 
 static void
