@@ -493,10 +493,11 @@ static void
     zmsg_destroy (&reply);
 }
 
-static void
-    s_update_asset (
+static zmsg_t *
+    s_update_asset_msg (
         fty_asset_server_t *cfg,
-        const std::string &asset_name)
+        const std::string &asset_name,
+        std::string &subject)
 {
     assert (cfg);
     zhash_t *aux = zhash_new ();
@@ -540,7 +541,7 @@ static void
     if ( rv != 0 ) {
         zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
         zhash_destroy (&aux);
-        return;
+        return NULL;
     }
 
     zhash_t *ext = zhash_new ();
@@ -561,7 +562,7 @@ static void
         zsys_warning ("%s:\tCannot select ext attributes for '%s'", cfg->name, asset_name.c_str());
         zhash_destroy (&aux);
         zhash_destroy (&ext);
-        return;
+        return NULL;
     }
 
     // create uuid ext attribute if missing
@@ -618,10 +619,9 @@ static void
         zhash_destroy (&aux);
         zhash_destroy (&ext);
         zsys_error ("%s:\tselect_asset_element_super_parent ('%s') failed.", cfg->name, asset_name.c_str());
-        return;
+        return NULL;
     }
     // other information like, groups, power chain for now are not included in the message
-    std::string subject;
     subject = (const char*) zhash_lookup (aux, "type");
     subject.append (".");
     subject.append ((const char*)zhash_lookup (aux, "subtype"));
@@ -633,13 +633,64 @@ static void
             asset_name.c_str(),
             FTY_PROTO_ASSET_OP_UPDATE,
             ext);
-    rv = mlm_client_send (cfg->stream_client, subject.c_str(), &msg);
     zhash_destroy (&ext);
     zhash_destroy (&aux);
-    if ( rv != 0 ) {
+    return msg;
+}
+
+static void
+    s_update_asset (
+        fty_asset_server_t *cfg,
+        const std::string &asset_name)
+{
+    std::string subject;
+    auto msg = s_update_asset_msg(cfg, asset_name, subject);
+    if (NULL == msg || 0 != mlm_client_send (cfg->stream_client, subject.c_str(), &msg)) {
         zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
         return;
     }
+}
+
+static void
+    s_update_asset (
+        fty_asset_server_t *cfg,
+        const std::string &asset_name,
+        const char *address)
+{
+    std::string subject;
+    auto msg = s_update_asset_msg(cfg, asset_name, subject);
+    if (NULL == msg || 0 != mlm_client_sendto (cfg->mailbox_client, address, subject.c_str(), NULL, 5000, &msg)) {
+        zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
+        return;
+    }
+}
+
+static void
+    s_handle_subject_asset_detail (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
+{
+    if (!cfg || !zmessage_p || !*zmessage_p) return;
+    zmsg_t *zmessage = *zmessage_p;
+    if (!is_fty_proto (zmessage)) {
+        zsys_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
+        return;
+    }
+    char* c_command = zmsg_popstr (zmessage);
+    if (! streq (c_command, "GET")) {
+        zmsg_t *reply = zmsg_new ();
+        zsys_error ("%s:\tASSETS: bad command '%s', expected GET", cfg->name, c_command);
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_COMMAND");
+        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
+        zstr_free (&c_command);
+        zmsg_destroy (&reply);
+        return;
+    }
+    zstr_free (&c_command);
+
+    // select an asset and publish it through mailbox
+    char *asset_name = zmsg_popstr (zmessage);
+    s_update_asset (cfg, asset_name, mlm_client_sender (cfg->mailbox_client));
+    zstr_free (&asset_name);
 }
 
 static void
@@ -857,6 +908,10 @@ fty_asset_server (zsock_t *pipe, void *args)
             else
             if (subject == "ASSET_MANIPULATION") {
                 s_handle_subject_asset_manipulation (cfg, &zmessage);
+            }
+            else
+            if (subject == "ASSET_DETAIL") {
+                s_handle_subject_asset_detail (cfg, &zmessage);
             }
             else
                 zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
