@@ -176,12 +176,14 @@ autoupdate_update_rc_information (fty_asset_autoupdate_t *self)
             }
 
             std::string hostname = name;
-            unsigned int i = hostname.find ('.');
+            size_t i = hostname.find ('.');
             if (i != std::string::npos) {
                 hostname.resize (i);
             }
-            zsys_info ("%s:\tip='%s', dns_name='%s'", ip.c_str (), name.c_str ());
+            zsys_info ("%s:\tip='%s', dns_name='%s'", self->name, ip.c_str (), name.c_str ());
             for (const auto &rc: self->rcs) {
+                if(rc.empty() || hostname.empty())
+                    continue;
                 if ( icase_streq (rc.c_str (), hostname.c_str ()) ||
                      icase_streq (rc.c_str (), name.c_str ())) {
                     // asset name == hostname this is me
