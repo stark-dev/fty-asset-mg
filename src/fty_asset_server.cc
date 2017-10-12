@@ -1137,7 +1137,26 @@ fty_asset_server_test (bool verbose)
         zclock_sleep (200);
         zsys_info ("fty-asset-server-test:Test #8: OK");
     }
-
+    // Test #9: subject ASSET_DETAIL, message GET/<iname>
+    {
+        zsys_debug ("fty-asset-server-test:Test #9");
+        const char* subject = "ASSET_DETAIL";
+        const char *command = "GET";
+        zmsg_t *msg = zmsg_new();
+        zmsg_addstr (msg, command);
+        zmsg_addstr (msg, asset_name);
+        int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        assert (rv == 0);
+        zmsg_t *reply = mlm_client_recv (ui);
+        assert (fty_proto_is (reply));
+        fty_proto_t *freply = fty_proto_decode (&reply);
+        const char *str = fty_proto_name (freply);
+        assert (streq (str, asset_name));
+        str = fty_proto_operation (freply);
+        assert (streq (str, FTY_PROTO_ASSET_OP_UPDATE));
+        fty_proto_destroy (&freply) ;
+        zsys_info ("fty-asset-server-test:Test #9: OK");
+    }
     zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate-test");
     if (verbose)
         zstr_send (autoupdate_server, "VERBOSE");
@@ -1147,14 +1166,14 @@ fty_asset_server_test (bool verbose)
     zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "ASSET_AGENT_NAME", asset_server_test_name, NULL);
 
-    // Test #9: message WAKEUP
+    // Test #10: message WAKEUP
     {
-        zsys_debug ("fty-asset-server-test:Test #9");
+        zsys_debug ("fty-asset-server-test:Test #10");
         const char *command = "WAKEUP";
         int rv = zstr_sendx (autoupdate_server, command, NULL);
         assert (rv == 0);
         zclock_sleep (200);
-        zsys_info ("fty-asset-server-test:Test #9: OK");
+        zsys_info ("fty-asset-server-test:Test #10: OK");
     }
 
     zactor_destroy (&autoupdate_server);
