@@ -420,7 +420,7 @@ static void
 
     // if there is no error msg prepared, call SQL
     if (zmsg_size (msg) == 0){
-            rv = select_assets_by_filter(filters, assets);
+            rv = select_assets_by_filter(filters, assets, cfg->test);
     }
 
     if (rv == -1)
@@ -1101,7 +1101,7 @@ fty_asset_server_test (bool verbose)
     // Test #6: subject ASSETS, message GET
     {
         zsys_debug ("fty-asset-server-test:Test #6");
-        const char* subject = "ASSETS_IN_CONTAINER";
+        const char* subject = "ASSETS";
         const char *command = "GET";
         zmsg_t *msg = zmsg_new();
         zmsg_addstr (msg, command);

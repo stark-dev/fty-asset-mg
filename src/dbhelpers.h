@@ -194,7 +194,8 @@ select_assets_by_container_filter (
 FTY_ASSET_PRIVATE int
     select_assets_by_filter (
         const std::set <std::string>& filter,
-        std::vector <std::string>& assets
+        std::vector <std::string>& assets,
+        bool test
     );
 
 /**

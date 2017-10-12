@@ -463,8 +463,11 @@ int
 int
 select_assets_by_filter (
         const std::set <std::string>& filter,
-        std::vector <std::string>& assets)
+        std::vector <std::string>& assets,
+        bool test)
 {
+    if (test)
+        return 0;
 
     std::function<void(const tntdb::Row&)> func =
         [&assets](const tntdb::Row& row)
