@@ -346,11 +346,13 @@ static void
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply);
         return;
     }
-    std::string iname (zmsg_popstr (msg));
+    char *iname_str = zmsg_popstr (msg);
+    std::string iname (iname_str);
     std::string ename;
 
     select_ename_from_iname (iname, ename, cfg->test);
 
+    zstr_free (&iname_str);
     if (ename.empty ())
     {
         zmsg_addstr (reply, "ERROR");
