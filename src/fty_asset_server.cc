@@ -553,21 +553,21 @@ static zmsg_t *
         fty_uuid_destroy (&uuid);
         zhash_destroy (&ext_new);
     }
-    
+
     // create timestamp ext attribute if missing
     if (! zhash_lookup (ext, "create_ts") ) {
         zhash_t *ext_new = zhash_new ();
 
         std::time_t timestamp = std::time(NULL);
         char mbstr[100];
-        
+
         std::strftime(mbstr, sizeof (mbstr), "%FT%T%z", std::localtime(&timestamp));
-        
+
         zhash_insert (ext, "create_ts", (void *) mbstr);
         zhash_insert (ext_new, "create_ts", (void *) mbstr);
-        
+
         process_insert_inventory (asset_name.c_str (), ext_new, cfg->test);
-        
+
         zhash_destroy (&ext_new);
     }
 
@@ -647,10 +647,6 @@ static void
 {
     if (!cfg || !zmessage_p || !*zmessage_p) return;
     zmsg_t *zmessage = *zmessage_p;
-    if (!is_fty_proto (zmessage)) {
-        zsys_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
-        return;
-    }
     char* c_command = zmsg_popstr (zmessage);
     if (! streq (c_command, "GET")) {
         zmsg_t *reply = zmsg_new ();
