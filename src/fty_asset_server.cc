@@ -348,26 +348,9 @@ static void
     }
     std::string iname (zmsg_popstr (msg));
     std::string ename;
-    try
-    {
-        tntdb::Connection conn = tntdb::connectCached (url);
-        tntdb::Statement st = conn.prepareCached (
-            "SELECT e.value FROM  t_bios_asset_ext_attributes AS e "
-            "INNER JOIN t_bios_asset_element AS a "
-            "ON a.id_asset_element = e.id_asset_element  "
-            "WHERE keytag = 'name' and a.name = :iname; "
 
-        );
+    select_ename_from_iname (iname, ename, cfg->test);
 
-        tntdb::Row row = st.set ("iname", iname).selectRow ();
-        zsys_debug ("[s_handle_subject_ename_from_iname]: were selected %" PRIu32 " rows", 1);
-
-        row [0].get (ename);
-    }
-    catch (const std::exception &e)
-    {
-        zsys_error ("exception caught %s for element '%s'", e.what (), ename.c_str ());
-    }
     if (ename.empty ())
     {
         zmsg_addstr (reply, "ERROR");
@@ -379,7 +362,7 @@ static void
         zmsg_addstr (reply, ename.c_str());
     }
     if (-1 == mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply))
-        zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
+        zsys_error ("%s:\tENAME_FROM_INAME: mlm_client_sendto failed", cfg->name);
 }
 
 static void
@@ -1007,7 +990,7 @@ fty_asset_server_test (bool verbose)
     zstr_sendx (asset_server, "CONNECTMAILBOX", endpoint, NULL);
     zsock_wait (asset_server);
 
-    static const char *asset_name = "DC-1";
+    static const char *asset_name = TEST_INAME;
     // Test #2: subject ASSET_MANIPULATION, message fty_proto_t *asset
     {
         zsys_debug ("fty-asset-server-test:Test #2");
@@ -1157,6 +1140,27 @@ fty_asset_server_test (bool verbose)
         fty_proto_destroy (&freply) ;
         zsys_info ("fty-asset-server-test:Test #9: OK");
     }
+
+    // Test #10: subject ENAME_FROM_INAME, message <iname>
+    {
+        zsys_debug ("fty-asset-server-test:Test #10");
+        const char* subject = "ENAME_FROM_INAME";
+        const char *asset_ename = TEST_ENAME;
+        zmsg_t *msg = zmsg_new();
+        zmsg_addstr (msg, asset_name);
+        int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        assert (rv == 0);
+        zmsg_t *reply = mlm_client_recv (ui);
+        assert (zmsg_size (reply) == 2);
+        char *str = zmsg_popstr (reply);
+        assert (streq (str, "OK"));
+        zstr_free (&str);
+        str = zmsg_popstr (reply);
+        assert (streq (str, asset_ename));
+        zstr_free (&str);
+        zmsg_destroy (&reply);
+        zsys_info ("fty-asset-server-test:Test #10: OK");
+    }
     zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate-test");
     if (verbose)
         zstr_send (autoupdate_server, "VERBOSE");
@@ -1168,12 +1172,12 @@ fty_asset_server_test (bool verbose)
 
     // Test #10: message WAKEUP
     {
-        zsys_debug ("fty-asset-server-test:Test #10");
+        zsys_debug ("fty-asset-server-test:Test #11");
         const char *command = "WAKEUP";
         int rv = zstr_sendx (autoupdate_server, command, NULL);
         assert (rv == 0);
         zclock_sleep (200);
-        zsys_info ("fty-asset-server-test:Test #10: OK");
+        zsys_info ("fty-asset-server-test:Test #11: OK");
     }
 
     zactor_destroy (&autoupdate_server);

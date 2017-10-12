@@ -579,6 +579,45 @@ process_insert_inventory
     return 0;
 }
 
+int
+select_ename_from_iname
+    (std::string &iname,
+     std::string &ename,
+     bool test)
+{
+    if (test) {
+        if (iname == TEST_INAME) {
+            ename = TEST_ENAME;
+            return 0;
+        }
+        else
+            return -1;
+    }
+    try
+    {
+        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Statement st = conn.prepareCached (
+            "SELECT e.value FROM  t_bios_asset_ext_attributes AS e "
+            "INNER JOIN t_bios_asset_element AS a "
+            "ON a.id_asset_element = e.id_asset_element  "
+            "WHERE keytag = 'name' and a.name = :iname; "
+
+        );
+
+        tntdb::Row row = st.set ("iname", iname).selectRow ();
+        zsys_debug ("[s_handle_subject_ename_from_iname]: were selected %" PRIu32 " rows", 1);
+
+        row [0].get (ename);
+    }
+    catch (const std::exception &e)
+    {
+        zsys_error ("exception caught %s for element '%s'", e.what (), ename.c_str ());
+        return -1;
+    }
+
+    return 0;
+}
+
 void
 dbhelpers_test (bool verbose)
 {

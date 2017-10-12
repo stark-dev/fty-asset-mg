@@ -247,6 +247,12 @@ FTY_ASSET_PRIVATE int
     zhash_t *ext_attributes,
     bool test);
 
+FTY_ASSET_PRIVATE int
+    select_ename_from_iname
+    (std::string &iname,
+     std::string &ename,
+     bool test);
+
 //  Self test of this class
 void
     dbhelpers_test (bool verbose);
