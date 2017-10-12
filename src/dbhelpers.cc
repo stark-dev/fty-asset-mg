@@ -738,17 +738,12 @@ db_reply_t
             // also set name to fty_proto
             fty_proto_set_name (fmsg, "%s-%" PRIu64, element_name, ret.rowid);
         }
-        if (ret.affected_rows == 0) {
-            ret.status = 0;
-            //TODO: rework to bad param
-            // bios_error_idx(ret.rowid, ret.msg, "data-conflict", element_name, "Most likely duplicate entry.");
-        }
-        else {
-            // went well some lines changed
+        if (ret.affected_rows == 0)
+            zsys_debug ("Asset unchanged, processing inventory");
+        else
             zsys_debug ("Insert went well, processing inventory.");
-            process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), false);
-            ret.status = 1;
-        }
+        process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), false);
+        ret.status = 1;
         return ret;
     }
     catch (const std::exception &e) {

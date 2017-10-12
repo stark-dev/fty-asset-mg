@@ -675,6 +675,7 @@ static void
                 zmsg_addstr (reply, "ERROR");
                 mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
                 fty_proto_destroy (&fmsg);
+                return;
             }
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, fty_proto_name (fmsg));
