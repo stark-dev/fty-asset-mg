@@ -194,7 +194,8 @@ select_assets_by_container_filter (
 FTY_ASSET_PRIVATE int
     select_assets_by_filter (
         const std::set <std::string>& filter,
-        std::vector <std::string>& assets
+        std::vector <std::string>& assets,
+        bool test
     );
 
 /**
@@ -245,6 +246,12 @@ FTY_ASSET_PRIVATE int
     (const std::string& device_name,
     zhash_t *ext_attributes,
     bool test);
+
+FTY_ASSET_PRIVATE int
+    select_ename_from_iname
+    (std::string &iname,
+     std::string &ename,
+     bool test);
 
 //  Self test of this class
 void

@@ -346,28 +346,13 @@ static void
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply);
         return;
     }
-    std::string iname (zmsg_popstr (msg));
+    char *iname_str = zmsg_popstr (msg);
+    std::string iname (iname_str);
     std::string ename;
-    try
-    {
-        tntdb::Connection conn = tntdb::connectCached (url);
-        tntdb::Statement st = conn.prepareCached (
-            "SELECT e.value FROM  t_bios_asset_ext_attributes AS e "
-            "INNER JOIN t_bios_asset_element AS a "
-            "ON a.id_asset_element = e.id_asset_element  "
-            "WHERE keytag = 'name' and a.name = :iname; "
 
-        );
+    select_ename_from_iname (iname, ename, cfg->test);
 
-        tntdb::Row row = st.set ("iname", iname).selectRow ();
-        zsys_debug ("[s_handle_subject_ename_from_iname]: were selected %" PRIu32 " rows", 1);
-
-        row [0].get (ename);
-    }
-    catch (const std::exception &e)
-    {
-        zsys_error ("exception caught %s for element '%s'", e.what (), ename.c_str ());
-    }
+    zstr_free (&iname_str);
     if (ename.empty ())
     {
         zmsg_addstr (reply, "ERROR");
@@ -379,7 +364,7 @@ static void
         zmsg_addstr (reply, ename.c_str());
     }
     if (-1 == mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply))
-        zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
+        zsys_error ("%s:\tENAME_FROM_INAME: mlm_client_sendto failed", cfg->name);
 }
 
 static void
@@ -420,7 +405,7 @@ static void
 
     // if there is no error msg prepared, call SQL
     if (zmsg_size (msg) == 0){
-            rv = select_assets_by_filter(filters, assets);
+            rv = select_assets_by_filter(filters, assets, cfg->test);
     }
 
     if (rv == -1)
@@ -448,11 +433,12 @@ static void
 
 }
 
-static void
-    s_publish_create_or_update_asset (
+static zmsg_t *
+    s_publish_create_or_update_asset_msg (
         fty_asset_server_t *cfg,
         const std::string &asset_name,
-        const char* operation)
+        const char* operation,
+        std::string &subject)
 {
     assert (cfg);
     zhash_t *aux = zhash_new ();
@@ -496,7 +482,7 @@ static void
     if ( rv != 0 ) {
         zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
         zhash_destroy (&aux);
-        return;
+        return NULL;
     }
 
     zhash_t *ext = zhash_new ();
@@ -517,7 +503,7 @@ static void
         zsys_warning ("%s:\tCannot select ext attributes for '%s'", cfg->name, asset_name.c_str());
         zhash_destroy (&aux);
         zhash_destroy (&ext);
-        return;
+        return NULL;
     }
 
     // create uuid ext attribute if missing
@@ -552,21 +538,21 @@ static void
         fty_uuid_destroy (&uuid);
         zhash_destroy (&ext_new);
     }
-    
+
     // create timestamp ext attribute if missing
     if (! zhash_lookup (ext, "create_ts") ) {
         zhash_t *ext_new = zhash_new ();
 
         std::time_t timestamp = std::time(NULL);
         char mbstr[100];
-        
+
         std::strftime(mbstr, sizeof (mbstr), "%FT%T%z", std::localtime(&timestamp));
-        
+
         zhash_insert (ext, "create_ts", (void *) mbstr);
         zhash_insert (ext_new, "create_ts", (void *) mbstr);
-        
+
         process_insert_inventory (asset_name.c_str (), ext_new, cfg->test);
-        
+
         zhash_destroy (&ext_new);
     }
 
@@ -591,15 +577,14 @@ static void
         zhash_destroy (&aux);
         zhash_destroy (&ext);
         zsys_error ("%s:\tselect_asset_element_super_parent ('%s') failed.", cfg->name, asset_name.c_str());
-        return;
+        return NULL;
     }
     // other information like, groups, power chain for now are not included in the message
-    std::string subject;
     const char* type = (const char*) zhash_lookup (aux, "type");
-    subject=(type==NULL)?"unknown":type;
+    subject = (type==NULL) ? "unknown" : type;
     subject.append (".");
     const char* subtype =(const char*)zhash_lookup (aux, "subtype");
-    subject.append ((subtype==NULL)?"unknown":subtype);
+    subject.append ( (subtype==NULL)?"unknown":subtype );
     subject.append ("@");
     subject.append (asset_name);
     zsys_debug("notifing ASSETS %s %s ..",operation,subject.c_str());
@@ -608,13 +593,62 @@ static void
             asset_name.c_str(),
             operation,
             ext);
-    rv = mlm_client_send (cfg->stream_client, subject.c_str(), &msg);
     zhash_destroy (&ext);
     zhash_destroy (&aux);
-    if ( rv != 0 ) {
+    return msg;
+}
+
+static void
+    s_publish_create_or_update_asset (
+        fty_asset_server_t *cfg,
+        const std::string &asset_name,
+        const char* operation)
+{
+    std::string subject;
+    auto msg = s_publish_create_or_update_asset_msg(cfg, asset_name, operation, subject);
+    if (NULL == msg || 0 != mlm_client_send (cfg->stream_client, subject.c_str(), &msg)) {
         zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
         return;
     }
+}
+
+static void
+    s_publish_create_or_update_asset (
+        fty_asset_server_t *cfg,
+        const std::string &asset_name,
+        const char* operation,
+        const char *address)
+{
+    std::string subject;
+    auto msg = s_publish_create_or_update_asset_msg(cfg, asset_name, operation, subject);
+    if (NULL == msg || 0 != mlm_client_sendto (cfg->mailbox_client, address, subject.c_str(), NULL, 5000, &msg)) {
+        zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
+        return;
+    }
+}
+
+static void
+    s_handle_subject_asset_detail (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
+{
+    if (!cfg || !zmessage_p || !*zmessage_p) return;
+    zmsg_t *zmessage = *zmessage_p;
+    char* c_command = zmsg_popstr (zmessage);
+    if (! streq (c_command, "GET")) {
+        zmsg_t *reply = zmsg_new ();
+        zsys_error ("%s:\tASSETS: bad command '%s', expected GET", cfg->name, c_command);
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_COMMAND");
+        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
+        zstr_free (&c_command);
+        zmsg_destroy (&reply);
+        return;
+    }
+    zstr_free (&c_command);
+
+    // select an asset and publish it through mailbox
+    char *asset_name = zmsg_popstr (zmessage);
+    s_publish_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, mlm_client_sender (cfg->mailbox_client));
+    zstr_free (&asset_name);
 }
 
 static void
@@ -879,6 +913,10 @@ fty_asset_server (zsock_t *pipe, void *args)
                 s_handle_subject_asset_manipulation (cfg, &zmessage);
             }
             else
+            if (subject == "ASSET_DETAIL") {
+                s_handle_subject_asset_detail (cfg, &zmessage);
+            }
+            else
                 zsys_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
             zmsg_destroy (&zmessage);
         }
@@ -955,7 +993,7 @@ fty_asset_server_test (bool verbose)
     zstr_sendx (asset_server, "CONNECTMAILBOX", endpoint, NULL);
     zsock_wait (asset_server);
 
-    static const char *asset_name = "DC-1";
+    static const char *asset_name = TEST_INAME;
     // Test #2: subject ASSET_MANIPULATION, message fty_proto_t *asset
     {
         zsys_debug ("fty-asset-server-test:Test #2");
@@ -1049,7 +1087,7 @@ fty_asset_server_test (bool verbose)
     // Test #6: subject ASSETS, message GET
     {
         zsys_debug ("fty-asset-server-test:Test #6");
-        const char* subject = "ASSETS_IN_CONTAINER";
+        const char* subject = "ASSETS";
         const char *command = "GET";
         zmsg_t *msg = zmsg_new();
         zmsg_addstr (msg, command);
@@ -1085,7 +1123,47 @@ fty_asset_server_test (bool verbose)
         zclock_sleep (200);
         zsys_info ("fty-asset-server-test:Test #8: OK");
     }
+    // Test #9: subject ASSET_DETAIL, message GET/<iname>
+    {
+        zsys_debug ("fty-asset-server-test:Test #9");
+        const char* subject = "ASSET_DETAIL";
+        const char *command = "GET";
+        zmsg_t *msg = zmsg_new();
+        zmsg_addstr (msg, command);
+        zmsg_addstr (msg, asset_name);
+        int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        assert (rv == 0);
+        zmsg_t *reply = mlm_client_recv (ui);
+        assert (fty_proto_is (reply));
+        fty_proto_t *freply = fty_proto_decode (&reply);
+        const char *str = fty_proto_name (freply);
+        assert (streq (str, asset_name));
+        str = fty_proto_operation (freply);
+        assert (streq (str, FTY_PROTO_ASSET_OP_UPDATE));
+        fty_proto_destroy (&freply) ;
+        zsys_info ("fty-asset-server-test:Test #9: OK");
+    }
 
+    // Test #10: subject ENAME_FROM_INAME, message <iname>
+    {
+        zsys_debug ("fty-asset-server-test:Test #10");
+        const char* subject = "ENAME_FROM_INAME";
+        const char *asset_ename = TEST_ENAME;
+        zmsg_t *msg = zmsg_new();
+        zmsg_addstr (msg, asset_name);
+        int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        assert (rv == 0);
+        zmsg_t *reply = mlm_client_recv (ui);
+        assert (zmsg_size (reply) == 2);
+        char *str = zmsg_popstr (reply);
+        assert (streq (str, "OK"));
+        zstr_free (&str);
+        str = zmsg_popstr (reply);
+        assert (streq (str, asset_ename));
+        zstr_free (&str);
+        zmsg_destroy (&reply);
+        zsys_info ("fty-asset-server-test:Test #10: OK");
+    }
     zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate-test");
     if (verbose)
         zstr_send (autoupdate_server, "VERBOSE");
@@ -1095,14 +1173,14 @@ fty_asset_server_test (bool verbose)
     zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "ASSET_AGENT_NAME", asset_server_test_name, NULL);
 
-    // Test #9: message WAKEUP
+    // Test #10: message WAKEUP
     {
-        zsys_debug ("fty-asset-server-test:Test #9");
+        zsys_debug ("fty-asset-server-test:Test #11");
         const char *command = "WAKEUP";
         int rv = zstr_sendx (autoupdate_server, command, NULL);
         assert (rv == 0);
         zclock_sleep (200);
-        zsys_info ("fty-asset-server-test:Test #9: OK");
+        zsys_info ("fty-asset-server-test:Test #11: OK");
     }
 
     zactor_destroy (&autoupdate_server);
