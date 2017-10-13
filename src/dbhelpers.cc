@@ -30,15 +30,14 @@
 #define INPUT_POWER_CHAIN     1
 
 /**
- *  \brief Convert asset name to the id
+ *  \brief Converts asset name to the DB id
  *
- *  \param[in] conn - a database connection
  *  \param[in] name - name of the asset to convert
  *  \param[out] id - converted id
  *
  *  \return  0 - in case of success
  *          -2 - in case if asset was not found
- *          -1 - in case of some unecpected error
+ *          -1 - in case of some unexpected error
  */
 int
     select_asset_id (
@@ -74,7 +73,12 @@ int
     }
 }
 
-std::string
+/**
+ * \brief Creates condition for type/subtype filtering
+ *
+ * \param[in] types_and_subtypes - types and subtypes we are interested in
+ */
+static std::string
 select_assets_by_container_filter (
     const std::set<std::string> &types_and_subtypes
 )
@@ -108,6 +112,15 @@ select_assets_by_container_filter (
     return filter;
 }
 
+/**
+ *  \brief Selects all assets which have our container in input power chain
+ *
+ *  \param[in] element_id - DB id of container
+ *  \param[out] assets - <src,dst> pairs for such assets
+ *
+ *  \return  0 - in case of success (even if nothing was found)
+ *          -1 - in case of some unexpected error
+ */
 int
     select_links_by_container (
         a_elmnt_id_t element_id,
@@ -177,7 +190,17 @@ int
     }
 }
 
-int
+/**
+ *  \brief Selects assets in a given container
+ *
+ *  \param[in] element_id - DB id of container
+ *  \param[in] types_and_subtypes - types and subtypes we are interested in
+ *  \param[in] cb - function to call on each row
+ *
+ *  \return  0 - in case of success (even if nothing was found)
+ *          -1 - in case of some unexpected error
+ */
+ int
     select_assets_by_container_cb (
         a_elmnt_id_t element_id,
         const std::set<std::string> &types_and_subtypes,
@@ -225,6 +248,10 @@ int
     }
 }
 
+/**
+ * \brief Selects all assets in a given container without type/subtype filtering.
+ *  Wrapper for select_assets_by_container_cb with 3 arguments
+ */
 int
     select_assets_by_container_cb (
         a_elmnt_id_t element_id,
@@ -236,6 +263,17 @@ int
     return select_assets_by_container_cb (element_id, empty, cb);
 }
 
+/**
+ *  \brief Wrapper for select_assets_by_container_cb
+ *
+ *  \param[in] container_name - iname of container
+ *  \param[in] filter - types and subtypes we are interested in
+ *  \param[out] assets - inames of assets in this container
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
 select_assets_by_container (
         const std::string& container_name,
@@ -266,6 +304,16 @@ select_assets_by_container (
     return select_assets_by_container_cb (id, filter, func);
 }
 
+/**
+ *  \brief Selects basic asset info
+ *
+ *  \param[in] element_id - iname of asset
+ *  \param[in] cb - function to call on each row
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
     select_asset_element_basic
         (const std::string &asset_name,
@@ -313,6 +361,16 @@ int
     }
 }
 
+/**
+ *  \brief Selects ext attributes for given asset
+ *
+ *  \param[in] element_id - iname of asset
+ *  \param[in] cb - function to call on each row
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
     select_ext_attributes
         (uint32_t asset_id,
@@ -355,6 +413,16 @@ int
     }
 }
 
+/**
+ *  \brief Selects all parents of given asset
+ *
+ *  \param[in] id - iname of asset
+ *  \param[in] cb - function to call on each row
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
     select_asset_element_super_parent (
             uint32_t id,
@@ -423,6 +491,15 @@ int
     }
 }
 
+/**
+ *  \brief Selects all assets in the DB of given types/subtypes
+ *
+ *  \param[in] types_and_subtypes - types/subtypes we are interested in
+ *  \param[in] cb - function to call on each row
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
     select_assets_by_filter_cb (
         const std::set<std::string> &types_and_subtypes,
@@ -460,6 +537,12 @@ int
     }
 }
 
+/**
+ * Wrapper for select_assets_by_filter_cb
+ *
+ * \param[in] filter - types/subtypes we are interested in
+ * \param[out] assets - inames of returned assets
+ */
 int
 select_assets_by_filter (
         const std::set <std::string>& filter,
@@ -480,6 +563,15 @@ select_assets_by_filter (
     return select_assets_by_filter_cb (filter, func);
 }
 
+/**
+ *  \brief Selects basic asset info for all assets in the DB
+ *
+ *  \param[in] cb - function to call on each row
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
     select_assets (
             std::function<void(
@@ -525,6 +617,16 @@ int
     }
 }
 
+/**
+ *  \brief Inserts ext attributes from inventory message into DB
+ *
+ *  \param[in] device_name - iname of assets
+ *  \param[in] ext_attributes - recent ext attributes for this asset
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
 process_insert_inventory
     (const std::string& device_name,
@@ -579,6 +681,16 @@ process_insert_inventory
     return 0;
 }
 
+/**
+ *  \brief Selects user-friendly name for given asset name
+ *
+ *  \param[in] iname - asset iname
+ *  \param[out] ename - user-friendly asset name
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
 select_ename_from_iname
     (std::string &iname,
@@ -618,6 +730,7 @@ select_ename_from_iname
     return 0;
 }
 
+//  Self test of this class
 void
 dbhelpers_test (bool verbose)
 {
@@ -626,6 +739,15 @@ dbhelpers_test (bool verbose)
     printf ("OK\n");
 }
 
+/**
+ *  \brief Inserts data from create/update message into DB
+ *
+ *  \param[in] fmsg - create/update message
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 db_reply_t
     create_or_update_asset (fty_proto_t *fmsg, bool test)
 {
