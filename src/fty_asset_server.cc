@@ -141,6 +141,47 @@
         /asset1/asset2/asset3       - republish asset information about asset1 asset2 and asset3
         /$all                       - republish information about all assets
 
+     ------------------------------------------------------------------------
+     ## ENAME_FROM_INAME
+
+     request user-friendly name for given iname:
+         subject: "ENAME_FROM_INAME"
+         message: is a string message A
+                 B = "asset_iname" - mandatory
+
+     reply in "OK" case:
+         subject: "ENAME_FROM_INAME"
+         message: is a multipart message A/B
+                 A = "OK" - mandatory
+                 B = user-friendly name of given asset - mandatory
+
+     reply in "ERROR" case:
+         subject: "ENAME_FROM_INAME"
+         message: is a multipart message A/B
+                 A = "ERROR" - mandatory
+                 B = "ASSET_NOT_FOUND"/"MISSING_INAME" - mandatory
+
+
+     ------------------------------------------------------------------------
+     ## ASSET_DETAIL
+
+     request all the available data about given asset:
+         subject: "ASSET_DETAIL"
+         message: is a multipart message A/B
+                 A = "GET" - mandatory
+                 B = "asset_name" - mandatory
+
+     power topology reply in "OK" case:
+         subject: "ASSET_DETAIL"
+         message: is fty-proto asset update message
+
+     power topology reply in "ERROR" case:
+         subject: "ASSET_DETAIL"
+         message: is a multipart message A/B
+                 A = "ERROR" - mandatory
+                 B = "BAD_COMMAND"/"INTERNAL_ERROR" - mandatory
+
+
 @end
 */
 
@@ -635,7 +676,7 @@ static void
     char* c_command = zmsg_popstr (zmessage);
     if (! streq (c_command, "GET")) {
         zmsg_t *reply = zmsg_new ();
-        zsys_error ("%s:\tASSETS: bad command '%s', expected GET", cfg->name, c_command);
+        zsys_error ("%s:\tASSET_DETAIL: bad command '%s', expected GET", cfg->name, c_command);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
