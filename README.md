@@ -97,7 +97,8 @@ where
 * 'asset-iname' MUST be the same as in request
 * 'D1',...,'Dn' MUST be assets in the power topology of 'asset-iname'
 * 'reason' is string detailing reason for error. Possible values are:
-ASSET_NOT_FOUND / INTERNAL_ERROR
+
+     ASSET_NOT_FOUND / INTERNAL_ERROR
 * subject of the message MUST be TOPOLOGY
 
 #### Republishing assets
@@ -121,8 +122,12 @@ OR
 
 The FTY-ASSET-AGENT peer MUST respond with:
 
-* publication of fty-proto asset update message on the stream ASSETS for each asset in DB IF message was $all OR empty
-* publication of fty-proto asset update message on the stream ASSETS for each asset in request IF message was multipart string message
+* IF message was $all OR empty:
+
+    publication of fty-proto asset update message on the stream ASSETS for each asset in DB
+* IF message was multipart string message
+
+    publication of fty-proto asset update message on the stream ASSETS for each asset in request
 
 #### Assets in given container
 
@@ -146,15 +151,20 @@ peer using MAILBOX SEND.
 where
 * '/' indicates a multipart frame message
 * IF 'container-name' in request was empty AND 'type-1/.../type-n' in request was empty,
-'A1'/.../'An' MUST be ALL the assets in the DB (MAY be empty)
+
+    'A1'/.../'An' MUST be ALL the assets in the DB (MAY be empty)
 * IF 'container-name' in request was empty AND 'type-1/.../type-n' in request was non-empty,
-'A1'/.../'An' MUST be ALL the assets in the DB of ANY of the specified types/subtypes (MAY be empty)
+
+    'A1'/.../'An' MUST be ALL the assets in the DB of ANY of the specified types/subtypes (MAY be empty)
 * IF 'container-name' in request was non-empty AND 'type-1/.../type-n' in request was empty,
-'A1'/.../'An' MUST be ALL assets which have 'container-name' as parent on any level (MAY be empty)
+
+    'A1'/.../'An' MUST be ALL assets which have 'container-name' as parent on any level (MAY be empty)
 * IF 'container-name' in request was non-empty AND 'type-1/.../type-n' in request was non-empty,
-'A1'/.../'An' MUST be ALL assets which have 'container-name' as parent on any level of ANY of the given types or subtypes (MAY be empty)
+
+    'A1'/.../'An' MUST be ALL assets which have 'container-name' as parent on any level of ANY of the given types or subtypes (MAY be empty)
 * 'reason' is string detailing reason for error. Possible values are:
-ASSET_NOT_FOUND / BAD_COMMAND/INTERNAL_ERROR
+
+    ASSET_NOT_FOUND / BAD_COMMAND/INTERNAL_ERROR
 * subject of the message MUST be "ASSETS_IN_CONTAINER"
 
 #### Assets of given type/subtype
@@ -177,10 +187,15 @@ peer using MAILBOX SEND.
 
 where
 * '/' indicates a multipart frame message
-* IF 'type-1/.../type-n' in request was empty, 'A1'/.../'An' MUST be ALL assets in the DB
-* IF 'type-1/.../type-n' in request was non-empty, 'A1'/.../'An' MUST be ALL assets of ANY of the specified types/subtypes in the DB
+* IF 'type-1/.../type-n' in request was empty,
+
+   'A1'/.../'An' MUST be ALL assets in the DB
+* IF 'type-1/.../type-n' in request was non-empty,
+
+   'A1'/.../'An' MUST be ALL assets of ANY of the specified types/subtypes in the DB
 * 'reason' is string detailing reason for error. Possible values are:
-ASSET_NOT_FOUND / BAD_COMMAND / MISSING_COMMAND / INTERNAL_ERROR
+
+    ASSET_NOT_FOUND / BAD_COMMAND / MISSING_COMMAND / INTERNAL_ERROR
 * subject of the message MUST be "ASSETS".
 
 #### Creation and updating of assets
@@ -194,17 +209,21 @@ where
 * 'asset' is fty-proto create OR update asset message
 * subject of the message MUST be "ASSET_MANIPULATION".
 
-The FTY-ASSET-AGENT peer MUST insert provided data into DB AND publish UPDATE message for given asset on stream ASSETS AND respond with one of the messages back to USER
+The FTY-ASSET-AGENT peer MUST:
+* insert provided data into DB
+* publish UPDATE message for given asset on stream ASSETS
+* respond with one of the messages back to USER
 peer using MAILBOX SEND:
 
-* OK/'asset-iname'
-* ERROR/<reason>
+    * OK/'asset-iname'
+    * ERROR/<reason>
 
 where
 * '/' indicates a multipart frame message
 * 'asset-iname' MUST be iname of created or updated asset
 * 'reason' is string detailing reason for error. Possible values are:
-OPERATION_NOT_IMPLEMENTED (MAY be empty)
+
+    OPERATION_NOT_IMPLEMENTED (MAY be empty)
 * subject of the message MUST be "ASSET_MANIPULATION".
 
 #### Getting user-friendly name for given asset
@@ -228,7 +247,8 @@ where
 * '/' indicates a multipart frame message
 * 'asset-ename' is user-friendly name corresponding to 'asset-iname' from the request
 * 'reason' is string detailing reason for error. Possible values are:
-MISSING_INAME/ASSET_NOT_FOUND
+
+   MISSING_INAME/ASSET_NOT_FOUND
 * subject of the message MUST be "ENAME_FROM_INAME".
 
 #### Getting all the available asset data for given asset
@@ -253,7 +273,8 @@ where
 * '/' indicates a multipart frame message
 * 'asset-message' is fty-proto update message containing available data for given asset
 * 'reason' is string detailing reason for error. Possible values are:
-BAD_COMMAND
+
+   BAD_COMMAND
 * subject of the message MUST be "ASSET_DETAIL".
 
 ### Stream subscriptions
