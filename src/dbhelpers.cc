@@ -622,6 +622,7 @@ int
  *
  *  \param[in] device_name - iname of assets
  *  \param[in] ext_attributes - recent ext attributes for this asset
+ *  \param[in] read_only - whether to insert ext attributes as readonly
  *  \param[in] test - unit tests indicator
  *
  *  \return  0 - in case of success
@@ -631,6 +632,7 @@ int
 process_insert_inventory
     (const std::string& device_name,
     zhash_t *ext_attributes,
+    bool readonly,
     bool test)
 {
     if (test)
@@ -650,11 +652,11 @@ process_insert_inventory
         "   t_bios_asset_ext_attributes"
         "   (keytag, value, id_asset_element, read_only)"
         " VALUES"
-        "  ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), 1)"
+        "  ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), :readonly)"
         " ON DUPLICATE KEY"
         "   UPDATE"
         "       value = VALUES (value),"
-        "       read_only = 1,"
+        "       read_only = :readonly,"
         "       id_asset_ext_attribute = LAST_INSERT_ID(id_asset_ext_attribute)");
 
     for (void* it = zhash_first (ext_attributes);
@@ -668,6 +670,7 @@ process_insert_inventory
             st.set ("keytag", keytag).
                set ("value", value).
                set ("device_name", device_name).
+               set ("readonly", readonly).
                execute ();
         }
         catch (const std::exception &e)
@@ -743,13 +746,14 @@ dbhelpers_test (bool verbose)
  *  \brief Inserts data from create/update message into DB
  *
  *  \param[in] fmsg - create/update message
+ *  \param[in] read_only - whether to insert ext attributes as readonly
  *  \param[in] test - unit tests indicator
  *
  *  \return  0 - in case of success
  *          -1 - in case of some unexpected error
  */
 db_reply_t
-    create_or_update_asset (fty_proto_t *fmsg, bool test)
+    create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test)
 {
     const char   *element_name;
     uint64_t      type_id;
@@ -864,7 +868,7 @@ db_reply_t
             zsys_debug ("Asset unchanged, processing inventory");
         else
             zsys_debug ("Insert went well, processing inventory.");
-        process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), false);
+        process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), read_only, false);
         ret.status = 1;
         return ret;
     }

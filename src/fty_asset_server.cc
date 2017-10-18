@@ -60,10 +60,13 @@
         subject: "ASSET_MANIPULATION"
         Message is a fty protocol (fty_proto_t) message
 
-        *) fty_proto ASSET message
+        *) read-only/fty_proto ASSET message
 
-        where 'operation' is one of [ create | update | delete | retire ].
-        Asset messages with different operation value are discarded and not replied to.
+        where:
+        * 'operation' is one of [ create | update | delete | retire ].
+           Asset messages with different operation value are discarded and not replied to.
+        * 'read-only' tells us whether ext attributes should be inserted as read-only or not.
+           Allowed values are READONLY and READWRITE.
 
     REP:
         subject: same as in REQ
@@ -479,7 +482,8 @@ static zmsg_t *
         fty_asset_server_t *cfg,
         const std::string &asset_name,
         const char* operation,
-        std::string &subject)
+        std::string &subject,
+        bool read_only)
 {
     assert (cfg);
     zhash_t *aux = zhash_new ();
@@ -562,7 +566,7 @@ static zmsg_t *
             const char *uuid_new = fty_uuid_calculate (uuid, mfr, model, serial);
             zhash_insert (ext, "uuid", (void *) uuid_new);
             zhash_insert (ext_new, "uuid", (void *) uuid_new);
-            process_insert_inventory (asset_name.c_str (), ext_new, cfg->test);
+            process_insert_inventory (asset_name.c_str (), ext_new, cfg->test, true);
         } else {
             if (streq (type, "device")) {
                 // it is device, put FFF... and wait for information
@@ -573,7 +577,7 @@ static zmsg_t *
                 const char *uuid_new = fty_uuid_generate (uuid);
                 zhash_insert (ext, "uuid", (void *) uuid_new);
                 zhash_insert (ext_new, "uuid", (void *) uuid_new);
-                process_insert_inventory (asset_name.c_str (), ext_new, cfg->test);
+                process_insert_inventory (asset_name.c_str (), ext_new, cfg->test, true);
             }
         }
         fty_uuid_destroy (&uuid);
@@ -592,7 +596,7 @@ static zmsg_t *
         zhash_insert (ext, "create_ts", (void *) mbstr);
         zhash_insert (ext_new, "create_ts", (void *) mbstr);
 
-        process_insert_inventory (asset_name.c_str (), ext_new, cfg->test);
+        process_insert_inventory (asset_name.c_str (), ext_new, cfg->test, true);
 
         zhash_destroy (&ext_new);
     }
@@ -640,13 +644,14 @@ static zmsg_t *
 }
 
 static void
-    s_publish_create_or_update_asset (
+    s_send_create_or_update_asset (
         fty_asset_server_t *cfg,
         const std::string &asset_name,
-        const char* operation)
+        const char* operation,
+        bool read_only)
 {
     std::string subject;
-    auto msg = s_publish_create_or_update_asset_msg(cfg, asset_name, operation, subject);
+    auto msg = s_publish_create_or_update_asset_msg (cfg, asset_name, operation, subject, read_only);
     if (NULL == msg || 0 != mlm_client_send (cfg->stream_client, subject.c_str(), &msg)) {
         zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
         return;
@@ -654,14 +659,14 @@ static void
 }
 
 static void
-    s_publish_create_or_update_asset (
+    s_sendto_create_or_update_asset (
         fty_asset_server_t *cfg,
         const std::string &asset_name,
         const char* operation,
         const char *address)
 {
     std::string subject;
-    auto msg = s_publish_create_or_update_asset_msg(cfg, asset_name, operation, subject);
+    auto msg = s_publish_create_or_update_asset_msg(cfg, asset_name, operation, subject, false);
     if (NULL == msg || 0 != mlm_client_sendto (cfg->mailbox_client, address, subject.c_str(), NULL, 5000, &msg)) {
         zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
         return;
@@ -688,7 +693,7 @@ static void
 
     // select an asset and publish it through mailbox
     char *asset_name = zmsg_popstr (zmessage);
-    s_publish_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, mlm_client_sender (cfg->mailbox_client));
+    s_sendto_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, mlm_client_sender (cfg->mailbox_client));
     zstr_free (&asset_name);
 }
 
@@ -696,36 +701,68 @@ static void
     s_handle_subject_asset_manipulation (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
 {
     if (!cfg || !zmessage_p || !*zmessage_p) return;
+    zmsg_t *reply = zmsg_new ();
+
     zmsg_t *zmessage = *zmessage_p;
+    char *read_only_str = zmsg_popstr (zmessage);
+    bool read_only;
+    if (!read_only_str) {
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "BAD_COMMAND");
+        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+        zstr_free (&read_only_str);
+        zmsg_destroy (&reply);
+        return;
+    }
+    else {
+        if (streq (read_only_str, "READONLY")) {
+            read_only = true;
+        }
+        else if (streq (read_only_str, "READWRITE")) {
+            read_only = false;
+        }
+        else {
+            zmsg_addstr (reply, "ERROR");
+            zmsg_addstr (reply, "BAD_COMMAND");
+            mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+            zstr_free (&read_only_str);
+            zmsg_destroy (&reply);
+            return;
+        }
+    }
+
     if (!is_fty_proto (zmessage)) {
         zsys_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
+        zstr_free (&read_only_str);
         return;
     }
     fty_proto_t *fmsg = fty_proto_decode (zmessage_p);
     if (! fmsg) {
         zsys_error ("%s:\tASSET_MANIPULATION: failed to decode message", cfg->name);
+        zstr_free (&read_only_str);
         return;
     }
 
-    zmsg_t *reply = zmsg_new ();
     const char *operation = fty_proto_operation (fmsg);
 
     if (streq (operation, "create") || streq (operation, "update")) {
-            db_reply_t dbreply = create_or_update_asset (fmsg, cfg->test);
+            db_reply_t dbreply = create_or_update_asset (fmsg, read_only, cfg->test);
             if (! dbreply.status) {
                 zsys_error ("Failed to create asset!");
                 fty_proto_print (fmsg);
                 zmsg_addstr (reply, "ERROR");
                 mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
                 fty_proto_destroy (&fmsg);
+                zstr_free (&read_only_str);
                 return;
             }
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, fty_proto_name (fmsg));
             mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
             //publish on stream ASSETS
-            s_publish_create_or_update_asset (cfg, fty_proto_name (fmsg), operation);
+            s_send_create_or_update_asset (cfg, fty_proto_name (fmsg), operation, read_only);
             fty_proto_destroy (&fmsg);
+            zstr_free (&read_only_str);
             return;
     }
     // so far no operation implemented
@@ -735,6 +772,7 @@ static void
     mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
 
     fty_proto_destroy (&fmsg);
+    zstr_free (&read_only_str);
 }
 
 static void
@@ -760,7 +798,7 @@ static void
 
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
-        s_publish_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE);
+        s_send_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, true);
     }
 }
 
@@ -791,7 +829,7 @@ s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_pu
 
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
-        s_publish_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE);
+        s_send_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, true);
     }
 }
 
@@ -1044,6 +1082,7 @@ fty_asset_server_test (bool verbose)
                 asset_name,
                 FTY_PROTO_ASSET_OP_CREATE,
                 NULL);
+        zmsg_pushstrf (msg, "%s", "READWRITE");
         int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
         assert (rv == 0);
         zmsg_t *reply = mlm_client_recv (ui);

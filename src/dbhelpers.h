@@ -225,6 +225,7 @@ FTY_ASSET_PRIVATE int
     process_insert_inventory
     (const std::string& device_name,
     zhash_t *ext_attributes,
+    bool read_only,
     bool test);
 
 // Selects user-friendly name for given asset name
@@ -242,6 +243,7 @@ void
 FTY_ASSET_PRIVATE db_reply_t
     create_or_update_asset
     (fty_proto_t *fmsg,
+     bool read_only,
      bool test);
 //  @end
 

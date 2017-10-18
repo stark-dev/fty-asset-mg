@@ -120,7 +120,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
             const char *operation = fty_proto_operation(proto);
 
             if (streq (operation, "inventory")) {
-                int rv = process_insert_inventory (device_name, ext, test);
+                int rv = process_insert_inventory (device_name, ext, true, test);
                 if (rv != 0)
                     zsys_error ("Could not insert inventory data into DB");
             }
