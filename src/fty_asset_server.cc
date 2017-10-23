@@ -438,6 +438,8 @@ static void
         zmsg_addstr (reply, "BAD_COMMAND");
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
         zstr_free (&c_command);
+        if (uuid)
+            zstr_free (&uuid);
         return;
     }
     zstr_free (&c_command);
@@ -482,6 +484,7 @@ static void
     rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
     if (rv == -1)
         zsys_error ("%s:\tASSETS: mlm_client_sendto failed", cfg->name);
+    zstr_free (&uuid);
 
 }
 
@@ -1191,6 +1194,7 @@ fty_asset_server_test (bool verbose)
         char *str = zmsg_popstr (reply);
         assert (streq (str, "OK"));
         zstr_free (&str);
+        zstr_free (&uuid);
         zmsg_destroy (&reply) ;
         zsys_info ("fty-asset-server-test:Test #6: OK");
     }
