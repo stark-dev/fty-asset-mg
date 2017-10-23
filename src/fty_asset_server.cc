@@ -384,7 +384,7 @@ static void
 {
     zmsg_t *reply = zmsg_new ();
     if (zmsg_size (msg) < 1) {
-        zsys_error ("%s:\tASSETS: incoming message have less than 1 frame", cfg->name);
+        zsys_error ("%s:\tENAME_FROM_INAME: incoming message have less than 1 frame", cfg->name);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "MISSING_INAME");
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply);
@@ -1179,12 +1179,15 @@ fty_asset_server_test (bool verbose)
         const char *command = "GET";
         zmsg_t *msg = zmsg_new();
         zmsg_addstr (msg, command);
+        zmsg_addstr (msg, "UUID");
         zmsg_addstr (msg, asset_name);
         int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
         assert (rv == 0);
         zmsg_t *reply = mlm_client_recv (ui);
         assert (streq (mlm_client_subject (ui), subject));
-        assert (zmsg_size (reply) == 1);
+        assert (zmsg_size (reply) == 2);
+        char *uuid = zmsg_popstr (reply);
+        assert (streq (uuid, "UUID"));
         char *str = zmsg_popstr (reply);
         assert (streq (str, "OK"));
         zstr_free (&str);
