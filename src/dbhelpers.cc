@@ -733,15 +733,6 @@ select_ename_from_iname
     return 0;
 }
 
-//  Self test of this class
-void
-dbhelpers_test (bool verbose)
-{
-    printf (" * dbhelpers: ");
-
-    printf ("OK\n");
-}
-
 /**
  *  \brief Inserts data from create/update message into DB
  *
@@ -880,3 +871,83 @@ db_reply_t
         return ret;
     }
 }
+
+// returns map with desired assets and their ids
+db_reply <std::map <uint32_t, std::string> >
+    select_short_elements
+        (tntdb::Connection &conn,
+         uint32_t type_id,
+         uint32_t subtype_id)
+{
+    zsys_debug ("  type_id = %" PRIi16, type_id);
+    zsys_debug ("  subtype_id = %" PRIi16, subtype_id);
+    std::map <uint32_t, std::string> item{};
+    db_reply <std::map <uint32_t, std::string> > ret = db_reply_new(item);
+
+    std::string query;
+    if ( subtype_id == 0 )
+    {
+        query = " SELECT "
+                "   v.name, v.id "
+                " FROM "
+                "   v_bios_asset_element v "
+                " WHERE "
+                "   v.id_type = :typeid ";
+    }
+    else
+    {
+        query = " SELECT "
+                "   v.name, v.id "
+                " FROM "
+                "   v_bios_asset_element v "
+                " WHERE "
+                "   v.id_type = :typeid AND "
+                "   v.id_subtype = :subtypeid ";
+    }
+    try {
+        // Can return more than one row.
+        tntdb::Statement st = conn.prepareCached(query);
+
+        tntdb::Result result;
+        if ( subtype_id == 0 )
+        {
+            result = st.set("typeid", type_id).
+                    select();
+        } else {
+            result = st.set("typeid", type_id).
+                    set("subtypeid", subtype_id).
+                    select();
+        }
+
+        // Go through the selected elements
+        for (auto const& row: result) {
+            std::string name;
+            row[0].get(name);
+            uint32_t id = 0;
+            row[1].get(id);
+            ret.item.insert(std::pair<uint32_t, std::string>(id, name));
+        }
+        ret.status = 1;
+
+        return ret;
+    }
+    catch (const std::exception &e) {
+        ret.status        = 0;
+        ret.errtype       = DB_ERR;
+        ret.errsubtype    = DB_ERROR_INTERNAL;
+        ret.msg           = e.what();
+        ret.item.clear();
+        zsys_error ("Exception caught %s", e.what());
+        return ret;
+    }
+}
+
+//  Self test of this class
+void
+dbhelpers_test (bool verbose)
+{
+    printf (" * dbhelpers: ");
+
+    printf ("OK\n");
+}
+

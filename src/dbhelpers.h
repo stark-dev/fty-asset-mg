@@ -235,16 +235,23 @@ FTY_ASSET_PRIVATE int
      std::string &ename,
      bool test);
 
-//  Self test of this class
-void
-    dbhelpers_test (bool verbose);
-
 // Inserts data from create/update message into DB
 FTY_ASSET_PRIVATE db_reply_t
     create_or_update_asset
     (fty_proto_t *fmsg,
      bool read_only,
      bool test);
+
+
+FTY_ASSET_PRIVATE db_reply <std::map <uint32_t, std::string> >
+    select_short_elements
+        (tntdb::Connection &conn,
+         uint32_t type_id,
+         uint32_t subtype_id);
+//  Self test of this class
+void
+    dbhelpers_test (bool verbose);
+
 //  @end
 
 
