@@ -379,7 +379,7 @@ static void
         zmsg_addstr (reply, ename.c_str());
     }
     if (-1 == mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply))
-        zsys_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
+        zsys_error ("%s:\tENAME_FROM_INAME: mlm_client_sendto failed", cfg->name);
 }
 
 static void
@@ -390,6 +390,7 @@ static void
     zmsg_t *reply = zmsg_new ();
     if (zmsg_size (msg) < 1) {
         zsys_error ("%s:\tASSETS: incoming message have less than 1 frame", cfg->name);
+        zmsg_addstr (reply, "0");
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "MISSING_COMMAND");
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
@@ -401,6 +402,9 @@ static void
     char* c_command = zmsg_popstr (msg);
     if (! streq (c_command, "GET")) {
         zsys_error ("%s:\tASSETS: bad command '%s', expected GET", cfg->name, c_command);
+        char* uuid = zmsg_popstr (msg);
+        if (uuid)
+            zmsg_addstr (reply, uuid);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
@@ -408,6 +412,7 @@ static void
         return;
     }
     zstr_free (&c_command);
+    char* uuid = zmsg_popstr (msg);
 
     std::set <std::string> filters;
     while (zmsg_size (msg) > 0) {
@@ -425,17 +430,20 @@ static void
 
     if (rv == -1)
     {
+        zmsg_addstr (reply, uuid);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "INTERNAL_ERROR");
     }
     else
     if (rv == -2)
     {
+        zmsg_addstr (reply, uuid);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "ASSET_NOT_FOUND");
     }
     else
     {
+        zmsg_addstr (reply, uuid);
         zmsg_addstr (reply, "OK");
         for (const auto& dev : assets)
             zmsg_addstr (reply, dev.c_str ());
@@ -648,16 +656,16 @@ static void
     if (!cfg || !zmessage_p || !*zmessage_p) return;
     zmsg_t *zmessage = *zmessage_p;
     if (!is_fty_proto (zmessage)) {
-        zsys_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
+        zsys_error ("%s:\tASSET_DETAIL: receiver message is not fty_proto", cfg->name);
         return;
     }
     char* c_command = zmsg_popstr (zmessage);
     if (! streq (c_command, "GET")) {
         zmsg_t *reply = zmsg_new ();
-        zsys_error ("%s:\tASSETS: bad command '%s', expected GET", cfg->name, c_command);
+        zsys_error ("%s:\tASSET_DETAIL: bad command '%s', expected GET", cfg->name, c_command);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
-        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
+        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_DETAIL", NULL, 5000, &reply);
         zstr_free (&c_command);
         zmsg_destroy (&reply);
         return;
