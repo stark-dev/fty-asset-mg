@@ -30,15 +30,14 @@
 #define INPUT_POWER_CHAIN     1
 
 /**
- *  \brief Convert asset name to the id
+ *  \brief Converts asset name to the DB id
  *
- *  \param[in] conn - a database connection
  *  \param[in] name - name of the asset to convert
  *  \param[out] id - converted id
  *
  *  \return  0 - in case of success
  *          -2 - in case if asset was not found
- *          -1 - in case of some unecpected error
+ *          -1 - in case of some unexpected error
  */
 int
     select_asset_id (
@@ -74,7 +73,12 @@ int
     }
 }
 
-std::string
+/**
+ * \brief Creates condition for type/subtype filtering
+ *
+ * \param[in] types_and_subtypes - types and subtypes we are interested in
+ */
+static std::string
 select_assets_by_container_filter (
     const std::set<std::string> &types_and_subtypes
 )
@@ -108,6 +112,15 @@ select_assets_by_container_filter (
     return filter;
 }
 
+/**
+ *  \brief Selects all assets which have our container in input power chain
+ *
+ *  \param[in] element_id - DB id of container
+ *  \param[out] assets - <src,dst> pairs for such assets
+ *
+ *  \return  0 - in case of success (even if nothing was found)
+ *          -1 - in case of some unexpected error
+ */
 int
     select_links_by_container (
         a_elmnt_id_t element_id,
@@ -177,7 +190,17 @@ int
     }
 }
 
-int
+/**
+ *  \brief Selects assets in a given container
+ *
+ *  \param[in] element_id - DB id of container
+ *  \param[in] types_and_subtypes - types and subtypes we are interested in
+ *  \param[in] cb - function to call on each row
+ *
+ *  \return  0 - in case of success (even if nothing was found)
+ *          -1 - in case of some unexpected error
+ */
+ int
     select_assets_by_container_cb (
         a_elmnt_id_t element_id,
         const std::set<std::string> &types_and_subtypes,
@@ -225,6 +248,10 @@ int
     }
 }
 
+/**
+ * \brief Selects all assets in a given container without type/subtype filtering.
+ *  Wrapper for select_assets_by_container_cb with 3 arguments
+ */
 int
     select_assets_by_container_cb (
         a_elmnt_id_t element_id,
@@ -236,6 +263,17 @@ int
     return select_assets_by_container_cb (element_id, empty, cb);
 }
 
+/**
+ *  \brief Wrapper for select_assets_by_container_cb
+ *
+ *  \param[in] container_name - iname of container
+ *  \param[in] filter - types and subtypes we are interested in
+ *  \param[out] assets - inames of assets in this container
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
 select_assets_by_container (
         const std::string& container_name,
@@ -266,6 +304,16 @@ select_assets_by_container (
     return select_assets_by_container_cb (id, filter, func);
 }
 
+/**
+ *  \brief Selects basic asset info
+ *
+ *  \param[in] element_id - iname of asset
+ *  \param[in] cb - function to call on each row
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
     select_asset_element_basic
         (const std::string &asset_name,
@@ -313,6 +361,16 @@ int
     }
 }
 
+/**
+ *  \brief Selects ext attributes for given asset
+ *
+ *  \param[in] element_id - iname of asset
+ *  \param[in] cb - function to call on each row
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
     select_ext_attributes
         (uint32_t asset_id,
@@ -355,6 +413,16 @@ int
     }
 }
 
+/**
+ *  \brief Selects all parents of given asset
+ *
+ *  \param[in] id - iname of asset
+ *  \param[in] cb - function to call on each row
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
     select_asset_element_super_parent (
             uint32_t id,
@@ -423,6 +491,15 @@ int
     }
 }
 
+/**
+ *  \brief Selects all assets in the DB of given types/subtypes
+ *
+ *  \param[in] types_and_subtypes - types/subtypes we are interested in
+ *  \param[in] cb - function to call on each row
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
     select_assets_by_filter_cb (
         const std::set<std::string> &types_and_subtypes,
@@ -460,11 +537,20 @@ int
     }
 }
 
+/**
+ * Wrapper for select_assets_by_filter_cb
+ *
+ * \param[in] filter - types/subtypes we are interested in
+ * \param[out] assets - inames of returned assets
+ */
 int
 select_assets_by_filter (
         const std::set <std::string>& filter,
-        std::vector <std::string>& assets)
+        std::vector <std::string>& assets,
+        bool test)
 {
+    if (test)
+        return 0;
 
     std::function<void(const tntdb::Row&)> func =
         [&assets](const tntdb::Row& row)
@@ -477,6 +563,15 @@ select_assets_by_filter (
     return select_assets_by_filter_cb (filter, func);
 }
 
+/**
+ *  \brief Selects basic asset info for all assets in the DB
+ *
+ *  \param[in] cb - function to call on each row
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
     select_assets (
             std::function<void(
@@ -522,10 +617,22 @@ int
     }
 }
 
+/**
+ *  \brief Inserts ext attributes from inventory message into DB
+ *
+ *  \param[in] device_name - iname of assets
+ *  \param[in] ext_attributes - recent ext attributes for this asset
+ *  \param[in] read_only - whether to insert ext attributes as readonly
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 int
 process_insert_inventory
     (const std::string& device_name,
     zhash_t *ext_attributes,
+    bool readonly,
     bool test)
 {
     if (test)
@@ -545,11 +652,11 @@ process_insert_inventory
         "   t_bios_asset_ext_attributes"
         "   (keytag, value, id_asset_element, read_only)"
         " VALUES"
-        "  ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), 1)"
+        "  ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), :readonly)"
         " ON DUPLICATE KEY"
         "   UPDATE"
         "       value = VALUES (value),"
-        "       read_only = 1,"
+        "       read_only = :readonly,"
         "       id_asset_ext_attribute = LAST_INSERT_ID(id_asset_ext_attribute)");
 
     for (void* it = zhash_first (ext_attributes);
@@ -563,6 +670,7 @@ process_insert_inventory
             st.set ("keytag", keytag).
                set ("value", value).
                set ("device_name", device_name).
+               set ("readonly", readonly).
                execute ();
         }
         catch (const std::exception &e)
@@ -576,16 +684,67 @@ process_insert_inventory
     return 0;
 }
 
-void
-dbhelpers_test (bool verbose)
+/**
+ *  \brief Selects user-friendly name for given asset name
+ *
+ *  \param[in] iname - asset iname
+ *  \param[out] ename - user-friendly asset name
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
+int
+select_ename_from_iname
+    (std::string &iname,
+     std::string &ename,
+     bool test)
 {
-    printf (" * dbhelpers: ");
+    if (test) {
+        if (iname == TEST_INAME) {
+            ename = TEST_ENAME;
+            return 0;
+        }
+        else
+            return -1;
+    }
+    try
+    {
+        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Statement st = conn.prepareCached (
+            "SELECT e.value FROM  t_bios_asset_ext_attributes AS e "
+            "INNER JOIN t_bios_asset_element AS a "
+            "ON a.id_asset_element = e.id_asset_element  "
+            "WHERE keytag = 'name' and a.name = :iname; "
 
-    printf ("OK\n");
+        );
+
+        tntdb::Row row = st.set ("iname", iname).selectRow ();
+        zsys_debug ("[s_handle_subject_ename_from_iname]: were selected %" PRIu32 " rows", 1);
+
+        row [0].get (ename);
+    }
+    catch (const std::exception &e)
+    {
+        zsys_error ("exception caught %s for element '%s'", e.what (), ename.c_str ());
+        return -1;
+    }
+
+    return 0;
 }
 
+/**
+ *  \brief Inserts data from create/update message into DB
+ *
+ *  \param[in] fmsg - create/update message
+ *  \param[in] read_only - whether to insert ext attributes as readonly
+ *  \param[in] test - unit tests indicator
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
 db_reply_t
-    create_or_update_asset (fty_proto_t *fmsg, bool test)
+    create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test)
 {
     const char   *element_name;
     uint64_t      type_id;
@@ -696,17 +855,12 @@ db_reply_t
             // also set name to fty_proto
             fty_proto_set_name (fmsg, "%s-%" PRIu64, element_name, ret.rowid);
         }
-        if (ret.affected_rows == 0) {
-            ret.status = 0;
-            //TODO: rework to bad param
-            // bios_error_idx(ret.rowid, ret.msg, "data-conflict", element_name, "Most likely duplicate entry.");
-        }
-        else {
-            // went well some lines changed
+        if (ret.affected_rows == 0)
+            zsys_debug ("Asset unchanged, processing inventory");
+        else
             zsys_debug ("Insert went well, processing inventory.");
-            process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), false);
-            ret.status = 1;
-        }
+        process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), read_only, false);
+        ret.status = 1;
         return ret;
     }
     catch (const std::exception &e) {
@@ -717,3 +871,83 @@ db_reply_t
         return ret;
     }
 }
+
+// returns map with desired assets and their ids
+db_reply <std::map <uint32_t, std::string> >
+    select_short_elements
+        (tntdb::Connection &conn,
+         uint32_t type_id,
+         uint32_t subtype_id)
+{
+    zsys_debug ("  type_id = %" PRIi16, type_id);
+    zsys_debug ("  subtype_id = %" PRIi16, subtype_id);
+    std::map <uint32_t, std::string> item{};
+    db_reply <std::map <uint32_t, std::string> > ret = db_reply_new(item);
+
+    std::string query;
+    if ( subtype_id == 0 )
+    {
+        query = " SELECT "
+                "   v.name, v.id "
+                " FROM "
+                "   v_bios_asset_element v "
+                " WHERE "
+                "   v.id_type = :typeid ";
+    }
+    else
+    {
+        query = " SELECT "
+                "   v.name, v.id "
+                " FROM "
+                "   v_bios_asset_element v "
+                " WHERE "
+                "   v.id_type = :typeid AND "
+                "   v.id_subtype = :subtypeid ";
+    }
+    try {
+        // Can return more than one row.
+        tntdb::Statement st = conn.prepareCached(query);
+
+        tntdb::Result result;
+        if ( subtype_id == 0 )
+        {
+            result = st.set("typeid", type_id).
+                    select();
+        } else {
+            result = st.set("typeid", type_id).
+                    set("subtypeid", subtype_id).
+                    select();
+        }
+
+        // Go through the selected elements
+        for (auto const& row: result) {
+            std::string name;
+            row[0].get(name);
+            uint32_t id = 0;
+            row[1].get(id);
+            ret.item.insert(std::pair<uint32_t, std::string>(id, name));
+        }
+        ret.status = 1;
+
+        return ret;
+    }
+    catch (const std::exception &e) {
+        ret.status        = 0;
+        ret.errtype       = DB_ERR;
+        ret.errsubtype    = DB_ERROR_INTERNAL;
+        ret.msg           = e.what();
+        ret.item.clear();
+        zsys_error ("Exception caught %s", e.what());
+        return ret;
+    }
+}
+
+//  Self test of this class
+void
+dbhelpers_test (bool verbose)
+{
+    printf (" * dbhelpers: ");
+
+    printf ("OK\n");
+}
+

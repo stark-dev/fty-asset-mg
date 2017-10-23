@@ -154,12 +154,14 @@ inline db_reply<T> db_reply_new(T& item) {
 /* .item  */     item};
 }
 
+// Converts asset name to the DB id
 FTY_ASSET_PRIVATE int
     select_asset_id (
         const std::string &name,
         a_elmnt_id_t &id
     );
 
+// Selects assets in a given container
 FTY_ASSET_PRIVATE int
     select_assets_by_container (
         const std::string& container_name,
@@ -168,92 +170,88 @@ FTY_ASSET_PRIVATE int
         bool test
     );
 
-/**
- *  \brief Select all assets inside the asset-container (all 5 level down)
- *
- *  \param[in] conn - db connection
- *  \param[in] element_id - id of the asset-container
- *  \param[in] cb - callback to be called with every selected row.
- *
- *   Every selected row has the following columns:
- *       name, asset_id, subtype_id, subtype_name, type_id
- *
- *  \return 0 on success (even if nothing was found)
- */
+// Selects all assets in a given container without type/subtype filtering.
 FTY_ASSET_PRIVATE int
     select_assets_by_container_cb (
         a_elmnt_id_t element_id,
         std::function<void(const tntdb::Row&)> cb
     );
 
-FTY_ASSET_PRIVATE std::string
-select_assets_by_container_filter (
-    const std::set<std::string> &types_and_subtypes
-);
-
+// Selects all assets in the DB of given types/subtypes
 FTY_ASSET_PRIVATE int
     select_assets_by_filter (
         const std::set <std::string>& filter,
-        std::vector <std::string>& assets
+        std::vector <std::string>& assets,
+        bool test
     );
 
-/**
- *  \brief Selects all links, where at least one end is inside the specified
- *          container
- *
- *  \param[in] conn - db connection
- *  \param[in] element_id - id of the container
- *  \param[out] links - links, where at least one end belongs to the
- *                  devices in the container
- *
- *  \return 0 on success (even if nothing was found)
- */
+// Selects all assets which have our container in input power chain
 FTY_ASSET_PRIVATE int
     select_links_by_container (
         a_elmnt_id_t element_id,
         std::set <std::pair<a_elmnt_id_t ,a_elmnt_id_t> > &links
     );
 
+// Selects ext attributes for given asset
 FTY_ASSET_PRIVATE int
     select_ext_attributes
         (uint32_t asset_id,
          std::function<void(const tntdb::Row&)> cb,
          bool test);
 
+// Selects basic asset info
 FTY_ASSET_PRIVATE int
     select_asset_element_basic
         (const std::string &asset_name,
          std::function<void(const tntdb::Row&)> cb,
          bool test);
 
+// Selects all parents of given asset
 FTY_ASSET_PRIVATE int
     select_asset_element_super_parent (
         uint32_t id,
         std::function<void(const tntdb::Row&)>& cb,
         bool test);
 
+// Selects basic asset info for all assets in the DB
 FTY_ASSET_PRIVATE int
     select_assets (
             std::function<void(
                 const tntdb::Row&
                 )>& cb, bool test);
 
-// update inventory data of asset in database
-// returns -1 for database failure, otherwise 0
+// Inserts ext attributes from inventory message into DB
 FTY_ASSET_PRIVATE int
     process_insert_inventory
     (const std::string& device_name,
     zhash_t *ext_attributes,
+    bool read_only,
     bool test);
 
+// Selects user-friendly name for given asset name
+FTY_ASSET_PRIVATE int
+    select_ename_from_iname
+    (std::string &iname,
+     std::string &ename,
+     bool test);
+
+// Inserts data from create/update message into DB
+FTY_ASSET_PRIVATE db_reply_t
+    create_or_update_asset
+    (fty_proto_t *fmsg,
+     bool read_only,
+     bool test);
+
+
+FTY_ASSET_PRIVATE db_reply <std::map <uint32_t, std::string> >
+    select_short_elements
+        (tntdb::Connection &conn,
+         uint32_t type_id,
+         uint32_t subtype_id);
 //  Self test of this class
 void
     dbhelpers_test (bool verbose);
 
-FTY_ASSET_PRIVATE db_reply_t
-    create_or_update_asset
-    (fty_proto_t *fmsg,
-     bool test);
 //  @end
 
 
