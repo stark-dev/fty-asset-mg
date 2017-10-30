@@ -674,10 +674,12 @@ static void
         fty_asset_server_t *cfg,
         const std::string &asset_name,
         const char* operation,
-        const char *address)
+        const char *address,
+        const char *uuid)
 {
     std::string subject;
     auto msg = s_publish_create_or_update_asset_msg(cfg, asset_name, operation, subject, false);
+    zmsg_pushstr(msg, uuid);
     if (NULL == msg || 0 != mlm_client_sendto (cfg->mailbox_client, address, subject.c_str(), NULL, 5000, &msg)) {
         zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
         return;
@@ -691,8 +693,11 @@ static void
     zmsg_t *zmessage = *zmessage_p;
     char* c_command = zmsg_popstr (zmessage);
     if (! streq (c_command, "GET")) {
+        char* uuid = zmsg_popstr (zmessage);
         zmsg_t *reply = zmsg_new ();
         zsys_error ("%s:\tASSET_DETAIL: bad command '%s', expected GET", cfg->name, c_command);
+        if (uuid)
+            zmsg_addstr (reply, uuid);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_DETAIL", NULL, 5000, &reply);
@@ -703,9 +708,11 @@ static void
     zstr_free (&c_command);
 
     // select an asset and publish it through mailbox
+    char* uuid = zmsg_popstr (zmessage);
     char *asset_name = zmsg_popstr (zmessage);
-    s_sendto_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, mlm_client_sender (cfg->mailbox_client));
+    s_sendto_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, mlm_client_sender (cfg->mailbox_client), uuid);
     zstr_free (&asset_name);
+    zstr_free (&uuid);
 }
 
 static void
@@ -1223,19 +1230,24 @@ fty_asset_server_test (bool verbose)
         zsys_debug ("fty-asset-server-test:Test #9");
         const char* subject = "ASSET_DETAIL";
         const char *command = "GET";
+        const char *uuid = "UUID-0000-TEST";
         zmsg_t *msg = zmsg_new();
         zmsg_addstr (msg, command);
+        zmsg_addstr (msg, uuid);
         zmsg_addstr (msg, asset_name);
         int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
         assert (rv == 0);
         zmsg_t *reply = mlm_client_recv (ui);
+        char *rcv_uuid = zmsg_popstr (reply);
+        assert (0 == strcmp (rcv_uuid, uuid));
         assert (fty_proto_is (reply));
         fty_proto_t *freply = fty_proto_decode (&reply);
         const char *str = fty_proto_name (freply);
         assert (streq (str, asset_name));
         str = fty_proto_operation (freply);
         assert (streq (str, FTY_PROTO_ASSET_OP_UPDATE));
-        fty_proto_destroy (&freply) ;
+        fty_proto_destroy (&freply);
+        zstr_free (&rcv_uuid);
         zsys_info ("fty-asset-server-test:Test #9: OK");
     }
 
