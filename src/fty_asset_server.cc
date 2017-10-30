@@ -577,7 +577,7 @@ static zmsg_t *
             const char *uuid_new = fty_uuid_calculate (uuid, mfr, model, serial);
             zhash_insert (ext, "uuid", (void *) uuid_new);
             zhash_insert (ext_new, "uuid", (void *) uuid_new);
-            process_insert_inventory (asset_name.c_str (), ext_new, cfg->test, true);
+            process_insert_inventory (asset_name.c_str (), ext_new, true, cfg->test);
         } else {
             if (streq (type, "device")) {
                 // it is device, put FFF... and wait for information
@@ -588,7 +588,7 @@ static zmsg_t *
                 const char *uuid_new = fty_uuid_generate (uuid);
                 zhash_insert (ext, "uuid", (void *) uuid_new);
                 zhash_insert (ext_new, "uuid", (void *) uuid_new);
-                process_insert_inventory (asset_name.c_str (), ext_new, cfg->test, true);
+                process_insert_inventory (asset_name.c_str (), ext_new, true, cfg->test);
             }
         }
         fty_uuid_destroy (&uuid);
@@ -607,7 +607,7 @@ static zmsg_t *
         zhash_insert (ext, "create_ts", (void *) mbstr);
         zhash_insert (ext_new, "create_ts", (void *) mbstr);
 
-        process_insert_inventory (asset_name.c_str (), ext_new, cfg->test, true);
+        process_insert_inventory (asset_name.c_str (), ext_new, true, cfg->test);
 
         zhash_destroy (&ext_new);
     }
