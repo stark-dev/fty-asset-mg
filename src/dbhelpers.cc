@@ -665,12 +665,14 @@ process_insert_inventory
 
         const char *value = (const char*) it;
         const char *keytag = (const char*)  zhash_cursor (ext_attributes);
-
+        bool readonlyV = readonly;
+        if(strcmp(keytag, "name") == 0 || strcmp(keytag, "description") == 0)
+            readonlyV = false;
         try {
             st.set ("keytag", keytag).
                set ("value", value).
                set ("device_name", device_name).
-               set ("readonly", readonly).
+               set ("readonly", readonlyV).
                execute ();
         }
         catch (const std::exception &e)
