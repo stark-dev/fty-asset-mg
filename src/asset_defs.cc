@@ -85,6 +85,8 @@ const char *asset_subtype2str (int asset_subtype)
             return "sensor";
         case SENSORGPIO:
             return "sensorgpio";
+        case GPO:
+            return "gpo";
         case N_A:
             return "N_A";
         default:
@@ -226,6 +228,9 @@ uint32_t
     else if (st == "sensorgpio") {
         return asset_subtype::SENSORGPIO;
     }
+    else if (st == "gpo") {
+        return asset_subtype::GPO;
+    }
     else if(st == "n_a") {
         return asset_subtype::N_A;
     }
@@ -267,6 +272,9 @@ std::string
             return "sensor";
         case asset_subtype::SENSORGPIO:
             return "sensorgpio";
+        case asset_subtype::GPO:
+            return "gpo";
+
         case asset_subtype::VIRTUAL:
             return "vm";
         case asset_subtype::N_A:
