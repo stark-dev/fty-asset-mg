@@ -117,9 +117,10 @@
         subject: "ASSETS"
         Message is a multipart string message
 
-        * GET/<type 1>/.../<type n>
+        * GET/<uuid>/<type 1>/.../<type n>
 
         where:
+            <uuid>                  = zuuid of  message
             <type X>                = Type or subtype to be returned. Possible values are
                                       ups
                                       TODO: add more
@@ -129,8 +130,8 @@
         Message is a multipart message:
 
         * OK                         = empty container
-        * OK/<asset 1>/.../<asset N> = non-empty
-        * ERROR/<reason>
+        * OK/<uuid>/<asset 1>/.../<asset N> = non-empty
+        * ERROR/<uuid>/<reason>
 
         where:
             <reason>          = ASSET_NOT_FOUND / INTERNAL_ERROR / BAD_COMMAND
@@ -170,9 +171,10 @@
 
      request all the available data about given asset:
          subject: "ASSET_DETAIL"
-         message: is a multipart message A/B
+         message: is a multipart message A/B/C
                  A = "GET" - mandatory
-                 B = "asset_name" - mandatory
+                 B = uuid - mandatory
+                 C = "asset_name" - mandatory
 
      power topology reply in "OK" case:
          subject: "ASSET_DETAIL"

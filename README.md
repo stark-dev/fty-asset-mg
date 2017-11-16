@@ -172,18 +172,19 @@ where
 The USER peer sends the following messages using MAILBOX SEND to
 FTY-ASSET-AGENT ("asset-agent") peer:
 
-* GET/'type-1'/.../'type-n'
+* GET/<uuid>/'type-1'/.../'type-n'
 
 where
 * '/' indicates a multipart frame message
+* <uuid> zuuid of the message
 * 'type-1'/.../'type-n' MAY be asset types/subtypes
 * subject of the message MUST be "ASSETS".
 
 The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
-* OK/'A1'/.../'An'
-* ERROR/<reason>
+* OK/<uuid>/'A1'/.../'An'
+* ERROR/<uuid>/<reason>
 
 where
 * '/' indicates a multipart frame message
@@ -256,18 +257,19 @@ where
 The USER peer sends the following messages using MAILBOX SEND to
 FTY-ASSET-AGENT ("asset-agent") peer:
 
-* GET/'asset-iname'
+* GET/<uuid>/'asset-iname'
 
 where
 * '/' indicates a multipart frame message
 * 'asset-iname' is internal name of an asset
+* <uuid> is zuuid of the message
 * subject of the message MUST be "ASSET_DETAIL".
 
 The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
 * 'asset-message'
-* ERROR/<reason>
+* ERROR/<uuid>/<reason>
 
 where
 * '/' indicates a multipart frame message
