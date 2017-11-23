@@ -184,7 +184,7 @@
          subject: "ASSET_DETAIL"
          message: is a multipart message A/B
                  A = "ERROR" - mandatory
-                 B = "BAD_COMMAND"/"INTERNAL_ERROR" - mandatory
+                 B = "BAD_COMMAND"/"INTERNAL_ERROR"/"ASSET_NOT_FOUND" - mandatory
 
 
 @end
