@@ -645,7 +645,7 @@ static zmsg_t *
     subject.append ( (subtype==NULL)?"unknown":subtype );
     subject.append ("@");
     subject.append (asset_name);
-    zsys_debug("notifing ASSETS %s %s ..",operation,subject.c_str());
+    zsys_debug("notifying ASSETS %s %s ..",operation,subject.c_str());
     zmsg_t *msg = fty_proto_encode_asset (
             aux,
             asset_name.c_str(),
