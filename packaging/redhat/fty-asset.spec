@@ -1,21 +1,21 @@
 #
 #    fty-asset - Agent managing information about assets
 #
-#    Copyright (C) 2014 - 2017 Eaton                                        
-#                                                                           
-#    This program is free software; you can redistribute it and/or modify   
-#    it under the terms of the GNU General Public License as published by   
-#    the Free Software Foundation; either version 2 of the License, or      
-#    (at your option) any later version.                                    
-#                                                                           
-#    This program is distributed in the hope that it will be useful,        
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-#    GNU General Public License for more details.                           
-#                                                                           
+#    Copyright (C) 2014 - 2017 Eaton
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
 #    You should have received a copy of the GNU General Public License along
 #    with this program; if not, write to the Free Software Foundation, Inc.,
-#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
 # To build with draft APIs, use "--with drafts" in rpmbuild for local builds or add
@@ -28,6 +28,7 @@
 %else
 %define DRAFTS no
 %endif
+%define SYSTEMD_UNIT_DIR %(pkg-config --variable=systemdsystemunitdir systemd)
 Name:           fty-asset
 Version:        1.0.0
 Release:        1
@@ -50,13 +51,14 @@ BuildRequires:  systemd
 %{?systemd_requires}
 BuildRequires:  xmlto
 BuildRequires:  gcc-c++
+BuildRequires:  libsodium-devel
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
 BuildRequires:  file-devel
+BuildRequires:  fty-proto-devel
 BuildRequires:  cxxtools-devel
 BuildRequires:  tntdb-devel
-BuildRequires:  fty-proto-devel
 BuildRequires:  openssl-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
@@ -82,13 +84,14 @@ This package contains shared library for fty-asset: agent managing information a
 Summary:        agent managing information about assets
 Group:          System/Libraries
 Requires:       libfty_asset1 = %{version}
+Requires:       libsodium-devel
 Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
 Requires:       file-devel
+Requires:       fty-proto-devel
 Requires:       cxxtools-devel
 Requires:       tntdb-devel
-Requires:       fty-proto-devel
 Requires:       openssl-devel
 
 %description devel
@@ -104,6 +107,7 @@ This package contains development files for fty-asset: agent managing informatio
 %{_mandir}/man7/*
 
 %prep
+
 %setup -q
 
 %build
@@ -120,13 +124,14 @@ find %{buildroot} -name '*.la' | xargs rm -f
 
 %files
 %defattr(-,root,root)
+%doc README.md
 %doc COPYING
 %{_bindir}/fty-asset
 %{_mandir}/man1/fty-asset*
 %{_bindir}/fty-asset-cli
 %{_mandir}/man1/fty-asset-cli*
 %config(noreplace) %{_sysconfdir}/fty-asset/fty-asset.cfg
-/usr/lib/systemd/system/fty-asset.service
+%{SYSTEMD_UNIT_DIR}/fty-asset.service
 %dir %{_sysconfdir}/fty-asset
 %if 0%{?suse_version} > 1315
 %post
