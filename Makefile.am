@@ -16,18 +16,19 @@ AM_CXXFLAGS = \
     -std=c++11
 
 AM_CPPFLAGS = \
+    ${libsodium_CFLAGS} \
     ${libzmq_CFLAGS} \
     ${czmq_CFLAGS} \
     ${malamute_CFLAGS} \
     ${magic_CFLAGS} \
+    ${fty_proto_CFLAGS} \
     ${cxxtools_CFLAGS} \
     ${tntdb_CFLAGS} \
-    ${fty_proto_CFLAGS} \
     ${openssl_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${fty_proto_LIBS} ${openssl_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${openssl_LIBS}
 
 SUBDIRS = doc
 DIST_SUBDIRS = doc
@@ -45,13 +46,14 @@ DISTCLEANFILES =
 
 if ENABLE_DIST_CMAKEFILES
 EXTRA_DIST += \
+    Findlibsodium.cmake \
     Findlibzmq.cmake \
     Findczmq.cmake \
     Findmalamute.cmake \
     Findmagic.cmake \
+    Findfty_proto.cmake \
     Findcxxtools.cmake \
     Findtntdb.cmake \
-    Findfty_proto.cmake \
     Findopenssl.cmake \
     CMakeLists.txt
 endif
@@ -65,6 +67,7 @@ EXTRA_DIST += \
     src/asset_defs.h \
     src/total_power.h \
     src/dns.h \
+    README.md \
     src/fty_asset_classes.h
 
 # NOTE: this "include" syntax is not a "make" but an "autotools" keyword,
