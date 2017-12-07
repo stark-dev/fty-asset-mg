@@ -645,7 +645,7 @@ static zmsg_t *
     subject.append ( (subtype==NULL)?"unknown":subtype );
     subject.append ("@");
     subject.append (asset_name);
-    zsys_debug("notifing ASSETS %s %s ..",operation,subject.c_str());
+    zsys_debug("notifying ASSETS %s %s ..",operation,subject.c_str());
     zmsg_t *msg = fty_proto_encode_asset (
             aux,
             asset_name.c_str(),
@@ -681,8 +681,14 @@ static void
 {
     std::string subject;
     auto msg = s_publish_create_or_update_asset_msg(cfg, asset_name, operation, subject, false);
+    if (NULL == msg) {
+        msg = zmsg_new ();
+        zsys_error ("%s:\tASSET_DETAIL: asset not found", cfg->name);
+        zmsg_addstr (msg, "ERROR");
+        zmsg_addstr (msg, "ASSET_NOT_FOUND");
+    }
     zmsg_pushstr(msg, uuid);
-    if (NULL == msg || 0 != mlm_client_sendto (cfg->mailbox_client, address, subject.c_str(), NULL, 5000, &msg)) {
+    if (0 != mlm_client_sendto (cfg->mailbox_client, address, subject.c_str(), NULL, 5000, &msg)) {
         zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
         return;
     }
