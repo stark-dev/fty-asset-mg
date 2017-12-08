@@ -617,6 +617,16 @@ int
     }
 }
 
+#define SQL_EXT_ATT_INVENTORY " INSERT INTO" \
+        "   t_bios_asset_ext_attributes" \
+        "   (keytag, value, id_asset_element, read_only)" \
+        " VALUES" \
+        "  ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), :readonly)" \
+        " ON DUPLICATE KEY" \
+        "   UPDATE " \
+        "       value = VALUES (value)," \
+        "       read_only = :readonly," \
+        "       id_asset_ext_attribute = LAST_INSERT_ID(id_asset_ext_attribute)"
 /**
  *  \brief Inserts ext attributes from inventory message into DB
  *
@@ -647,17 +657,7 @@ process_insert_inventory
     }
 
     tntdb::Transaction trans (conn);
-    tntdb::Statement st = conn.prepareCached (
-        " INSERT INTO"
-        "   t_bios_asset_ext_attributes"
-        "   (keytag, value, id_asset_element, read_only)"
-        " VALUES"
-        "  ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), :readonly)"
-        " ON DUPLICATE KEY"
-        "   UPDATE"
-        "       value = VALUES (value),"
-        "       read_only = :readonly,"
-        "       id_asset_ext_attribute = LAST_INSERT_ID(id_asset_ext_attribute)");
+    tntdb::Statement st = conn.prepareCached (SQL_EXT_ATT_INVENTORY);
 
     for (void* it = zhash_first (ext_attributes);
                it != NULL;
@@ -721,17 +721,7 @@ process_insert_inventory
     }
 
     tntdb::Transaction trans (conn);
-    tntdb::Statement st = conn.prepareCached (
-        " INSERT INTO"
-        "   t_bios_asset_ext_attributes"
-        "   (keytag, value, id_asset_element, read_only)"
-        " VALUES"
-        "  ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), :readonly)"
-        " ON DUPLICATE KEY"
-        "   UPDATE"
-        "       value = VALUES (value),"
-        "       read_only = :readonly,"
-        "       id_asset_ext_attribute = LAST_INSERT_ID(id_asset_ext_attribute)");
+    tntdb::Statement st = conn.prepareCached (SQL_EXT_ATT_INVENTORY);
 
     for (void* it = zhash_first (ext_attributes);
                it != NULL;
