@@ -617,6 +617,16 @@ int
     }
 }
 
+#define SQL_EXT_ATT_INVENTORY " INSERT INTO" \
+        "   t_bios_asset_ext_attributes" \
+        "   (keytag, value, id_asset_element, read_only)" \
+        " VALUES" \
+        "  ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), :readonly)" \
+        " ON DUPLICATE KEY" \
+        "   UPDATE " \
+        "       value = VALUES (value)," \
+        "       read_only = :readonly," \
+        "       id_asset_ext_attribute = LAST_INSERT_ID(id_asset_ext_attribute)"
 /**
  *  \brief Inserts ext attributes from inventory message into DB
  *
@@ -647,17 +657,7 @@ process_insert_inventory
     }
 
     tntdb::Transaction trans (conn);
-    tntdb::Statement st = conn.prepareCached (
-        " INSERT INTO"
-        "   t_bios_asset_ext_attributes"
-        "   (keytag, value, id_asset_element, read_only)"
-        " VALUES"
-        "  ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), :readonly)"
-        " ON DUPLICATE KEY"
-        "   UPDATE"
-        "       value = VALUES (value),"
-        "       read_only = :readonly,"
-        "       id_asset_ext_attribute = LAST_INSERT_ID(id_asset_ext_attribute)");
+    tntdb::Statement st = conn.prepareCached (SQL_EXT_ATT_INVENTORY);
 
     for (void* it = zhash_first (ext_attributes);
                it != NULL;
@@ -686,6 +686,74 @@ process_insert_inventory
     return 0;
 }
 
+/**
+ *  \brief Inserts ext attributes from inventory message into DB only 
+ *         if the new value is different from the cache map
+ *         This method is not thread safe.
+ *
+ *  \param[in] device_name - iname of assets
+ *  \param[in] ext_attributes - recent ext attributes for this asset
+ *  \param[in] read_only - whether to insert ext attributes as readonly
+ *  \param[in] test - unit tests indicator
+ *  \param[in] map_cache -  cache map
+ *
+ *  \return  0 - in case of success
+ *          -1 - in case of some unexpected error
+ */
+int
+process_insert_inventory
+    (const std::string& device_name,
+    zhash_t *ext_attributes,
+    bool readonly,
+    std::map<std::string,std::string> &map_cache,
+    bool test)
+ {
+    if (test)
+       return 0;
+    std::string cache_key=device_name;
+    tntdb::Connection conn;
+    try {
+        conn = tntdb::connectCached (url);
+    }
+    catch ( const std::exception &e) {
+        zsys_error ("DB: cannot connect, %s", e.what());
+       return -1;
+    }
+
+    tntdb::Transaction trans (conn);
+    tntdb::Statement st = conn.prepareCached (SQL_EXT_ATT_INVENTORY);
+
+    for (void* it = zhash_first (ext_attributes);
+               it != NULL;
+               it = zhash_next (ext_attributes)) {
+        const char *value = (const char*) it;
+        const char *keytag = (const char*)  zhash_cursor (ext_attributes);
+        bool readonlyV = readonly;
+        if(strcmp(keytag, "name") == 0 || strcmp(keytag, "description") == 0)
+            readonlyV = false;
+        
+        cache_key.append(":").append(keytag).append((readonlyV)?"1":"0");
+        if(map_cache.find(cache_key)!=map_cache.end() && streq(map_cache.at(cache_key).c_str(),value)){
+            continue;
+        }
+        try {
+            st.set ("keytag", keytag).
+               set ("value", value).
+               set ("device_name", device_name).
+               set ("readonly", readonlyV).
+               execute ();
+            map_cache[cache_key]=value;
+        }
+       catch (const std::exception &e)
+        {
+            zsys_warning ("%s:\texception on updating %s {%s, %s}\n\t%s", "", device_name.c_str (), keytag, value, e.what ());
+            continue;
+        }
+    }
+
+    trans.commit ();
+    return 0;
+}
 /**
  *  \brief Selects user-friendly name for given asset name
  *
