@@ -32,6 +32,10 @@ For the other options available, refer to the manual page of fty-asset
 systemctl start fty-asset
 ```
 
+Agent also has a command line interface fty-asset-cli.
+
+For further information, refer to the manual page of fty-asset-cli.
+
 ### Configuration file
 
 Configuration file - fty-asset.cfg - is currently ignored.
@@ -276,7 +280,7 @@ where
 * 'asset-message' is fty-proto update message containing available data for given asset
 * 'reason' is string detailing reason for error. Possible values are:
 
-   BAD_COMMAND
+   BAD_COMMAND/ASSET\_NOT\_FOUND
 * subject of the message MUST be "ASSET_DETAIL".
 
 ### Stream subscriptions
