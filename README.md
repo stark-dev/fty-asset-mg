@@ -32,10 +32,14 @@ For the other options available, refer to the manual page of fty-asset
 systemctl start fty-asset
 ```
 
+Agent also has a command line interface fty-asset-cli.
+
+For further information, refer to the manual page of fty-asset-cli.
+
 ### Configuration file
 
 Configuration file - fty-asset.cfg - is currently ignored.
-Agent reads environment variable BIOS_ASSETS_REPEAT, which sets how often are all the assets republished on ASSETS stream.
+Agent reads environment variable BIOS\_ASSETS\_REPEAT, which sets how often are all the assets republished on ASSETS stream.
 
 ## Architecture
 
@@ -49,7 +53,7 @@ fty-asset is composed of 3 actors:
 
 In addition to actors, there are 2 timers:
 
-* asset server timer: runs every BIOS_ASSET_REPEATS seconds (by default once every hour) and triggers republish of all known assets on ASSETS stream
+* asset server timer: runs every BIOS\_ASSET\_REPEATS seconds (by default once every hour) and triggers republish of all known assets on ASSETS stream
 * autoupdate timer: runs once in a 5 minutes and triggers update of information about all RCs
 
 ## Protocols
@@ -79,7 +83,7 @@ It is possible to request the fty-asset agent for:
 The USER peer sends the following messages using MAILBOX SEND to
 FTY-ASSET-AGENT ("asset-agent") peer:
 
-* TOPOLOGY_POWER/'asset-iname'
+* TOPOLOGY\_POWER/'asset-iname'
 
 where
 * '/' indicates a multipart string message
@@ -89,8 +93,8 @@ where
 The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
-* TOPOLOGY_POWER/'asset-iname'/OK/'D1'/.../'Dn'
-* TOPOLOGY_POWER/'asset-iname'/ERROR/reason
+* TOPOLOGY\_POWER/'asset-iname'/OK/'D1'/.../'Dn'
+* TOPOLOGY\_POWER/'asset-iname'/ERROR/reason
 
 where
 * '/' indicates a multipart frame message
@@ -98,7 +102,7 @@ where
 * 'D1',...,'Dn' MUST be assets in the power topology of 'asset-iname'
 * 'reason' is string detailing reason for error. Possible values are:
 
-     ASSET_NOT_FOUND / INTERNAL_ERROR
+     ASSET\_NOT\_FOUND / INTERNAL\_ERROR
 * subject of the message MUST be TOPOLOGY
 
 #### Republishing assets
@@ -140,7 +144,7 @@ where
 * '/' indicates a multipart string message
 * 'container-name' MAY be asset iname
 * 'type-1'/.../'type-n' MAY be asset types/subtypes
-* subject of the message MUST be "ASSETS_IN_CONTAINER"
+* subject of the message MUST be "ASSETS\_IN\_CONTAINER"
 
 The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
@@ -164,8 +168,8 @@ where
     'A1'/.../'An' MUST be ALL assets which have 'container-name' as parent on any level of ANY of the given types or subtypes (MAY be empty)
 * 'reason' is string detailing reason for error. Possible values are:
 
-    ASSET_NOT_FOUND / BAD_COMMAND/INTERNAL_ERROR
-* subject of the message MUST be "ASSETS_IN_CONTAINER"
+    ASSET\_NOT\_FOUND / BAD\_COMMAND/INTERNAL\_ERROR
+* subject of the message MUST be "ASSETS\_IN\_CONTAINER"
 
 #### Assets of given type/subtype
 
@@ -196,7 +200,7 @@ where
    'A1'/.../'An' MUST be ALL assets of ANY of the specified types/subtypes in the DB
 * 'reason' is string detailing reason for error. Possible values are:
 
-    ASSET_NOT_FOUND / BAD_COMMAND / MISSING_COMMAND / INTERNAL_ERROR
+    ASSET\_NOT\_FOUND / BAD\_COMMAND / MISSING\_COMMAND / INTERNAL\_ERROR
 * subject of the message MUST be "ASSETS".
 
 #### Creation and updating of assets
@@ -208,7 +212,7 @@ FTY-ASSET-AGENT ("asset-agent") peer:
 
 where
 * 'asset' is fty-proto create OR update asset message
-* subject of the message MUST be "ASSET_MANIPULATION".
+* subject of the message MUST be "ASSET\_MANIPULATION".
 
 The FTY-ASSET-AGENT peer MUST:
 * insert provided data into DB
@@ -224,8 +228,8 @@ where
 * 'asset-iname' MUST be iname of created or updated asset
 * 'reason' is string detailing reason for error. Possible values are:
 
-    OPERATION_NOT_IMPLEMENTED (MAY be empty)
-* subject of the message MUST be "ASSET_MANIPULATION".
+    OPERATION\_NOT\_IMPLEMENTED (MAY be empty)
+* subject of the message MUST be "ASSET\_MANIPULATION".
 
 #### Getting user-friendly name for given asset
 
@@ -236,7 +240,7 @@ FTY-ASSET-AGENT ("asset-agent") peer:
 
 where
 * 'asset-iname' is internal name of an asset
-* subject of the message MUST be "ENAME_FROM_INAME".
+* subject of the message MUST be "ENAME\_FROM\_INAME".
 
 The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
@@ -249,8 +253,8 @@ where
 * 'asset-ename' is user-friendly name corresponding to 'asset-iname' from the request
 * 'reason' is string detailing reason for error. Possible values are:
 
-   MISSING_INAME/ASSET_NOT_FOUND
-* subject of the message MUST be "ENAME_FROM_INAME".
+   MISSING\_INAME/ASSET\_NOT\_FOUND
+* subject of the message MUST be "ENAME\_FROM\_INAME".
 
 #### Getting all the available asset data for given asset
 
@@ -263,7 +267,7 @@ where
 * '/' indicates a multipart frame message
 * 'asset-iname' is internal name of an asset
 * <uuid> is zuuid of the message
-* subject of the message MUST be "ASSET_DETAIL".
+* subject of the message MUST be "ASSET\_DETAIL".
 
 The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
@@ -276,8 +280,8 @@ where
 * 'asset-message' is fty-proto update message containing available data for given asset
 * 'reason' is string detailing reason for error. Possible values are:
 
-   BAD_COMMAND
-* subject of the message MUST be "ASSET_DETAIL".
+   BAD\_COMMAND/ASSET\_NOT\_FOUND
+* subject of the message MUST be "ASSET\_DETAIL".
 
 ### Stream subscriptions
 
