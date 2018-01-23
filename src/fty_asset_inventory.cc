@@ -38,6 +38,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
     bool verbose = false;
     bool test = false;
+    std::map<std::string,std::string> ext_map_cache;
 
     zsock_signal (pipe, 0);
     zsys_info ("%s:\tStarted", name);
@@ -120,7 +121,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
             const char *operation = fty_proto_operation(proto);
 
             if (streq (operation, "inventory")) {
-                int rv = process_insert_inventory (device_name, ext, true, test);
+                int rv = process_insert_inventory (device_name, ext, true, ext_map_cache, test);
                 if (rv != 0)
                     zsys_error ("Could not insert inventory data into DB");
             }

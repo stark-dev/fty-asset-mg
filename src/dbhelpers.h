@@ -228,6 +228,15 @@ FTY_ASSET_PRIVATE int
     bool read_only,
     bool test);
 
+// Inserts ext attributes from inventory message into DB if not present in the cache
+FTY_ASSET_PRIVATE int
+    process_insert_inventory
+    (const std::string& device_name,
+    zhash_t *ext_attributes,
+    bool read_only,
+    std::map<std::string,std::string> &map_cache,
+    bool test);
+ 
 // Selects user-friendly name for given asset name
 FTY_ASSET_PRIVATE int
     select_ename_from_iname
