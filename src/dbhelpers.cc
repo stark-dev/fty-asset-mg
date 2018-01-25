@@ -710,7 +710,6 @@ process_insert_inventory
  {
     if (test)
        return 0;
-    std::string cache_key=device_name;
     tntdb::Connection conn;
     try {
         conn = tntdb::connectCached (url);
@@ -732,10 +731,11 @@ process_insert_inventory
         if(strcmp(keytag, "name") == 0 || strcmp(keytag, "description") == 0)
             readonlyV = false;
         
-        cache_key.append(":").append(keytag).append((readonlyV)?"1":"0");
-        if(map_cache.find(cache_key)!=map_cache.end() && streq(map_cache.at(cache_key).c_str(),value)){
+        std::string cache_key = device_name;
+        cache_key.append(":").append(keytag).append(readonlyV ? "1" : "0");
+        auto el = map_cache.find(cache_key);
+        if (el != map_cache.end() && el->second == value)
             continue;
-        }
         try {
             st.set ("keytag", keytag).
                set ("value", value).
