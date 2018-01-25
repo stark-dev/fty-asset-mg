@@ -26,6 +26,7 @@
 #include <functional>
 #include <string>
 #include <map>
+#include <unordered_map>
 #include <tntdb/row.h>
 #include <tntdb/connect.h>
 #include <czmq.h>
@@ -234,7 +235,7 @@ FTY_ASSET_PRIVATE int
     (const std::string& device_name,
     zhash_t *ext_attributes,
     bool read_only,
-    std::map<std::string,std::string> &map_cache,
+    std::unordered_map<std::string,std::string> &map_cache,
     bool test);
  
 // Selects user-friendly name for given asset name

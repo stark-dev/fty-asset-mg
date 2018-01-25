@@ -705,7 +705,7 @@ process_insert_inventory
     (const std::string& device_name,
     zhash_t *ext_attributes,
     bool readonly,
-    std::map<std::string,std::string> &map_cache,
+    std::unordered_map<std::string,std::string> &map_cache,
     bool test)
  {
     if (test)

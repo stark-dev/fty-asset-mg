@@ -38,7 +38,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
     bool verbose = false;
     bool test = false;
-    std::map<std::string,std::string> ext_map_cache;
+    std::unordered_map<std::string, std::string> ext_map_cache;
 
     zsock_signal (pipe, 0);
     zsys_info ("%s:\tStarted", name);
