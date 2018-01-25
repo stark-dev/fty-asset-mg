@@ -97,7 +97,7 @@ int main (int argc, char *argv [])
     zactor_t *inventory_server = zactor_new (fty_asset_inventory_server, (void*) "asset-inventory");
     zstr_sendx (inventory_server, "CONNECT", endpoint, NULL);
     zsock_wait (inventory_server);
-    zstr_sendx (inventory_server, "CONSUMER", "ASSETS", "inventory@.*", NULL);
+    zstr_sendx (inventory_server, "CONSUMER", "ASSETS", ".*", NULL);
 
     // create regular event for autoupdate agent
     zloop_t *loop = zloop_new();
