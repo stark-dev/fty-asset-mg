@@ -38,7 +38,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
     bool verbose = false;
     bool test = false;
-    std::map<std::string,std::string> ext_map_cache;
+    std::unordered_map<std::string, std::string> ext_map_cache;
 
     zsock_signal (pipe, 0);
     zsys_info ("%s:\tStarted", name);
@@ -116,14 +116,23 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
                 continue;
             }
 
-            const char *device_name = fty_proto_name (proto);
-            zhash_t *ext = fty_proto_ext (proto);
+            std::string device_name(fty_proto_name (proto));
             const char *operation = fty_proto_operation(proto);
 
             if (streq (operation, "inventory")) {
+                zhash_t *ext = fty_proto_ext (proto);
                 int rv = process_insert_inventory (device_name, ext, true, ext_map_cache, test);
                 if (rv != 0)
                     zsys_error ("Could not insert inventory data into DB");
+            } else if (streq (operation, "delete")) {
+                //  Vacuum the cache
+                //  The keys are formatted as asset_name:keytag[01]
+                device_name.append(":");
+                for (auto it = ext_map_cache.begin(); it != ext_map_cache.end(); )
+                    if (it->first.compare(0, device_name.size(), device_name) == 0)
+                        it = ext_map_cache.erase(it);
+                    else
+                        ++it;
             }
             fty_proto_destroy (&proto);
         }
