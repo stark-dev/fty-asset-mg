@@ -36,7 +36,7 @@
 #include <ftyproto.h>
 #include <cxxtools/allocator.h>
 #include <tntdb.h>
-#include <openssl/sha.h>
+#include <fty_common.h>
 
 //  FTY_ASSET version macros for compile-time API detection
 #define FTY_ASSET_VERSION_MAJOR 1
@@ -67,11 +67,12 @@
 #   define FTY_ASSET_EXPORT
 #   define FTY_ASSET_PRIVATE
 #else
-#   define FTY_ASSET_EXPORT
 #   if (defined __GNUC__ && __GNUC__ >= 4) || defined __INTEL_COMPILER
 #       define FTY_ASSET_PRIVATE __attribute__ ((visibility ("hidden")))
+#       define FTY_ASSET_EXPORT __attribute__ ((visibility ("default")))
 #   else
 #       define FTY_ASSET_PRIVATE
+#       define FTY_ASSET_EXPORT
 #   endif
 #endif
 
@@ -91,9 +92,18 @@ typedef struct _fty_asset_inventory_t fty_asset_inventory_t;
 #include "fty_asset_inventory.h"
 
 #ifdef FTY_ASSET_BUILD_DRAFT_API
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //  Self test for private classes
 FTY_ASSET_EXPORT void
-    fty_asset_private_selftest (bool verbose);
+    fty_asset_private_selftest (bool verbose, const char *subtest);
+
+#ifdef __cplusplus
+}
+#endif
 #endif // FTY_ASSET_BUILD_DRAFT_API
 
 #endif

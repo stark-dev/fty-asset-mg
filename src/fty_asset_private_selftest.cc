@@ -35,17 +35,23 @@
 //
 
 void
-fty_asset_private_selftest (bool verbose)
+fty_asset_private_selftest (bool verbose, const char *subtest)
 {
 // Tests for stable private classes:
-    defs_test (verbose);
-    dbhelpers_test (verbose);
-    dbpath_test (verbose);
-    fty_asset_uptime_configurator_test (verbose);
-    fty_uuid_test (verbose);
-    asset_defs_test (verbose);
-    total_power_test (verbose);
-    dns_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "defs_test"))
+        defs_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "dbhelpers_test"))
+        dbhelpers_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "dbpath_test"))
+        dbpath_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "fty_asset_uptime_configurator_test"))
+        fty_asset_uptime_configurator_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "asset_defs_test"))
+        asset_defs_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "total_power_test"))
+        total_power_test (verbose);
+    if (streq (subtest, "$ALL") || streq (subtest, "dns_test"))
+        dns_test (verbose);
 }
 /*
 ################################################################################

@@ -8,11 +8,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 
 ACLOCAL_AMFLAGS = -I config
 
-AM_CFLAGS = \
-    -Werror=format-security
-
 AM_CXXFLAGS = \
-    -Werror=format-security \
     -std=c++11
 
 AM_CPPFLAGS = \
@@ -24,14 +20,18 @@ AM_CPPFLAGS = \
     ${fty_proto_CFLAGS} \
     ${cxxtools_CFLAGS} \
     ${tntdb_CFLAGS} \
-    ${openssl_CFLAGS} \
+    ${log4cplus_CFLAGS} \
+    ${fty_common_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${openssl_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${log4cplus_LIBS} ${fty_common_LIBS}
 
 SUBDIRS = doc
+SUBDIRS += include
 DIST_SUBDIRS = doc
+DIST_SUBDIRS += include
+
 lib_LTLIBRARIES =
 bin_PROGRAMS =
 noinst_PROGRAMS =
@@ -54,7 +54,10 @@ EXTRA_DIST += \
     Findfty_proto.cmake \
     Findcxxtools.cmake \
     Findtntdb.cmake \
-    Findopenssl.cmake \
+    Findlog4cplus.cmake \
+    Findfty_common.cmake \
+    builds/cmake/Modules/ClangFormat.cmake \
+    builds/cmake/clang-format-check.sh.in \
     CMakeLists.txt
 endif
 
@@ -63,7 +66,6 @@ EXTRA_DIST += \
     src/dbhelpers.h \
     src/dbpath.h \
     src/fty_asset_uptime_configurator.h \
-    src/fty_uuid.h \
     src/asset_defs.h \
     src/total_power.h \
     src/dns.h \
