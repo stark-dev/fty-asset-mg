@@ -21,11 +21,13 @@ AM_CPPFLAGS = \
     ${cxxtools_CFLAGS} \
     ${tntdb_CFLAGS} \
     ${log4cplus_CFLAGS} \
+    ${libtntnet_CFLAGS} \
+    ${libsasl2_CFLAGS} \
     ${fty_common_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${log4cplus_LIBS} ${fty_common_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${log4cplus_LIBS} ${libtntnet_LIBS} ${libsasl2_LIBS} ${fty_common_LIBS}
 
 SUBDIRS = doc
 SUBDIRS += include
@@ -55,6 +57,8 @@ EXTRA_DIST += \
     Findcxxtools.cmake \
     Findtntdb.cmake \
     Findlog4cplus.cmake \
+    Findlibtntnet.cmake \
+    Findlibsasl2.cmake \
     Findfty_common.cmake \
     builds/cmake/Modules/ClangFormat.cmake \
     builds/cmake/clang-format-check.sh.in \
