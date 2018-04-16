@@ -56,6 +56,7 @@ env:
 
 pkg_deps_prereqs: &pkg_deps_prereqs
     - libsodium-dev
+    - libsasl2-dev
 #    - libzmq3-dev
 #    - libczmq-dev
 #    - libmlm-dev
@@ -63,10 +64,9 @@ pkg_deps_prereqs: &pkg_deps_prereqs
 #    - libfty-proto-dev
 #    - cxxtools-dev
 #    - tntdb-dev
-    - log4cplus-dev
-    - libtntnet-dev
-    - libsasl2-dev
-    - libfty-common-dev
+#    - log4cplus-dev
+#    - libtntnet-dev
+#     - libfty-common-dev
 
 pkg_deps_doctools: &pkg_deps_doctools
     - asciidoc
