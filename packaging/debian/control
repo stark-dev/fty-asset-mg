@@ -32,7 +32,10 @@ Build-Depends: debhelper (>= 9),
     libfty-proto-dev,
     libcxxtools-dev,
     libtntdb-dev,
-    libssl-dev,
+    liblog4cplus-dev,
+    libtntnet-dev,
+    libsasl2-dev,
+    libfty-common-dev,
     systemd,
     dh-systemd,
     asciidoc-base | asciidoc, xmlto,
@@ -58,7 +61,10 @@ Depends:
     libfty-proto-dev,
     libcxxtools-dev,
     libtntdb-dev,
-    libssl-dev,
+    liblog4cplus-dev,
+    libtntnet-dev,
+    libsasl2-dev,
+    libfty-common-dev,
     libfty-asset1 (= ${binary:Version})
 Description: fty-asset development tools
  This package contains development files for fty-asset:

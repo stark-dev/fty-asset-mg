@@ -59,7 +59,10 @@ BuildRequires:  file-devel
 BuildRequires:  fty-proto-devel
 BuildRequires:  cxxtools-devel
 BuildRequires:  tntdb-devel
-BuildRequires:  openssl-devel
+BuildRequires:  log4cplus-devel
+BuildRequires:  libtntnet-devel
+BuildRequires:  cyrus-sasl-devel
+BuildRequires:  fty-common-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
@@ -92,7 +95,10 @@ Requires:       file-devel
 Requires:       fty-proto-devel
 Requires:       cxxtools-devel
 Requires:       tntdb-devel
-Requires:       openssl-devel
+Requires:       log4cplus-devel
+Requires:       libtntnet-devel
+Requires:       cyrus-sasl-devel
+Requires:       fty-common-devel
 
 %description devel
 agent managing information about assets development tools
@@ -112,7 +118,7 @@ This package contains development files for fty-asset: agent managing informatio
 
 %build
 sh autogen.sh
-%{configure} --enable-drafts=%{DRAFTS} --with-systemd-units
+%{configure} --enable-drafts=%{DRAFTS} --with-systemd-units --with-libtntnet=yes
 make %{_smp_mflags}
 
 %install
