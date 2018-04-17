@@ -687,7 +687,7 @@ process_insert_inventory
 }
 
 /**
- *  \brief Inserts ext attributes from inventory message into DB only 
+ *  \brief Inserts ext attributes from inventory message into DB only
  *         if the new value is different from the cache map
  *         This method is not thread safe.
  *
@@ -730,7 +730,7 @@ process_insert_inventory
         bool readonlyV = readonly;
         if(strcmp(keytag, "name") == 0 || strcmp(keytag, "description") == 0)
             readonlyV = false;
-        
+
         std::string cache_key = device_name;
         cache_key.append(":").append(keytag).append(readonlyV ? "1" : "0");
         auto el = map_cache.find(cache_key);
@@ -780,6 +780,7 @@ select_ename_from_iname
     }
     try
     {
+
         tntdb::Connection conn = tntdb::connectCached (url);
         tntdb::Statement st = conn.prepareCached (
             "SELECT e.value FROM  t_bios_asset_ext_attributes AS e "
@@ -1020,4 +1021,3 @@ dbhelpers_test (bool verbose)
 
     printf ("OK\n");
 }
-

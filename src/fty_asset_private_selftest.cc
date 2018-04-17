@@ -42,8 +42,6 @@ fty_asset_private_selftest (bool verbose, const char *subtest)
         defs_test (verbose);
     if (streq (subtest, "$ALL") || streq (subtest, "dbhelpers_test"))
         dbhelpers_test (verbose);
-    if (streq (subtest, "$ALL") || streq (subtest, "dbpath_test"))
-        dbpath_test (verbose);
     if (streq (subtest, "$ALL") || streq (subtest, "fty_asset_uptime_configurator_test"))
         fty_asset_uptime_configurator_test (verbose);
     if (streq (subtest, "$ALL") || streq (subtest, "asset_defs_test"))

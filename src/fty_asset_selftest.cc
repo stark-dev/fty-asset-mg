@@ -51,7 +51,6 @@ all_tests [] = {
 // Now built only with --enable-drafts, so even stable builds are hidden behind the flag
     { "defs", NULL, true, false, "defs_test" },
     { "dbhelpers", NULL, true, false, "dbhelpers_test" },
-    { "dbpath", NULL, true, false, "dbpath_test" },
     { "fty_asset_uptime_configurator", NULL, true, false, "fty_asset_uptime_configurator_test" },
     { "asset_defs", NULL, true, false, "asset_defs_test" },
     { "total_power", NULL, true, false, "total_power_test" },

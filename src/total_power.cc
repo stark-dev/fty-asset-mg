@@ -27,7 +27,6 @@
 */
 
 #include "fty_asset_classes.h"
-#include "dbpath.h"
 #include "dbhelpers.h"
 #include <tntdb/connect.h>
 #include <tntdb/result.h>
@@ -385,6 +384,7 @@ int
 {
     if (test)
         return 0;
+
     tntdb::Connection conn = tntdb::connectCached (url);
     a_elmnt_id_t assetId = 0;
     int rv = select_asset_id (assetName, assetId);

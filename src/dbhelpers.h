@@ -51,6 +51,8 @@
 
 #define MAX_DESCRIPTION_LENGTH  255
 
+void dbpath ();
+
 /**
  * \brief helper structure for results of v_bios_asset_element
  */
@@ -237,7 +239,7 @@ FTY_ASSET_PRIVATE int
     bool read_only,
     std::unordered_map<std::string,std::string> &map_cache,
     bool test);
- 
+
 // Selects user-friendly name for given asset name
 FTY_ASSET_PRIVATE int
     select_ename_from_iname

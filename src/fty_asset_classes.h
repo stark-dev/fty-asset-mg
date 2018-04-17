@@ -43,10 +43,6 @@ typedef struct _defs_t defs_t;
 typedef struct _dbhelpers_t dbhelpers_t;
 #define DBHELPERS_T_DEFINED
 #endif
-#ifndef DBPATH_T_DEFINED
-typedef struct _dbpath_t dbpath_t;
-#define DBPATH_T_DEFINED
-#endif
 #ifndef FTY_ASSET_UPTIME_CONFIGURATOR_T_DEFINED
 typedef struct _fty_asset_uptime_configurator_t fty_asset_uptime_configurator_t;
 #define FTY_ASSET_UPTIME_CONFIGURATOR_T_DEFINED
@@ -68,7 +64,6 @@ typedef struct _dns_t dns_t;
 
 #include "defs.h"
 #include "dbhelpers.h"
-#include "dbpath.h"
 #include "fty_asset_uptime_configurator.h"
 #include "asset_defs.h"
 #include "total_power.h"
