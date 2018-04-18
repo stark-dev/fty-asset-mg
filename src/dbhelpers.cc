@@ -318,7 +318,8 @@ int
     select_asset_element_basic
         (const std::string &asset_name,
          std::function<void(const tntdb::Row&)> cb,
-         bool test)
+         bool test,
+         std::string vstatus)
 {
     if (test)
         return 0;
@@ -341,10 +342,12 @@ int
             "   v.priority, v.asset_tag, v.parent_name "
             " FROM"
             "   v_web_element v"
-            " WHERE :name = v.name"
+            " WHERE :name = v.name AND "
+            " v.status = :vstatus      "
         );
 
-        tntdb::Row row = st.set("name", asset_name).
+        tntdb::Row row = st.set ("name", asset_name).
+                            set ("status" ,vstatus).
                             selectRow();
         zsys_debug("[v_web_element]: were selected %" PRIu32 " rows", 1);
 
@@ -576,7 +579,8 @@ int
     select_assets (
             std::function<void(
                 const tntdb::Row&
-                )>& cb, bool test)
+                   )>& cb, bool test,
+            std::string vstatus)
 {
     if (test)
         return 0;
@@ -600,10 +604,11 @@ int
             "   v.status,  "
             "   v.priority,  "
             "   v.asset_tag  "
-            " FROM v_bios_asset_element v "
+            " FROM v_bios_asset_element v  "
+            " WHERE v.status=:vstatus"
             );
 
-        tntdb::Result res = st.select ();
+        tntdb::Result res = st.set ("status", vstatus).select ();
         zsys_debug("[v_bios_asset_element]: were selected %zu rows", res.size());
 
         for (const auto& r: res) {
@@ -948,7 +953,8 @@ db_reply <std::map <uint32_t, std::string> >
     select_short_elements
         (tntdb::Connection &conn,
          uint32_t type_id,
-         uint32_t subtype_id)
+         uint32_t subtype_id,
+         std::string status)
 {
     zsys_debug ("  type_id = %" PRIi16, type_id);
     zsys_debug ("  subtype_id = %" PRIi16, subtype_id);
@@ -963,7 +969,8 @@ db_reply <std::map <uint32_t, std::string> >
                 " FROM "
                 "   v_bios_asset_element v "
                 " WHERE "
-                "   v.id_type = :typeid ";
+                "   v.id_type = :typeid AND "
+                "   v.status = :vstatus";
     }
     else
     {
@@ -973,7 +980,8 @@ db_reply <std::map <uint32_t, std::string> >
                 "   v_bios_asset_element v "
                 " WHERE "
                 "   v.id_type = :typeid AND "
-                "   v.id_subtype = :subtypeid ";
+                "   v.id_subtype = :subtypeid AND"
+                "   v.status = :vstatus ";
     }
     try {
         // Can return more than one row.
@@ -982,11 +990,13 @@ db_reply <std::map <uint32_t, std::string> >
         tntdb::Result result;
         if ( subtype_id == 0 )
         {
-            result = st.set("typeid", type_id).
-                    select();
+            result = st.set ("typeid", type_id).
+                        set ("vstatus", status).
+                        select ();
         } else {
             result = st.set("typeid", type_id).
                     set("subtypeid", subtype_id).
+                    set ("vstatus", status).
                     select();
         }
 
