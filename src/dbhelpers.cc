@@ -319,7 +319,7 @@ int
         (const std::string &asset_name,
          std::function<void(const tntdb::Row&)> cb,
          bool test,
-         std::string vstatus)
+         std::string status)
 {
     if (test)
         return 0;
@@ -347,7 +347,7 @@ int
         );
 
         tntdb::Row row = st.set ("name", asset_name).
-                            set ("status" ,vstatus).
+                            set ("vstatus", status).
                             selectRow();
         zsys_debug("[v_web_element]: were selected %" PRIu32 " rows", 1);
 
@@ -580,7 +580,7 @@ int
             std::function<void(
                 const tntdb::Row&
                    )>& cb, bool test,
-            std::string vstatus)
+            std::string status)
 {
     if (test)
         return 0;
@@ -608,7 +608,7 @@ int
             " WHERE v.status=:vstatus"
             );
 
-        tntdb::Result res = st.set ("status", vstatus).select ();
+        tntdb::Result res = st.set ("vstatus", status).select ();
         zsys_debug("[v_bios_asset_element]: were selected %zu rows", res.size());
 
         for (const auto& r: res) {
