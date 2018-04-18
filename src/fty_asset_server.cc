@@ -536,7 +536,7 @@ static zmsg_t *
         };
 
     // select basic info
-    int rv = select_asset_element_basic (asset_name, cb1, cfg->test);
+    int rv = select_asset_element_basic (asset_name, cb1, cfg->test, "active");
     if ( rv != 0 ) {
         zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
         zhash_destroy (&aux);
@@ -847,7 +847,7 @@ s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_pu
         };
 
     // select all assets
-    int rv = select_assets (cb, cfg->test);
+    int rv = select_assets (cb, cfg->test, "active");
     if ( rv != 0 ) {
         zsys_warning ("%s:\tCannot list all assets", cfg->name);
         return;
@@ -1288,7 +1288,7 @@ fty_asset_server_test (bool verbose)
     zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "ASSET_AGENT_NAME", asset_server_test_name, NULL);
 
-    // Test #10: message WAKEUP
+    // Test #11: message WAKEUP
     {
         zsys_debug ("fty-asset-server-test:Test #11");
         const char *command = "WAKEUP";
