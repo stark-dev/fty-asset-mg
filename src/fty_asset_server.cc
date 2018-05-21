@@ -539,7 +539,7 @@ static zmsg_t *
         };
 
     // select basic info
-    int rv = select_asset_element_basic (asset_name, cb1, cfg->test);
+    int rv = select_asset_element_basic (asset_name, cb1, cfg->test, "active");
     if ( rv != 0 ) {
         zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
         zhash_destroy (&aux);
@@ -866,7 +866,7 @@ s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_pu
         };
 
     // select all assets
-    int rv = select_assets (cb, cfg->test);
+    int rv = select_assets (cb, cfg->test, "active");
     if ( rv != 0 ) {
         zsys_warning ("%s:\tCannot list all assets", cfg->name);
         return;

@@ -42,9 +42,9 @@ SUFFIXES=.txt .adoc .xml .xml7 .1 .3 .7
 	asciidoc -d manpage -b docbook -f $(srcdir)/asciidoc.conf \
         -afty-asset_version=@PACKAGE_VERSION@ -o$@ $<
 .xml.1:
-	xmlto man $<
+	xmlto -o $(@D) man $<
 .xml.3:
-	xmlto man $<
+	xmlto -o $(@D) man $<
 
 # Special handling for project overview whose basename may collide
 # with a main or class name
@@ -52,7 +52,7 @@ SUFFIXES=.txt .adoc .xml .xml7 .1 .3 .7
 	asciidoc -d manpage -b docbook -f $(srcdir)/asciidoc.conf \
         -afty-asset_version=@PACKAGE_VERSION@ -o$@ $<
 .xml7.7:
-	xmlto man $<
+	xmlto -o $(@D) man $<
 
 # List of *.txt and *.doc files generated during build from comments
 # in project program source files and further processed into manpages.
@@ -76,12 +76,17 @@ GENERATED_DOCS += fty_asset_inventory.txt fty_asset_inventory.doc
 fty_asset_inventory.txt: $(top_srcdir)/src/fty_asset_inventory.cc
 	"$(srcdir)/mkman" "fty_asset_inventory" "$(builddir)/fty_asset_inventory.txt" "$(srcdir)/.."
 
+### Note: for mains, we keep the source name rather than flattened name:c
+### so that the manpages for binary programs match their name, at expense
+### of perhaps being built in a subdirectory under doc/.
 GENERATED_DOCS += fty-asset.txt fty-asset.doc
 fty-asset.txt: $(top_srcdir)/src/fty_asset.cc
+	mkdir -p "$(builddir)/$(@D)"
 	"$(srcdir)/mkman" "fty_asset" "$(builddir)/fty-asset.txt" "$(srcdir)/.."
 
 GENERATED_DOCS += fty-asset-cli.txt fty-asset-cli.doc
 fty-asset-cli.txt: $(top_srcdir)/src/fty_asset_cli.cc
+	mkdir -p "$(builddir)/$(@D)"
 	"$(srcdir)/mkman" "fty_asset_cli" "$(builddir)/fty-asset-cli.txt" "$(srcdir)/.."
 
 

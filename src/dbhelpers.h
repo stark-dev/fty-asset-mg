@@ -52,6 +52,8 @@
 
 #define MAX_DESCRIPTION_LENGTH  255
 
+void dbpath ();
+
 /**
  * \brief helper structure for results of v_bios_asset_element
  */
@@ -206,7 +208,8 @@ FTY_ASSET_PRIVATE int
     select_asset_element_basic
         (const std::string &asset_name,
          std::function<void(const tntdb::Row&)> cb,
-         bool test);
+         bool test,
+         std::string vstatus);
 
 // Selects all parents of given asset
 FTY_ASSET_PRIVATE int
@@ -216,11 +219,13 @@ FTY_ASSET_PRIVATE int
         bool test);
 
 // Selects basic asset info for all assets in the DB
+// status: active|nonactive
 FTY_ASSET_PRIVATE int
     select_assets (
             std::function<void(
                 const tntdb::Row&
-                )>& cb, bool test);
+            )>& cb, bool test,
+            std::string status);
 
 // Inserts ext attributes from inventory message into DB
 FTY_ASSET_PRIVATE int
@@ -238,7 +243,7 @@ FTY_ASSET_PRIVATE int
     bool read_only,
     std::unordered_map<std::string,std::string> &map_cache,
     bool test);
- 
+
 // Selects user-friendly name for given asset name
 FTY_ASSET_PRIVATE int
     select_ename_from_iname
@@ -263,7 +268,8 @@ FTY_ASSET_PRIVATE db_reply <std::map <uint32_t, std::string> >
     select_short_elements
         (tntdb::Connection &conn,
          uint32_t type_id,
-         uint32_t subtype_id);
+         uint32_t subtype_id,
+         std::string status);
 
 FTY_ASSET_PRIVATE bool
     disable_power_nodes_if_limitation_applies
