@@ -671,7 +671,7 @@ process_insert_inventory
         const char *value = (const char*) it;
         const char *keytag = (const char*)  zhash_cursor (ext_attributes);
         bool readonlyV = readonly;
-        if(strcmp(keytag, "name") == 0 || strcmp(keytag, "description") == 0)
+        if(strcmp(keytag, "name") == 0 || strcmp(keytag, "description") == 0 || strcmp(keytag, "ip.1") == 0)
             readonlyV = false;
         try {
             st.set ("keytag", keytag).
