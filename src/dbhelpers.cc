@@ -29,6 +29,9 @@
 #include "fty_asset_classes.h"
 #define INPUT_POWER_CHAIN     1
 
+// for test purposes
+std::map<std::string, std::string> test_map_asset_state;
+
 /**
  *  \brief Converts asset name to the DB id
  *
@@ -784,7 +787,7 @@ select_ename_from_iname
         tntdb::Statement st = conn.prepareCached (
             "SELECT e.value FROM  t_bios_asset_ext_attributes AS e "
             "INNER JOIN t_bios_asset_element AS a "
-            "ON a.id_asset_element = e.id_asset_element  "
+            "ON a.id_asset_element = e.id_asset_element "
             "WHERE keytag = 'name' and a.name = :iname; "
 
         );
@@ -803,6 +806,112 @@ select_ename_from_iname
     return 0;
 }
 
+
+/**
+ *  \brief Disable power nodes above licensing limit
+ *
+ *  \return  void
+ *
+ *  \throws  database errors
+ */
+
+bool disable_power_nodes_if_limitation_applies (int max_active_power_devices, bool test)
+{
+    if (0 >= max_active_power_devices) {
+        // limitations disabled
+        return false;
+    }
+    if (test) {
+        zsys_debug ("[disable_power_nodes_if_limitation_applies]: runs in test mode");
+        return false;
+    }
+    try
+    {
+        int active_power_devices = get_active_power_devices (test);
+        if ( active_power_devices > max_active_power_devices) {
+            // need to limit amount of active power devices
+            tntdb::Connection conn = tntdb::connectCached (url);
+            // this query would have been much easier if only MySQL supported LIMIT and IN in one query
+            tntdb::Statement statement = conn.prepareCached (
+                "UPDATE t_bios_asset_element "
+                "SET status='nonactive' "
+                "WHERE id_asset_element IN "
+                    "(SELECT id_asset_element "
+                    "FROM "
+                        "(SELECT id_asset_element "
+                        "FROM t_bios_asset_element "
+                        "WHERE "
+                            "( "
+                                "id_subtype = (SELECT id_asset_device_type "
+                                    "FROM t_bios_asset_device_type "
+                                    "WHERE name = 'epdu' LIMIT 1) "
+                                "OR id_subtype = (SELECT id_asset_device_type "
+                                    "FROM t_bios_asset_device_type "
+                                    "WHERE name = 'sts' LIMIT 1) "
+                                "OR id_subtype = (SELECT id_asset_device_type "
+                                    "FROM t_bios_asset_device_type "
+                                    "WHERE name = 'ups' LIMIT 1) "
+                            ") AND status = 'active' "
+                            "ORDER BY id_asset_element ASC "
+                            "LIMIT 18446744073709551615 OFFSET 10) AS res); "
+            );
+            statement.execute();
+            return true;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        zsys_error ("[disable_power_nodes_if_limitation_applies]: exception caught %s when getting count of active power devices", e.what ());
+        return false;
+    }
+    return false;
+}
+
+
+/**
+ *  \brief Get number of active power devices
+ *
+ *  \return  X - number of active power devices
+ */
+
+int
+get_active_power_devices (bool test)
+{
+    int count = 0;
+    if (test) {
+        zsys_debug ("[get_active_power_devices]: runs in test mode");
+        for (auto const& as : test_map_asset_state) {
+            if ("active" == as.second) {
+                ++count;
+            }
+        }
+        return count;
+    }
+    try
+    {
+        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Statement st = conn.prepareCached (
+            "SELECT COUNT(*) AS CNT FROM t_bios_asset_element "
+            "WHERE id_subtype IN "
+                "(SELECT id_asset_device_type FROM t_bios_asset_device_type "
+                "WHERE name IN ('epdu', 'sts', 'ups')) "
+            "AND status = 'active'; "
+        );
+
+        tntdb::Row row = st.selectRow ();
+        zsys_debug ("[get_active_power_devices]: were selected %" PRIu32 " rows", 1);
+
+        row [0].get (count);
+    }
+    catch (const std::exception &e)
+    {
+        zsys_error ("[get_active_power_devices]: exception caught %s when getting count of active power devices", e.what ());
+        return 0;
+    }
+
+    return count;
+}
+
 /**
  *  \brief Inserts data from create/update message into DB
  *
@@ -814,7 +923,7 @@ select_ename_from_iname
  *          -1 - in case of some unexpected error
  */
 db_reply_t
-    create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test)
+    create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATIONS_STRUCT *limitations)
 {
     const char   *element_name;
     uint64_t      type_id;
@@ -825,11 +934,39 @@ db_reply_t
     const char   *operation;
     bool          update;
 
+    db_reply_t ret = db_reply_new ();
+
+    if (0 == limitations->global_configurability) {
+        ret.status     = -1;
+        ret.errtype    = LICENSING_ERR;
+        ret.errsubtype = LICENSING_GLOBAL_CONFIGURABILITY_DISABLED;
+        return ret;
+    }
     type_id = type_to_typeid (fty_proto_aux_string (fmsg, "type", ""));
     subtype_id = subtype_to_subtypeid (fty_proto_aux_string (fmsg, "subtype", ""));
     if (subtype_id == 0) subtype_id = asset_subtype::N_A;
     parent_id = fty_proto_aux_number (fmsg, "parent", 0);
     status = fty_proto_aux_string (fmsg, "status", "nonactive");
+    if (limitations->max_active_power_devices >= 0 && type_id == asset_type::DEVICE && streq (status, "active")) {
+        switch (subtype_id) {
+            default:
+                // no default, not to generate warning
+                break;
+            case asset_subtype::EPDU:
+            case asset_subtype::UPS:
+            case asset_subtype::STS:
+                // check if power devices exceeded allowed limit
+                int pd_active = get_active_power_devices(test);
+                if (pd_active + 1 > limitations->max_active_power_devices) {
+                    // raise error if limit reached
+                    ret.status     = -1;
+                    ret.errtype    = LICENSING_ERR;
+                    ret.errsubtype = LICENSING_POWER_DEVICES_COUNT_REACHED;
+                    return ret;
+                }
+                break;
+        }
+    }
     priority = fty_proto_aux_number (fmsg, "priority", 5);
     element_name = fty_proto_name (fmsg);
     // TODO: element name from ext.name?
@@ -848,8 +985,6 @@ db_reply_t
     }
     zsys_debug ("  element_name = '%s'", element_name);
 
-    db_reply_t ret = db_reply_new ();
-
     // ASSUMPTION: all datacenters are unlocated elements
     if (type_id == asset_type::DATACENTER && parent_id != 0)
     {
@@ -861,6 +996,7 @@ db_reply_t
     // TODO: check whether asset exists and drop?
 
     if (test) {
+        test_map_asset_state[std::string(element_name)] = std::string(status);
         ret.status = 1;
         return ret;
     }

@@ -74,6 +74,13 @@ enum asset_operation
     INVENTORY
 };
 
+typedef struct _LIMITATIONS_STRUCT
+{
+    int max_active_power_devices;
+    int global_configurability;
+    
+} LIMITATIONS_STRUCT;
+
 //  translate numeric ID to const char* type
 const char
 *asset_type2str (int asset_type);
