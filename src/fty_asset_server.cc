@@ -666,7 +666,7 @@ static void
     std::string subject;
     auto msg = s_publish_create_or_update_asset_msg (cfg, asset_name, operation, subject, read_only);
     if (NULL == msg || 0 != mlm_client_send (cfg->stream_client, subject.c_str(), &msg)) {
-        zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
+        zsys_info ("%s:\tmlm_client_send not sending message for asset '%s'", cfg->name, asset_name.c_str());
         return;
     }
 }
@@ -786,6 +786,7 @@ static void
             zmsg_addstr (reply, fty_proto_name (fmsg));
             mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
             //publish on stream ASSETS
+
             s_send_create_or_update_asset (cfg, fty_proto_name (fmsg), operation, read_only);
             fty_proto_destroy (&fmsg);
             zstr_free (&read_only_str);

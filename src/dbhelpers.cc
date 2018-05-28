@@ -350,13 +350,12 @@ int
                             set ("vstatus", status).
                             selectRow();
         zsys_debug("[v_web_element]: were selected %" PRIu32 " rows", 1);
-
         cb(row);
         return 0;
     }
     catch (const tntdb::NotFound &e) {
-        zsys_info ("end: %s", "asset '%s' not found", asset_name.c_str());
-        return 0;
+        zsys_info ("end: %s %s", "asset '%s' not found", status.c_str(), asset_name.c_str());
+        return -1;
     }
     catch (const std::exception &e) {
         zsys_error ("Cannot select basic asset info: %s", e.what());
@@ -616,6 +615,10 @@ int
         }
         return 0;
     }
+    catch (const tntdb::NotFound &e) {
+        zsys_debug("[v_bios_asset_element]: %s asset not found", status.c_str ());
+        return -1;
+    }
     catch (const std::exception &e) {
         zsys_error ("[v_bios_asset_element]: error '%s'", e.what());
         return -1;
@@ -673,7 +676,6 @@ process_insert_inventory
         bool readonlyV = readonly;
 
         if(strcmp(keytag, "name") == 0 || strcmp(keytag, "description") == 0 || strcmp(keytag, "ip.1") == 0) {
-
             readonlyV = false;
         }
         if (strcmp(keytag, "uuid") == 0) {
