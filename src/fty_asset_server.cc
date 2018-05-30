@@ -669,7 +669,7 @@ static void
     std::string subject;
     auto msg = s_publish_create_or_update_asset_msg (cfg, asset_name, operation, subject, read_only);
     if (NULL == msg || 0 != mlm_client_send (cfg->stream_client, subject.c_str(), &msg)) {
-        zsys_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
+        zsys_info ("%s:\tmlm_client_send not sending message for asset '%s'", cfg->name, asset_name.c_str());
         return;
     }
 }
