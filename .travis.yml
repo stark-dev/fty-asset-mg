@@ -1,9 +1,10 @@
 # Travis CI script
 # This is a skeleton created by zproject.
 # You can add hand-written code here.
+### Note: Customized after generation; take care upon regens
 
 language:
-- c
+- cpp
 
 cache:
 - ccache
@@ -16,12 +17,14 @@ os:
 # in the default container with sudo==false, consider requiring a docker
 # image and/or a newer Ubuntu Trusty baseline VM, by uncommenting below.
 # See the current docs on http://travis-ci.org for up-to-date options.
+# NOTE: Here we need this for .travis.fix* script(s) below.
 #sudo: false
 sudo: required
 
 #dist:
 #- trusty
 
+# Note: was uncommented in earlier builds (TODO: Check if needed)
 services:
 - docker
 
@@ -50,25 +53,34 @@ env:
   matrix:
     - BUILD_TYPE=default
     - BUILD_TYPE=default-Werror
+### Note: we don't use CMake
 #   - BUILD_TYPE=cmake
 #   - BUILD_TYPE=android
 #   - BUILD_TYPE=check-py
 
-pkg_deps_prereqs: &pkg_deps_prereqs
-    - libsodium-dev
-    - libsasl2-2
+# Prerequisite packages provided by OS distro and used "as is"
+pkg_deps_prereqs_distro: &pkg_deps_prereqs_distro
     - libsasl2-dev
-    - sasl2-bin
-#    - libzmq3-dev
-#    - libczmq-dev
-#    - libmlm-dev
-#    - libmagic-dev
-#    - libfty-proto-dev
-#    - cxxtools-dev
-#    - tntdb-dev
-#    - log4cplus-dev
-#    - libtntnet-dev
-#     - libfty-common-dev
+
+# Prerequisite packages that may be built from source or used from
+# prebuilt packages of that source (usually not from an OS distro)
+pkg_deps_prereqs_source: &pkg_deps_prereqs_source
+    - libsodium-dev
+    - libzmq3-dev
+    - libczmq-dev
+    - libmlm-dev
+    - libmagic-dev
+    - libfty-proto-dev
+    - cxxtools-dev
+    - tntdb-dev
+    - log4cplus-dev
+    - tntnet-dev
+    - libfty-common-dev
+
+# NOTE: Our forks are checked out and built without pkg dependencies in use
+pkg_deps_prereqs: &pkg_deps_prereqs
+#    - *pkg_deps_prereqs_source
+    - *pkg_deps_prereqs_distro
 
 pkg_deps_doctools: &pkg_deps_doctools
     - asciidoc
@@ -122,9 +134,12 @@ matrix:
         sources: *pkg_src_zeromq_ubuntu14
         packages:
         - *pkg_deps_common
+### Note: we don't use CMake
 #  - env: BUILD_TYPE=cmake DO_CLANG_FORMAT_CHECK=1 CLANG_FORMAT=clang-format-5.0
 # For non-cmake users, there is an autotools solution with a bit more overhead
-# to have dependencies ready and pass configure script before making this check):
+# to have dependencies ready and pass configure script before making this check).
+# Note that the autotools variant will also require dependencies preinstalled to
+# pass its configure script:
   - env: BUILD_TYPE=clang-format-check CLANG_FORMAT=clang-format-5.0
     os: linux
     dist: trusty
@@ -135,11 +150,13 @@ matrix:
         packages:
         - clang-5.0
         - clang-format-5.0
+        - *pkg_deps_prereqs
 
 before_install:
 - if [ "$TRAVIS_OS_NAME" == "osx" -a "$BUILD_TYPE" == "android" ] ; then brew install binutils ; fi
 - if [ "$TRAVIS_OS_NAME" == "osx" -a "$BUILD_TYPE" == "valgrind" ] ; then brew install valgrind ; fi
 
+### Note: Fix up SASL pkgconfig before build
 before_script:
 - ./.travis.fixsasl
 
