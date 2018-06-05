@@ -204,6 +204,7 @@ struct _fty_asset_server_t {
     mlm_client_t *mailbox_client;
     mlm_client_t *stream_client;
     bool test;
+    LIMITATIONS_STRUCT limitations;
 };
 
 
@@ -247,6 +248,8 @@ fty_asset_server_new (void)
         fty_asset_server_destroy (&self);
     }
     self->test = false;
+    self->limitations.max_active_power_devices = -1;
+    self->limitations.global_configurability = 1;
     return self;
 }
 
@@ -736,7 +739,6 @@ static void
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
-        zstr_free (&read_only_str);
         zmsg_destroy (&reply);
         return;
     }
@@ -756,41 +758,58 @@ static void
             return;
         }
     }
+    zstr_free (&read_only_str);
 
     if (!is_fty_proto (zmessage)) {
         zsys_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
-        zstr_free (&read_only_str);
         return;
     }
     fty_proto_t *fmsg = fty_proto_decode (zmessage_p);
     if (! fmsg) {
         zsys_error ("%s:\tASSET_MANIPULATION: failed to decode message", cfg->name);
-        zstr_free (&read_only_str);
         return;
     }
 
     const char *operation = fty_proto_operation (fmsg);
 
     if (streq (operation, "create") || streq (operation, "update")) {
-            db_reply_t dbreply = create_or_update_asset (fmsg, read_only, cfg->test);
-            if (! dbreply.status) {
-                zsys_error ("Failed to create asset!");
+        db_reply_t dbreply = create_or_update_asset (fmsg, read_only, cfg->test, &(cfg->limitations));
+        if (-1 == dbreply.status && LICENSING_ERR == dbreply.errtype) {
+            if (LICENSING_POWER_DEVICES_COUNT_REACHED == dbreply.errsubtype) {
+                zsys_error ("Failed to edit asset due to licensing limitation!");
                 fty_proto_print (fmsg);
                 zmsg_addstr (reply, "ERROR");
+                zmsg_addstr (reply, "Licensing limitation hit - maximum amount of active power devices allowed in license reached.");
                 mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
                 fty_proto_destroy (&fmsg);
-                zstr_free (&read_only_str);
                 return;
             }
-            zmsg_addstr (reply, "OK");
-            zmsg_addstr (reply, fty_proto_name (fmsg));
+            if (LICENSING_GLOBAL_CONFIGURABILITY_DISABLED == dbreply.errsubtype) {
+                zsys_error ("Failed to edit asset due to licensing limitation!");
+                fty_proto_print (fmsg);
+                zmsg_addstr (reply, "ERROR");
+                zmsg_addstr (reply, "Licensing limitation hit - asset manipulation is prohibited.");
+                mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+                fty_proto_destroy (&fmsg);
+                return;
+            }
+        }
+        else
+        if (! dbreply.status) {
+            zsys_error ("Failed to create asset!");
+            fty_proto_print (fmsg);
+            zmsg_addstr (reply, "ERROR");
             mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
-            //publish on stream ASSETS
-
-            s_send_create_or_update_asset (cfg, fty_proto_name (fmsg), operation, read_only);
             fty_proto_destroy (&fmsg);
-            zstr_free (&read_only_str);
             return;
+        }
+        zmsg_addstr (reply, "OK");
+        zmsg_addstr (reply, fty_proto_name (fmsg));
+        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+        //publish on stream ASSETS
+        s_send_create_or_update_asset (cfg, fty_proto_name (fmsg), operation, read_only);
+        fty_proto_destroy (&fmsg);
+        return;
     }
     // so far no operation implemented
     zsys_error ("%s:\tASSET_MANIPULATION: asset operation %s is not implemented", cfg->name, operation);
@@ -799,7 +818,6 @@ static void
     mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
 
     fty_proto_destroy (&fmsg);
-    zstr_free (&read_only_str);
 }
 
 static void
@@ -864,6 +882,48 @@ static void
 s_repeat_all (fty_asset_server_t *cfg)
 {
     return s_repeat_all (cfg, {});
+}
+
+void
+handle_incoming_limitations (fty_asset_server_t *cfg, zmsg_t *msg)
+{
+    const char *subject = mlm_client_subject (cfg->stream_client);
+    assert(subject);
+    assert(streq (subject, "LIMITATIONS"));
+    if (cfg->verbose)
+        zmsg_print (msg);
+    // should there be any data to share, they come in a group of three (value, item, category)
+    char *value = zmsg_popstr (msg);
+    char *item = zmsg_popstr (msg);
+    char *category = zmsg_popstr (msg);
+    while (value && item && category) {
+        if (streq (category, "POWER_NODES") && streq (item, "MAX_ACTIVE")) {
+            zsys_debug("Setting power_nodes/max_active to %s.", value);
+            cfg->limitations.max_active_power_devices = atoi(value);
+        }
+        else if (streq (category, "CONFIGURABILITY") && streq (item, "GLOBAL")) {
+            zsys_debug("Setting configurability/global to %s.", value);
+            cfg->limitations.global_configurability = atoi(value);
+        }
+        zstr_free (&value);
+        zstr_free (&item);
+        zstr_free (&category);
+        value = zmsg_popstr (msg);
+        item = zmsg_popstr (msg);
+        category = zmsg_popstr (msg);
+    }
+    if (NULL != value)
+        zstr_free (&value);
+    if (NULL != item)
+        zstr_free (&item);
+    if (NULL != category)
+        zstr_free (&category);
+    // based on limitations we may have to limit some features
+    // force disable some power nodes
+    if (disable_power_nodes_if_limitation_applies(cfg->limitations.max_active_power_devices, cfg->test)) {
+        // there was a change, so repeat all is mandatory
+        s_repeat_all (cfg);
+    }
 }
 
 void
@@ -1031,7 +1091,10 @@ fty_asset_server (zsock_t *pipe, void *args)
             if ( zmessage == NULL ) {
                 continue;
             }
-            if ( is_fty_proto (zmessage) ) {
+            const char *subject = mlm_client_subject (cfg->stream_client);
+            if (streq (subject, "LIMITATIONS")) {
+                handle_incoming_limitations (cfg, zmessage); 
+            } else if ( is_fty_proto (zmessage) ) {
                 fty_proto_t *bmsg = fty_proto_decode (&zmessage);
                 if ( fty_proto_id (bmsg) == FTY_PROTO_ASSET ) {
                     s_update_topology (cfg, bmsg);
@@ -1061,7 +1124,6 @@ void
 fty_asset_server_test (bool verbose)
 {
     printf (" * fty_asset_server: ");
-
     //  @selftest
     // Test #1:  Simple create/destroy test
     {
@@ -1096,9 +1158,10 @@ fty_asset_server_test (bool verbose)
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONSUMER", "ASSETS-TEST", ".*", NULL);
     zsock_wait (asset_server);
+    zstr_sendx (asset_server, "CONSUMER", "LICENSING-ANNOUNCEMENTS-TEST", "LIMITATIONS.*", NULL);
+    zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONNECTMAILBOX", endpoint, NULL);
     zsock_wait (asset_server);
-
     static const char *asset_name = TEST_INAME;
     // Test #2: subject ASSET_MANIPULATION, message fty_proto_t *asset
     {
@@ -1297,6 +1360,249 @@ fty_asset_server_test (bool verbose)
         assert (rv == 0);
         zclock_sleep (200);
         zsys_info ("fty-asset-server-test:Test #11: OK");
+    }
+
+    // Test #12: test licensing limitations
+    {
+        zsys_debug ("fty-asset-server-test:Test #12");
+        // try to create asset when configurability is enabled
+        const char* subject = "ASSET_MANIPULATION";
+        zmsg_t *msg = fty_proto_encode_asset (
+                NULL,
+                asset_name,
+                FTY_PROTO_ASSET_OP_CREATE,
+                NULL);
+        zmsg_pushstrf (msg, "%s", "READWRITE");
+        int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        zclock_sleep (200);
+        assert (rv == 0);
+        zmsg_t *reply = mlm_client_recv (ui);
+        assert (streq (mlm_client_subject (ui), subject));
+        assert (zmsg_size (reply) == 2);
+        char *str = zmsg_popstr (reply);
+        assert (streq (str, "OK"));
+        zstr_free (&str);
+        zmsg_destroy (&reply);
+        reply = mlm_client_recv (ui); // throw away stream message
+        zmsg_destroy (&reply) ;
+        // disable configurability
+        mlm_client_set_producer (ui, "LICENSING-ANNOUNCEMENTS-TEST");
+        mlm_client_sendx (ui, "LIMITATIONS", "0", "GLOBAL", "CONFIGURABILITY", NULL);
+        zclock_sleep (200);
+        // try to create asset when configurability is disabled
+        msg = fty_proto_encode_asset (
+                NULL,
+                asset_name,
+                FTY_PROTO_ASSET_OP_CREATE,
+                NULL);
+        zmsg_pushstrf (msg, "%s", "READWRITE");
+        rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        zclock_sleep (200);
+        assert (rv == 0);
+        reply = mlm_client_recv (ui);
+        assert (streq (mlm_client_subject (ui), subject));
+        assert (zmsg_size (reply) == 2);
+        str = zmsg_popstr (reply);
+        assert (streq (str, "ERROR"));
+        zstr_free (&str);
+        str = zmsg_popstr (reply);
+        assert (streq (str, "Licensing limitation hit - asset manipulation is prohibited."));
+        zstr_free (&str);
+        zmsg_destroy (&reply);
+        // enable configurability again, but set limit to power devices
+        mlm_client_sendx (ui, "LIMITATIONS", "1", "GLOBAL", "CONFIGURABILITY", "3", "MAX_ACTIVE", "POWER_NODES", NULL);
+        zclock_sleep (200);
+        // send power devices
+        zhash_t *aux = zhash_new ();
+        zhash_autofree (aux);
+        zhash_insert (aux, "type", (void *) "device");
+        zhash_insert (aux, "subtype", (void *) "epdu");
+        zhash_insert (aux, "status", (void *) "active");
+        msg = fty_proto_encode_asset (aux,
+                        "test1",
+                        FTY_PROTO_ASSET_OP_UPDATE,
+                        NULL);
+        zmsg_pushstrf (msg, "%s", "READWRITE");
+        rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        if (aux)
+            zhash_destroy(&aux);
+        zclock_sleep (200);
+        assert (rv == 0);
+        reply = mlm_client_recv (ui);
+        assert (streq (mlm_client_subject (ui), subject));
+        assert (zmsg_size (reply) == 2);
+        str = zmsg_popstr (reply);
+        assert (streq (str, "OK"));
+        zstr_free (&str);
+        zmsg_destroy (&reply);
+        reply = mlm_client_recv (ui); // throw away stream message - test1
+        zmsg_destroy (&reply) ;
+        aux = zhash_new ();
+        zhash_autofree (aux);
+        zhash_insert (aux, "type", (void *) "device");
+        zhash_insert (aux, "subtype", (void *) "epdu");
+        zhash_insert (aux, "status", (void *) "active");
+        msg = fty_proto_encode_asset (aux,
+                        "test2",
+                        FTY_PROTO_ASSET_OP_UPDATE,
+                        NULL);
+        zmsg_pushstrf (msg, "%s", "READWRITE");
+        rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        if (aux)
+            zhash_destroy(&aux);
+        zclock_sleep (200);
+        assert (rv == 0);
+        reply = mlm_client_recv (ui);
+        assert (streq (mlm_client_subject (ui), subject));
+        assert (zmsg_size (reply) == 2);
+        str = zmsg_popstr (reply);
+        assert (streq (str, "OK"));
+        zstr_free (&str);
+        zmsg_destroy (&reply);
+        reply = mlm_client_recv (ui); // throw away stream message - test2
+        zmsg_destroy (&reply) ;
+        aux = zhash_new ();
+        zhash_autofree (aux);
+        zhash_insert (aux, "type", (void *) "device");
+        zhash_insert (aux, "subtype", (void *) "epdu");
+        zhash_insert (aux, "status", (void *) "active");
+        msg = fty_proto_encode_asset (aux,
+                        "test3",
+                        FTY_PROTO_ASSET_OP_UPDATE,
+                        NULL);
+        zmsg_pushstrf (msg, "%s", "READWRITE");
+        rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        if (aux)
+            zhash_destroy(&aux);
+        zclock_sleep (200);
+        assert (rv == 0);
+        reply = mlm_client_recv (ui);
+        assert (streq (mlm_client_subject (ui), subject));
+        assert (zmsg_size (reply) == 2);
+        str = zmsg_popstr (reply);
+        assert (streq (str, "OK"));
+        zstr_free (&str);
+        zmsg_destroy (&reply);
+        reply = mlm_client_recv (ui); // throw away stream message - test3
+        zmsg_destroy (&reply) ;
+        aux = zhash_new ();
+        zhash_autofree (aux);
+        zhash_insert (aux, "type", (void *) "device");
+        zhash_insert (aux, "subtype", (void *) "epdu");
+        zhash_insert (aux, "status", (void *) "active");
+        msg = fty_proto_encode_asset (aux,
+                        "test4",
+                        FTY_PROTO_ASSET_OP_UPDATE,
+                        NULL);
+        zmsg_pushstrf (msg, "%s", "READWRITE");
+        rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        if (aux)
+            zhash_destroy(&aux);
+        zclock_sleep (200);
+        assert (rv == 0);
+        reply = mlm_client_recv (ui);
+        assert (streq (mlm_client_subject (ui), subject));
+        assert (zmsg_size (reply) == 2);
+        str = zmsg_popstr (reply);
+        assert (streq (str, "ERROR"));
+        zstr_free (&str);
+        str = zmsg_popstr (reply);
+        assert (streq (str, "Licensing limitation hit - maximum amount of active power devices allowed in license reached."));
+        zstr_free (&str);
+        zmsg_destroy (&reply);
+        /* // to be replaced by integration tests
+        // request republish to check what assets are published and if all are present as expected
+        zpoller_t *poller = zpoller_new (mlm_client_msgpipe(ui), NULL);
+        assert (poller);
+        subject = "REPEAT_ALL";
+        rv = zstr_sendx (asset_server, subject, NULL);
+        zclock_sleep (200);
+        assert (rv == 0);
+        zclock_sleep (200);
+        int asset_test1 = 0;
+        int asset_test2 = 0;
+        int asset_test3 = 0;
+        int asset_test4 = 0;
+        int asset_test1_enabled = 0;
+        int asset_test2_enabled = 0;
+        int asset_test3_enabled = 0;
+        while (!zsys_interrupted) {
+            void *which = zpoller_wait (poller, 200);
+            if ( !which ) {
+                // nothing more to parse
+                break;
+            }
+            // otherwise message was received
+            reply = mlm_client_recv (ui);
+            assert (is_fty_proto (reply));
+            fty_proto_t *fmsg = fty_proto_decode (&reply);
+            if (streq ("test1", fty_proto_name (fmsg))) {
+                asset_test1 = 1;
+                if (streq ("actve", fty_proto_aux_string (fmsg, "status", "nonactive")))
+                    asset_test1_enabled = 1;
+            }
+            else if (streq ("test2", fty_proto_name (fmsg))) {
+                asset_test2 = 1;
+                if (streq ("actve", fty_proto_aux_string (fmsg, "status", "nonactive")))
+                    asset_test2_enabled = 1;
+            }
+            else if (streq ("test3", fty_proto_name (fmsg))) {
+                asset_test3 = 1;
+                if (streq ("actve", fty_proto_aux_string (fmsg, "status", "nonactive")))
+                    asset_test3_enabled = 1;
+            }
+            else if (streq ("test4", fty_proto_name (fmsg))) {
+                asset_test4 = 1;
+            }
+            fty_proto_destroy (&fmsg);
+            zmsg_destroy (&reply);
+        }
+        assert(asset_test1 && asset_test2 && asset_test3 && !asset_test4); // all but test4 must be present
+        assert(asset_test1_enabled && asset_test2_enabled && asset_test3_enabled);
+        // set power devices limitation to 2 and see if one gets disabled
+        mlm_client_sendx (ui, "3", "MAX_ACTIVE", "POWER_NODES", NULL);
+        zclock_sleep (200);
+        // republish and check assets
+        subject = "REPEAT_ALL";
+        rv = zstr_sendx (asset_server, subject, NULL);
+        zclock_sleep (200);
+        assert (rv == 0);
+        asset_test1 = 0;
+        asset_test2 = 0;
+        asset_test3 = 0;
+        asset_test4 = 0;
+        int active_power_assets = 0;
+        while (!zsys_interrupted) {
+            void *which = zpoller_wait (poller, 200);
+            if ( !which ) {
+                // nothing more to parse
+                break;
+            }
+            // otherwise message was received
+            reply = mlm_client_recv (ui);
+            assert (is_fty_proto (reply));
+            fty_proto_t *fmsg = fty_proto_decode (&reply);
+            if (streq ("test1", fty_proto_name (fmsg))) {
+                asset_test1 = 1;
+                if (streq ("actve", fty_proto_aux_string (fmsg, "status", "nonactive")))
+                    ++active_power_assets;
+            }
+            else if (streq ("test2", fty_proto_name (fmsg))) {
+                asset_test2 = 1;
+                if (streq ("actve", fty_proto_aux_string (fmsg, "status", "nonactive")))
+                    ++active_power_assets;
+            }
+            else if (streq ("test3", fty_proto_name (fmsg))) {
+                asset_test3 = 1;
+                if (streq ("actve", fty_proto_aux_string (fmsg, "status", "nonactive")))
+                    ++active_power_assets;
+            }
+            fty_proto_destroy (&fmsg);
+            zmsg_destroy (&reply);
+        }
+        assert(asset_test1 && asset_test2 && asset_test3); // all three must be present
+        assert(2 == active_power_assets);
+        */
     }
 
     zactor_destroy (&autoupdate_server);

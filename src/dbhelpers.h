@@ -34,6 +34,7 @@
 #include <tuple>
 #include <string>
 #include "fty_asset_classes.h"
+#include "asset_defs.h"
 //#include "preproc.h"
 
 // all fields called name
@@ -250,13 +251,18 @@ FTY_ASSET_PRIVATE int
      std::string &ename,
      bool test);
 
+// Get amount of active power devices from database
+FTY_ASSET_PRIVATE int
+    get_active_power_devices
+        (bool test = false);
+
 // Inserts data from create/update message into DB
 FTY_ASSET_PRIVATE db_reply_t
     create_or_update_asset
     (fty_proto_t *fmsg,
      bool read_only,
-     bool test);
-
+     bool test,
+     LIMITATIONS_STRUCT *limitations);
 
 FTY_ASSET_PRIVATE db_reply <std::map <uint32_t, std::string> >
     select_short_elements
@@ -264,6 +270,15 @@ FTY_ASSET_PRIVATE db_reply <std::map <uint32_t, std::string> >
          uint32_t type_id,
          uint32_t subtype_id,
          std::string status);
+
+FTY_ASSET_PRIVATE bool
+    disable_power_nodes_if_limitation_applies
+        (int max_active_power_devices,
+         bool test = false);
+
+// for test purposes
+extern std::map<std::string, std::string> test_map_asset_state;
+
 //  Self test of this class
 void
     dbhelpers_test (bool verbose);

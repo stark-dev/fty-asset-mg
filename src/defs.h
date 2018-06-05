@@ -45,6 +45,7 @@ enum errtypes {
     DB_ERR,
     BAD_INPUT,
     INTERNAL_ERR,
+    LICENSING_ERR,
 };
 
 //! Constants for database errors
@@ -75,6 +76,12 @@ enum internal_err {
     //! First error should be UNKNOWN as it maps to zero and zero is weird
     INTERNAL_UNKNOWN,
     INTERNAL_NOT_IMPLEMENTED
+};
+
+//! Constants for licensing-related errors
+enum licensing_err {
+    LICENSING_POWER_DEVICES_COUNT_REACHED,
+    LICENSING_GLOBAL_CONFIGURABILITY_DISABLED
 };
 
 
