@@ -972,6 +972,8 @@ db_reply_t
             default:
                 // no default, not to generate warning
                 break;
+            case asset_subtype::PDU:
+            case asset_subtype::GENSET:
             case asset_subtype::EPDU:
             case asset_subtype::UPS:
             case asset_subtype::STS:
