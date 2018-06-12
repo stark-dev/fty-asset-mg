@@ -973,7 +973,6 @@ db_reply_t
                 // no default, not to generate warning
                 break;
             case asset_subtype::PDU:
-            case asset_subtype::FEED:
             case asset_subtype::GENSET:
             case asset_subtype::EPDU:
             case asset_subtype::UPS:
