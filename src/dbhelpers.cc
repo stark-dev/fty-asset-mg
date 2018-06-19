@@ -569,6 +569,54 @@ select_assets_by_filter (
 }
 
 /**
+ *  \brief Selects status string for selected asset in the DB
+ *
+ *  \param[in] element_name - name of asset in question
+ *
+ *  \return <status> - in case of success
+ *          "unknown" - in case of failure
+ */
+std::string get_status_from_db (std::string element_name, bool test = false) {
+    if (test) {
+        return "nonactive";
+    }
+    tntdb::Connection conn;
+    try {
+        conn = tntdb::connectCached (url);
+    }
+    catch ( const std::exception &e) {
+        zsys_error ("DB: cannot connect, %s", e.what());
+        return "unknown";
+    }
+    try{
+        tntdb::Statement st = conn.prepareCached(
+            " SELECT "
+            "   v.status,  "
+            " FROM v_bios_asset_element v  "
+            " WHERE v.name=:vname"
+            );
+
+        tntdb::Row row = st.set ("vname", element_name).selectRow ();
+        zsys_debug("get_status_from_db: [v_bios_asset_element]: were selected %zu rows", row.size());
+        if (row.size() == 1) {
+            std::string ret;
+            row [0].get (ret);
+            return ret;
+        } else {
+            return "unknown";
+        }
+    }
+    catch (const tntdb::NotFound &e) {
+        zsys_debug("get_status_from_db: [v_bios_asset_element]: %s asset not found", element_name.c_str ());
+        return "unknown";
+    }
+    catch (const std::exception &e) {
+        zsys_error ("get_status_from_db: [v_bios_asset_element]: error '%s'", e.what());
+        return "unknown";
+    }
+}
+
+/**
  *  \brief Selects basic asset info for all assets in the DB
  *
  *  \param[in] cb - function to call on each row
@@ -973,28 +1021,6 @@ db_reply_t
     if (subtype_id == 0) subtype_id = asset_subtype::N_A;
     parent_id = fty_proto_aux_number (fmsg, "parent", 0);
     status = fty_proto_aux_string (fmsg, "status", "nonactive");
-    if (limitations->max_active_power_devices >= 0 && type_id == asset_type::DEVICE && streq (status, "active")) {
-        switch (subtype_id) {
-            default:
-                // no default, not to generate warning
-                break;
-            case asset_subtype::PDU:
-            case asset_subtype::GENSET:
-            case asset_subtype::EPDU:
-            case asset_subtype::UPS:
-            case asset_subtype::STS:
-                // check if power devices exceeded allowed limit
-                int pd_active = get_active_power_devices(test);
-                if (pd_active + 1 > limitations->max_active_power_devices) {
-                    // raise error if limit reached
-                    ret.status     = -1;
-                    ret.errtype    = LICENSING_ERR;
-                    ret.errsubtype = LICENSING_POWER_DEVICES_COUNT_REACHED;
-                    return ret;
-                }
-                break;
-        }
-    }
     priority = fty_proto_aux_number (fmsg, "priority", 5);
     element_name = fty_proto_name (fmsg);
     // TODO: element name from ext.name?
@@ -1012,6 +1038,32 @@ db_reply_t
         // TODO: sanitize name ("rack controller")
     }
     zsys_debug ("  element_name = '%s'", element_name);
+    if (limitations->max_active_power_devices >= 0 && type_id == asset_type::DEVICE && streq (status, "active")) {
+        std::string db_status = get_status_from_db (element_name, test);
+        // limit applies only to assets that are attempted to be activated, but should be disabled
+        if (db_status == "nonactive") {
+            switch (subtype_id) {
+                default:
+                    // no default, not to generate warning
+                    break;
+                case asset_subtype::PDU:
+                case asset_subtype::GENSET:
+                case asset_subtype::EPDU:
+                case asset_subtype::UPS:
+                case asset_subtype::STS:
+                    // check if power devices exceeded allowed limit
+                    int pd_active = get_active_power_devices(test);
+                    if (pd_active + 1 > limitations->max_active_power_devices) {
+                        // raise error if limit reached
+                        ret.status     = -1;
+                        ret.errtype    = LICENSING_ERR;
+                        ret.errsubtype = LICENSING_POWER_DEVICES_COUNT_REACHED;
+                        return ret;
+                    }
+                    break;
+            }
+        }
+    }
 
     // ASSUMPTION: all datacenters are unlocated elements
     if (type_id == asset_type::DATACENTER && parent_id != 0)
