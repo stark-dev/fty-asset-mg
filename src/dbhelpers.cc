@@ -589,11 +589,11 @@ std::string get_status_from_db (std::string element_name, bool test = false) {
         return "unknown";
     }
     try{
+        zsys_debug("get_status_from_db: getting status for asset %s", element_name.c_str());
         tntdb::Statement st = conn.prepareCached(
-            " SELECT "
-            "   v.status,  "
-            " FROM v_bios_asset_element v  "
-            " WHERE v.name=:vname"
+            " SELECT v.status "
+            " FROM v_bios_asset_element v "
+            " WHERE v.name=:vname ;"
             );
 
         tntdb::Row row = st.set ("vname", element_name).selectRow ();
