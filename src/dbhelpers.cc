@@ -1040,8 +1040,9 @@ db_reply_t
     zsys_debug ("  element_name = '%s'", element_name);
     if (limitations->max_active_power_devices >= 0 && type_id == asset_type::DEVICE && streq (status, "active")) {
         std::string db_status = get_status_from_db (element_name, test);
-        // limit applies only to assets that are attempted to be activated, but should be disabled
-        if (db_status == "nonactive") {
+        // limit applies only to assets that are attempted to be activated, but are disabled in database
+        // or to new assets, also may trigger in case of DB failure, but that's fine
+        if (db_status != "active") {
             switch (subtype_id) {
                 default:
                     // no default, not to generate warning
