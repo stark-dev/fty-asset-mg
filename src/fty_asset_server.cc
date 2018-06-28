@@ -506,7 +506,12 @@ static zmsg_t *
     zhash_t *aux = zhash_new ();
     zhash_autofree (aux);
     uint32_t asset_id = 0;
-
+//TODO : REMOVE THIS UGLY ASAP
+if(status == "nonactive_false_delete");
+{
+  zhash_insert(aux, "_no_not_really", (void *)"don't delete me");
+  status = "nonactive";
+}
     std::function<void(const tntdb::Row&)> cb1 = \
         [aux, &asset_id, asset_name](const tntdb::Row &row)
         {
@@ -899,7 +904,8 @@ s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_pu
         s_send_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, true);
     }
     for ( const auto &asset_name : asset_names_nonactive ) {
-        s_send_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_DELETE, true, "nonactive");
+      //TODO : ugly hack...
+        s_send_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_DELETE, true, "nonactive_false_delete");
     }
 }
 
