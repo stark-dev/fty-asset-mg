@@ -321,8 +321,7 @@ int
     select_asset_element_basic
         (const std::string &asset_name,
          std::function<void(const tntdb::Row&)> cb,
-         bool test,
-         std::string status)
+         bool test)
 {
     if (test)
         return 0;
@@ -345,19 +344,17 @@ int
             "   v.priority, v.asset_tag, v.parent_name "
             " FROM"
             "   v_web_element v"
-            " WHERE :name = v.name AND "
-            " v.status = :vstatus      "
+            " WHERE :name = v.name"
         );
 
-        tntdb::Row row = st.set ("name", asset_name).
-                            set ("vstatus", status).
+        tntdb::Row row = st.set("name", asset_name).
                             selectRow();
         zsys_debug("[v_web_element]: were selected %" PRIu32 " rows", 1);
         cb(row);
         return 0;
     }
     catch (const tntdb::NotFound &e) {
-        zsys_info ("end: %s %s", "asset '%s' not found", status.c_str(), asset_name.c_str());
+        zsys_info ("end: asset '%s' not found", asset_name.c_str());
         return -1;
     }
     catch (const std::exception &e) {
@@ -629,8 +626,7 @@ int
     select_assets (
             std::function<void(
                 const tntdb::Row&
-                   )>& cb, bool test,
-            std::string status)
+                )>& cb, bool test)
 {
     if (test)
         return 0;
@@ -654,11 +650,10 @@ int
             "   v.status,  "
             "   v.priority,  "
             "   v.asset_tag  "
-            " FROM v_bios_asset_element v  "
-            " WHERE v.status=:vstatus"
+            " FROM v_bios_asset_element v "
             );
 
-        tntdb::Result res = st.set ("vstatus", status).select ();
+        tntdb::Result res = st.select ();
         zsys_debug("[v_bios_asset_element]: were selected %zu rows", res.size());
 
         for (const auto& r: res) {
@@ -667,7 +662,7 @@ int
         return 0;
     }
     catch (const tntdb::NotFound &e) {
-        zsys_debug("[v_bios_asset_element]: %s asset not found", status.c_str ());
+        zsys_debug("[v_bios_asset_element]: asset not found");
         return -1;
     }
     catch (const std::exception &e) {
@@ -1164,8 +1159,7 @@ db_reply <std::map <uint32_t, std::string> >
     select_short_elements
         (tntdb::Connection &conn,
          uint32_t type_id,
-         uint32_t subtype_id,
-         std::string status)
+         uint32_t subtype_id)
 {
     zsys_debug ("  type_id = %" PRIi16, type_id);
     zsys_debug ("  subtype_id = %" PRIi16, subtype_id);
@@ -1180,8 +1174,7 @@ db_reply <std::map <uint32_t, std::string> >
                 " FROM "
                 "   v_bios_asset_element v "
                 " WHERE "
-                "   v.id_type = :typeid AND "
-                "   v.status = :vstatus";
+                "   v.id_type = :typeid ";
     }
     else
     {
@@ -1191,8 +1184,7 @@ db_reply <std::map <uint32_t, std::string> >
                 "   v_bios_asset_element v "
                 " WHERE "
                 "   v.id_type = :typeid AND "
-                "   v.id_subtype = :subtypeid AND"
-                "   v.status = :vstatus ";
+                "   v.id_subtype = :subtypeid ";
     }
     try {
         // Can return more than one row.
@@ -1201,13 +1193,11 @@ db_reply <std::map <uint32_t, std::string> >
         tntdb::Result result;
         if ( subtype_id == 0 )
         {
-            result = st.set ("typeid", type_id).
-                        set ("vstatus", status).
-                        select ();
+            result = st.set("typeid", type_id).
+                    select();
         } else {
             result = st.set("typeid", type_id).
                     set("subtypeid", subtype_id).
-                    set ("vstatus", status).
                     select();
         }
 
