@@ -357,7 +357,7 @@ int
         return 0;
     }
     catch (const tntdb::NotFound &e) {
-        zsys_info ("end: asset '%s' not found %s", asset_name.c_str(), status.c_str());
+        zsys_info ("end: %s %s", "asset '%s' not found", status.c_str(), asset_name.c_str());
         return -1;
     }
     catch (const std::exception &e) {

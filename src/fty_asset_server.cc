@@ -499,8 +499,7 @@ static zmsg_t *
         const std::string &asset_name,
         const char* operation,
         std::string &subject,
-        bool read_only,
-        std::string status = "active")
+        bool read_only)
 {
     assert (cfg);
     zhash_t *aux = zhash_new ();
@@ -540,7 +539,7 @@ static zmsg_t *
         };
 
     // select basic info
-    int rv = select_asset_element_basic (asset_name, cb1, cfg->test, status);
+    int rv = select_asset_element_basic (asset_name, cb1, cfg->test, "active");
     if ( rv != 0 ) {
         zsys_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
         zhash_destroy (&aux);
@@ -665,11 +664,10 @@ static void
         fty_asset_server_t *cfg,
         const std::string &asset_name,
         const char* operation,
-        bool read_only,
-        std::string status = "active")
+        bool read_only)
 {
     std::string subject;
-    auto msg = s_publish_create_or_update_asset_msg (cfg, asset_name, operation, subject, read_only, status);
+    auto msg = s_publish_create_or_update_asset_msg (cfg, asset_name, operation, subject, read_only);
     if (NULL == msg || 0 != mlm_client_send (cfg->stream_client, subject.c_str(), &msg)) {
         zsys_info ("%s:\tmlm_client_send not sending message for asset '%s'", cfg->name, asset_name.c_str());
         return;
@@ -850,63 +848,40 @@ static void
 }
 
 static void
-s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_publish, std::string status = "active")
+s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_publish)
 {
     assert (cfg);
 
-    std::vector <std::string> asset_names_active;
-    std::vector <std::string> asset_names_nonactive;
-    std::function<void(const tntdb::Row&)> cb_nonactive = \
-        [&asset_names_nonactive, &assets_to_publish](const tntdb::Row &row)
+    std::vector <std::string> asset_names;
+    std::function<void(const tntdb::Row&)> cb = \
+        [&asset_names, &assets_to_publish](const tntdb::Row &row)
         {
             std::string foo;
             row ["name"].get (foo);
             if (assets_to_publish.size () == 0)
-                asset_names_nonactive.push_back (foo);
+                asset_names.push_back (foo);
             else
             if (assets_to_publish.count (foo) == 1)
-                asset_names_nonactive.push_back (foo);
-        };
-    std::function<void(const tntdb::Row&)> cb_active = \
-        [&asset_names_active, &assets_to_publish](const tntdb::Row &row)
-        {
-            std::string foo;
-            row ["name"].get (foo);
-            if (assets_to_publish.size () == 0)
-                asset_names_active.push_back (foo);
-            else
-            if (assets_to_publish.count (foo) == 1)
-                asset_names_active.push_back (foo);
+                asset_names.push_back (foo);
         };
 
     // select all assets
-    int rv = select_assets (cb_active, cfg->test, "active");
+    int rv = select_assets (cb, cfg->test, "active");
     if ( rv != 0 ) {
-        zsys_warning ("%s:\tCannot list all active assets", cfg->name);
+        zsys_warning ("%s:\tCannot list all assets", cfg->name);
         return;
-    }
-    if (status == "*") {
-        // select all assets
-        int rv = select_assets (cb_nonactive, cfg->test, "nonactive");
-        if ( rv != 0 ) {
-            zsys_warning ("%s:\tCannot list all active assets", cfg->name);
-            return;
-        }
     }
 
     // For every asset we need to form new message!
-    for ( const auto &asset_name : asset_names_active ) {
+    for ( const auto &asset_name : asset_names ) {
         s_send_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, true);
-    }
-    for ( const auto &asset_name : asset_names_nonactive ) {
-        s_send_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_DELETE, true, "nonactive");
     }
 }
 
 static void
-s_repeat_all (fty_asset_server_t *cfg, std::string status = "active")
+s_repeat_all (fty_asset_server_t *cfg)
 {
-    return s_repeat_all (cfg, {}, status);
+    return s_repeat_all (cfg, {});
 }
 
 void
@@ -947,7 +922,7 @@ handle_incoming_limitations (fty_asset_server_t *cfg, zmsg_t *msg)
     // force disable some power nodes
     if (disable_power_nodes_if_limitation_applies(cfg->limitations.max_active_power_devices, cfg->test)) {
         // there was a change, so repeat all is mandatory
-        s_repeat_all (cfg, "*");
+        s_repeat_all (cfg);
     }
 }
 
@@ -1045,7 +1020,7 @@ fty_asset_server (zsock_t *pipe, void *args)
             if (streq (cmd, "REPEAT_ALL")) {
                 if ( cfg->verbose )
                     zsys_debug ("%s:\tREPEAT_ALL start", cfg->name);
-                s_repeat_all (cfg, "*");
+                s_repeat_all (cfg);
                 if ( cfg->verbose )
                     zsys_debug ("%s:\tREPEAT_ALL end", cfg->name);
             }
@@ -1084,7 +1059,7 @@ fty_asset_server (zsock_t *pipe, void *args)
                 zmsg_print (zmessage);
                 char *asset = zmsg_popstr (zmessage);
                 if (!asset)
-                    s_repeat_all (cfg, "*");
+                    s_repeat_all (cfg);
                 else if (streq (asset, "$all")) {
                     zstr_free (&asset);
                     s_repeat_all (cfg);
