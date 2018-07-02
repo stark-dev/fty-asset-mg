@@ -1352,7 +1352,7 @@ fty_asset_server_test (bool verbose)
     zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "ASSET_AGENT_NAME", asset_server_test_name, NULL);
 
-    // Test #10: message WAKEUP
+    // Test #11: message WAKEUP
     {
         zsys_debug ("fty-asset-server-test:Test #11");
         const char *command = "WAKEUP";
