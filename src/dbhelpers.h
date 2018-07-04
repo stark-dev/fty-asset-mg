@@ -208,8 +208,7 @@ FTY_ASSET_PRIVATE int
     select_asset_element_basic
         (const std::string &asset_name,
          std::function<void(const tntdb::Row&)> cb,
-         bool test,
-         std::string vstatus);
+         bool test);
 
 // Selects all parents of given asset
 FTY_ASSET_PRIVATE int
@@ -219,13 +218,11 @@ FTY_ASSET_PRIVATE int
         bool test);
 
 // Selects basic asset info for all assets in the DB
-// status: active|nonactive
 FTY_ASSET_PRIVATE int
     select_assets (
             std::function<void(
                 const tntdb::Row&
-            )>& cb, bool test,
-            std::string status);
+                )>& cb, bool test);
 
 // Inserts ext attributes from inventory message into DB
 FTY_ASSET_PRIVATE int
@@ -268,8 +265,7 @@ FTY_ASSET_PRIVATE db_reply <std::map <uint32_t, std::string> >
     select_short_elements
         (tntdb::Connection &conn,
          uint32_t type_id,
-         uint32_t subtype_id,
-         std::string status);
+         uint32_t subtype_id);
 
 FTY_ASSET_PRIVATE bool
     disable_power_nodes_if_limitation_applies
