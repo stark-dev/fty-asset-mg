@@ -56,12 +56,11 @@ BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel
 BuildRequires:  malamute-devel
 BuildRequires:  file-devel
+BuildRequires:  log4cplus-devel
+BuildRequires:  fty-common-logging-devel
 BuildRequires:  fty-proto-devel
 BuildRequires:  cxxtools-devel
 BuildRequires:  tntdb-devel
-BuildRequires:  log4cplus-devel
-BuildRequires:  fty-common-logging-devel
-BuildRequires:  tntnet-devel
 BuildRequires:  cyrus-sasl-devel
 BuildRequires:  fty-common-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -93,12 +92,11 @@ Requires:       zeromq-devel
 Requires:       czmq-devel
 Requires:       malamute-devel
 Requires:       file-devel
+Requires:       log4cplus-devel
+Requires:       fty-common-logging-devel
 Requires:       fty-proto-devel
 Requires:       cxxtools-devel
 Requires:       tntdb-devel
-Requires:       log4cplus-devel
-Requires:       fty-common-logging-devel
-Requires:       tntnet-devel
 Requires:       cyrus-sasl-devel
 Requires:       fty-common-devel
 
@@ -120,7 +118,7 @@ This package contains development files for fty-asset: agent managing informatio
 
 %build
 sh autogen.sh
-%{configure} --enable-drafts=%{DRAFTS} --with-systemd-units --with-tntnet=yes
+%{configure} --enable-drafts=%{DRAFTS} --with-systemd-units
 make %{_smp_mflags}
 
 %install
