@@ -64,7 +64,7 @@ bool
         db_reply <std::map <uint32_t, std::string> > reply =
             select_short_elements (conn, asset_type::DATACENTER, asset_subtype::N_A);
         if (reply.status == 0) {
-            zsys_error ("Cannot select datacenters");
+            log_error ("Cannot select datacenters");
             return false;
         }
         // for each DC save its devices (/upses...done by fun)
@@ -72,7 +72,7 @@ bool
         {
             int rv = select_assets_by_container_cb (dc.first, func);
             if (rv != 0) {
-                zsys_error ("Cannot read upses for dc with id = '%" PRIu32"'", dc.first);
+                log_error ("Cannot read upses for dc with id = '%" PRIu32"'", dc.first);
                 continue;
             }
             dc_upses.emplace (dc.second, container_upses);
@@ -81,11 +81,11 @@ bool
         conn.close ();
     }
     catch (const tntdb::Error& e) {
-        zsys_error ("Database error: %s", e.what());
+        log_error ("Database error: %s", e.what());
         return false;
     }
     catch (const std::exception& e) {
-        zsys_error ("Error: %s", e.what());
+        log_error ("Error: %s", e.what());
         return false;
     }
     return true;
@@ -121,7 +121,7 @@ bool
          it != NULL;
 	     it = zhash_next (zhash))
     {
-        zsys_debug ("--->list: %s\n", (char*) it);
+        log_debug ("--->list: %s\n", (char*) it);
     }
     return true;
 }

@@ -65,12 +65,12 @@ int
         return 0;
     }
     catch (const tntdb::NotFound &e) {
-        zsys_debug ("Requested element not found");
+        log_debug ("Requested element not found");
         id = 0;
         return -2;
     }
     catch (const std::exception& e) {
-        zsys_error ("Error: ",e.what());
+        log_error ("Error: ",e.what());
         id = 0;
         return -1;
     }
@@ -111,7 +111,7 @@ select_assets_by_container_filter (
             filter += " id_asset_device_type in (" + subtypes + ") ";
         }
     }
-    zsys_debug ("filter: '%s'", filter.c_str ());
+    log_debug ("filter: '%s'", filter.c_str ());
     return filter;
 }
 
@@ -131,7 +131,7 @@ int
     )
 {
     links.clear();
-    zsys_debug ("  links are selected for element_id = %" PRIi32, element_id);
+    log_debug ("  links are selected for element_id = %" PRIi32, element_id);
     uint8_t linktype = INPUT_POWER_CHAIN;
 
     //      all powerlinks are included into "resultpowers"
@@ -167,7 +167,7 @@ int
         tntdb::Result result = st.set("containerid", element_id).
                                   set("linktypeid", linktype).
                                   select();
-        zsys_debug("[t_bios_asset_link]: were selected %" PRIu32 " rows",
+        log_debug("[t_bios_asset_link]: were selected %" PRIu32 " rows",
                                                          result.size());
 
         // Go through the selected links
@@ -188,7 +188,7 @@ int
         return 0;
     }
     catch (const std::exception &e) {
-        zsys_error (e.what());
+        log_error (e.what());
         return -1;
     }
 }
@@ -210,7 +210,7 @@ int
         std::function<void(const tntdb::Row&)> cb
     )
 {
-    zsys_debug ("container element_id = %" PRIu32, element_id);
+    log_debug ("container element_id = %" PRIu32, element_id);
 
     try {
         tntdb::Connection conn = tntdb::connectCached (url);
@@ -231,14 +231,14 @@ int
 
         if(!types_and_subtypes.empty())
             request += " AND ( " + select_assets_by_container_filter (types_and_subtypes) +")";
-        zsys_debug("[v_bios_asset_element_super_parent]: %s", request.c_str());
+        log_debug("[v_bios_asset_element_super_parent]: %s", request.c_str());
 
         // Can return more than one row.
         tntdb::Statement st = conn.prepareCached(request);
 
         tntdb::Result result = st.set("containerid", element_id).
                                   select();
-        zsys_debug("[v_bios_asset_element_super_parent]: were selected %" PRIu32 " rows",
+        log_debug("[v_bios_asset_element_super_parent]: were selected %" PRIu32 " rows",
                                                             result.size());
         for ( auto &row: result ) {
             cb(row);
@@ -246,7 +246,7 @@ int
         return 0;
     }
     catch (const std::exception& e) {
-        zsys_error ("Error: ",e.what());
+        log_error ("Error: ",e.what());
         return -1;
     }
 }
@@ -325,13 +325,13 @@ int
 {
     if (test)
         return 0;
-    zsys_debug ("asset_name = %s", asset_name.c_str());
+    log_debug ("asset_name = %s", asset_name.c_str());
     tntdb::Connection conn;
     try {
         conn = tntdb::connectCached (url);
     }
     catch ( const std::exception &e) {
-        zsys_error ("DB: cannot connect, %s", e.what());
+        log_error ("DB: cannot connect, %s", e.what());
         return -1;
     }
 
@@ -349,16 +349,16 @@ int
 
         tntdb::Row row = st.set("name", asset_name).
                             selectRow();
-        zsys_debug("[v_web_element]: were selected %" PRIu32 " rows", 1);
+        log_debug("[v_web_element]: were selected %" PRIu32 " rows", 1);
         cb(row);
         return 0;
     }
     catch (const tntdb::NotFound &e) {
-        zsys_info ("end: asset '%s' not found", asset_name.c_str());
+        log_info ("end: asset '%s' not found", asset_name.c_str());
         return -1;
     }
     catch (const std::exception &e) {
-        zsys_error ("Cannot select basic asset info: %s", e.what());
+        log_error ("Cannot select basic asset info: %s", e.what());
         return -1;
     }
 }
@@ -386,7 +386,7 @@ int
         conn = tntdb::connectCached (url);
     }
     catch ( const std::exception &e) {
-        zsys_error ("DB: cannot connect, %s", e.what());
+        log_error ("DB: cannot connect, %s", e.what());
         return -1;
     }
     try {
@@ -401,7 +401,7 @@ int
 
         tntdb::Result result = st_extattr.set("asset_id", asset_id).
                                           select();
-        zsys_debug("[v_bios_asset_ext_attributes]: were selected %" PRIu32 " rows", result.size());
+        log_debug("[v_bios_asset_ext_attributes]: were selected %" PRIu32 " rows", result.size());
 
         // Go through the selected extra attributes
         for ( const auto &row: result ) {
@@ -410,7 +410,7 @@ int
         return 0;
     }
     catch (const std::exception &e) {
-        zsys_error ("select_ext: %s", e.what());
+        log_error ("select_ext: %s", e.what());
         return -1;
     }
 }
@@ -440,7 +440,7 @@ int
         conn = tntdb::connectCached (url);
     }
     catch ( const std::exception &e) {
-        zsys_error ("DB: cannot connect, %s", e.what());
+        log_error ("DB: cannot connect, %s", e.what());
         return -1;
     }
     try{
@@ -480,7 +480,7 @@ int
             );
 
         tntdb::Result res = st.set ("id", id).select ();
-        zsys_debug("[v_bios_asset_element_super_parent]: were selected %i rows", 1);
+        log_debug("[v_bios_asset_element_super_parent]: were selected %i rows", 1);
 
         for (const auto& r: res) {
             cb(r);
@@ -488,7 +488,7 @@ int
         return 0;
     }
     catch (const std::exception &e) {
-        zsys_error ("[v_bios_asset_element_super_parent]: error '%s'", e.what());
+        log_error ("[v_bios_asset_element_super_parent]: error '%s'", e.what());
         return -1;
     }
 }
@@ -522,11 +522,11 @@ int
 
         if(!types_and_subtypes.empty())
             request += " WHERE " + select_assets_by_container_filter (types_and_subtypes);
-        zsys_debug("[v_bios_asset_element_super_parent]: %s", request.c_str());
+        log_debug("[v_bios_asset_element_super_parent]: %s", request.c_str());
         // Can return more than one row.
         tntdb::Statement st = conn.prepareCached(request);
         tntdb::Result result = st.select();
-        zsys_debug("[v_bios_asset_element_super_parent]: were selected %" PRIu32 " rows",
+        log_debug("[v_bios_asset_element_super_parent]: were selected %" PRIu32 " rows",
                                                             result.size());
         for ( auto &row: result ) {
             cb(row);
@@ -534,7 +534,7 @@ int
         return 0;
     }
     catch (const std::exception& e) {
-        zsys_error ("Error: ",e.what());
+        log_error ("Error: ",e.what());
         return -1;
     }
 }
@@ -582,11 +582,11 @@ std::string get_status_from_db (std::string element_name, bool test = false) {
         conn = tntdb::connectCached (url);
     }
     catch ( const std::exception &e) {
-        zsys_error ("DB: cannot connect, %s", e.what());
+        log_error ("DB: cannot connect, %s", e.what());
         return "unknown";
     }
     try{
-        zsys_debug("get_status_from_db: getting status for asset %s", element_name.c_str());
+        log_debug("get_status_from_db: getting status for asset %s", element_name.c_str());
         tntdb::Statement st = conn.prepareCached(
             " SELECT v.status "
             " FROM v_bios_asset_element v "
@@ -594,7 +594,7 @@ std::string get_status_from_db (std::string element_name, bool test = false) {
             );
 
         tntdb::Row row = st.set ("vname", element_name).selectRow ();
-        zsys_debug("get_status_from_db: [v_bios_asset_element]: were selected %zu rows", row.size());
+        log_debug("get_status_from_db: [v_bios_asset_element]: were selected %zu rows", row.size());
         if (row.size() == 1) {
             std::string ret;
             row [0].get (ret);
@@ -604,11 +604,11 @@ std::string get_status_from_db (std::string element_name, bool test = false) {
         }
     }
     catch (const tntdb::NotFound &e) {
-        zsys_debug("get_status_from_db: [v_bios_asset_element]: %s asset not found", element_name.c_str ());
+        log_debug("get_status_from_db: [v_bios_asset_element]: %s asset not found", element_name.c_str ());
         return "unknown";
     }
     catch (const std::exception &e) {
-        zsys_error ("get_status_from_db: [v_bios_asset_element]: error '%s'", e.what());
+        log_error ("get_status_from_db: [v_bios_asset_element]: error '%s'", e.what());
         return "unknown";
     }
 }
@@ -635,7 +635,7 @@ int
         conn = tntdb::connectCached (url);
     }
     catch ( const std::exception &e) {
-        zsys_error ("DB: cannot connect, %s", e.what());
+        log_error ("DB: cannot connect, %s", e.what());
         return -1;
     }
     try{
@@ -654,7 +654,7 @@ int
             );
 
         tntdb::Result res = st.select ();
-        zsys_debug("[v_bios_asset_element]: were selected %zu rows", res.size());
+        log_debug("[v_bios_asset_element]: were selected %zu rows", res.size());
 
         for (const auto& r: res) {
             cb(r);
@@ -662,11 +662,11 @@ int
         return 0;
     }
     catch (const tntdb::NotFound &e) {
-        zsys_debug("[v_bios_asset_element]: asset not found");
+        log_debug("[v_bios_asset_element]: asset not found");
         return -1;
     }
     catch (const std::exception &e) {
-        zsys_error ("[v_bios_asset_element]: error '%s'", e.what());
+        log_error ("[v_bios_asset_element]: error '%s'", e.what());
         return -1;
     }
 }
@@ -706,7 +706,7 @@ process_insert_inventory
         conn = tntdb::connectCached (url);
     }
     catch ( const std::exception &e) {
-        zsys_error ("DB: cannot connect, %s", e.what());
+        log_error ("DB: cannot connect, %s", e.what());
         return -1;
     }
 
@@ -736,7 +736,7 @@ process_insert_inventory
         }
         catch (const std::exception &e)
         {
-            zsys_warning ("%s:\texception on updating %s {%s, %s}\n\t%s", "", device_name.c_str (), keytag, value, e.what ());
+            log_warning ("%s:\texception on updating %s {%s, %s}\n\t%s", "", device_name.c_str (), keytag, value, e.what ());
             continue;
         }
     }
@@ -774,7 +774,7 @@ process_insert_inventory
         conn = tntdb::connectCached (url);
     }
     catch ( const std::exception &e) {
-        zsys_error ("DB: cannot connect, %s", e.what());
+        log_error ("DB: cannot connect, %s", e.what());
        return -1;
     }
 
@@ -805,7 +805,7 @@ process_insert_inventory
         }
        catch (const std::exception &e)
         {
-            zsys_warning ("%s:\texception on updating %s {%s, %s}\n\t%s", "", device_name.c_str (), keytag, value, e.what ());
+            log_warning ("%s:\texception on updating %s {%s, %s}\n\t%s", "", device_name.c_str (), keytag, value, e.what ());
             continue;
         }
     }
@@ -850,13 +850,13 @@ select_ename_from_iname
         );
 
         tntdb::Row row = st.set ("iname", iname).selectRow ();
-        zsys_debug ("[s_handle_subject_ename_from_iname]: were selected %" PRIu32 " rows", 1);
+        log_debug ("[s_handle_subject_ename_from_iname]: were selected %" PRIu32 " rows", 1);
 
         row [0].get (ename);
     }
     catch (const std::exception &e)
     {
-        zsys_error ("exception caught %s for element '%s'", e.what (), ename.c_str ());
+        log_error ("exception caught %s for element '%s'", e.what (), ename.c_str ());
         return -1;
     }
 
@@ -879,7 +879,7 @@ bool disable_power_nodes_if_limitation_applies (int max_active_power_devices, bo
         return false;
     }
     if (test) {
-        zsys_debug ("[disable_power_nodes_if_limitation_applies]: runs in test mode");
+        log_debug ("[disable_power_nodes_if_limitation_applies]: runs in test mode");
         return false;
     }
     try
@@ -930,7 +930,7 @@ bool disable_power_nodes_if_limitation_applies (int max_active_power_devices, bo
     }
     catch (const std::exception &e)
     {
-        zsys_error ("[disable_power_nodes_if_limitation_applies]: exception caught %s when getting count of active power devices", e.what ());
+        log_error ("[disable_power_nodes_if_limitation_applies]: exception caught %s when getting count of active power devices", e.what ());
         return false;
     }
     return false;
@@ -948,7 +948,7 @@ get_active_power_devices (bool test)
 {
     int count = 0;
     if (test) {
-        zsys_debug ("[get_active_power_devices]: runs in test mode");
+        log_debug ("[get_active_power_devices]: runs in test mode");
         for (auto const& as : test_map_asset_state) {
             if ("active" == as.second) {
                 ++count;
@@ -968,13 +968,13 @@ get_active_power_devices (bool test)
         );
 
         tntdb::Row row = st.selectRow ();
-        zsys_debug ("[get_active_power_devices]: were selected %" PRIu32 " rows", 1);
+        log_debug ("[get_active_power_devices]: were selected %" PRIu32 " rows", 1);
 
         row [0].get (count);
     }
     catch (const std::exception &e)
     {
-        zsys_error ("[get_active_power_devices]: exception caught %s when getting count of active power devices", e.what ());
+        log_error ("[get_active_power_devices]: exception caught %s when getting count of active power devices", e.what ());
         return 0;
     }
 
@@ -1032,7 +1032,7 @@ db_reply_t
         }
         // TODO: sanitize name ("rack controller")
     }
-    zsys_debug ("  element_name = '%s'", element_name);
+    log_debug ("  element_name = '%s'", element_name);
     if (limitations->max_active_power_devices >= 0 && type_id == asset_type::DEVICE && streq (status, "active")) {
         std::string db_status = get_status_from_db (element_name, test);
         // limit applies only to assets that are attempted to be activated, but are disabled in database
@@ -1123,7 +1123,7 @@ db_reply_t
         }
 
         ret.rowid = conn.lastInsertId ();
-        zsys_debug ("[t_bios_asset_element]: was inserted %" PRIu64 " rows", ret.affected_rows);
+        log_debug ("[t_bios_asset_element]: was inserted %" PRIu64 " rows", ret.affected_rows);
         if (! update) {
             // it is insert, fix the name
             statement = conn.prepareCached (
@@ -1138,9 +1138,9 @@ db_reply_t
             fty_proto_set_name (fmsg, "%s-%" PRIu64, element_name, ret.rowid);
         }
         if (ret.affected_rows == 0)
-            zsys_debug ("Asset unchanged, processing inventory");
+            log_debug ("Asset unchanged, processing inventory");
         else
-            zsys_debug ("Insert went well, processing inventory.");
+            log_debug ("Insert went well, processing inventory.");
         process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), read_only, false);
         ret.status = 1;
         return ret;
@@ -1161,8 +1161,8 @@ db_reply <std::map <uint32_t, std::string> >
          uint32_t type_id,
          uint32_t subtype_id)
 {
-    zsys_debug ("  type_id = %" PRIi16, type_id);
-    zsys_debug ("  subtype_id = %" PRIi16, subtype_id);
+    log_debug ("  type_id = %" PRIi16, type_id);
+    log_debug ("  subtype_id = %" PRIi16, subtype_id);
     std::map <uint32_t, std::string> item{};
     db_reply <std::map <uint32_t, std::string> > ret = db_reply_new(item);
 
@@ -1219,7 +1219,7 @@ db_reply <std::map <uint32_t, std::string> >
         ret.errsubtype    = DB_ERROR_INTERNAL;
         ret.msg           = e.what();
         ret.item.clear();
-        zsys_error ("Exception caught %s", e.what());
+        log_error ("Exception caught %s", e.what());
         return ret;
     }
 }

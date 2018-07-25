@@ -52,7 +52,6 @@
 
 #define MAX_DESCRIPTION_LENGTH  255
 
-void dbpath ();
 
 /**
  * \brief helper structure for results of v_bios_asset_element

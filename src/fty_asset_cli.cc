@@ -55,7 +55,7 @@ int main (int argc, char *argv [])
 
     int rv = mlm_client_connect (client, endpoint, 1000, "CLI");
     if ( rv == -1 ) {
-        zsys_error ("agent-rt-cli:\tCannot connect to malamute on '%s'", endpoint);
+        log_error ("agent-rt-cli:\tCannot connect to malamute on '%s'", endpoint);
         mlm_client_destroy (&client);
         return -1;
     }
@@ -84,8 +84,8 @@ int main (int argc, char *argv [])
         }
     }
 
-    if (verbose)
-        zsys_info ("fty-asset-cli - Command line interface for fty-asset");
+
+    log_info ("fty-asset-cli - Command line interface for fty-asset");
 
     zclock_sleep (200);
     mlm_client_destroy (&client);
