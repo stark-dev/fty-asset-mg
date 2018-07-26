@@ -60,7 +60,6 @@ int main (int argc, char *argv [])
         return -1;
     }
 
-    bool verbose = false;
     for (int argn = 1; argn < argc; argn++) {
         if (    streq (argv [argn], "--help")
              || streq (argv [argn], "-h"))
@@ -68,12 +67,6 @@ int main (int argc, char *argv [])
             puts ("fty-asset-cli [options]");
             puts ("fty-asset-cli republish");
             break;
-        }
-        else
-        if (    streq (argv [argn], "--verbose")
-             || streq (argv [argn], "-v"))
-        {
-            verbose = true;
         }
         else
         if (    streq (argv [argn], "republish")
