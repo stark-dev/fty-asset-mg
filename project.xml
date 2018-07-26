@@ -83,7 +83,11 @@
     <use project = "fty-common" libname = "libfty_common" header="fty_common.h"
         repository = "https://github.com/42ity/fty-common.git"
         test = "fty_commmon_selftest" >
-
+      
+        <use project = "tntnet" optional = "1"
+	     repository = "https://github.com/42ity/tntnet.git"
+             release = "2.2-FTY-master"
+	     />
         <use project = "libsasl2" header = "sasl/sasl.h"
             debian_name="libsasl2-dev"
             redhat_name="cyrus-sasl-devel"

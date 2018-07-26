@@ -1033,6 +1033,68 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for tntdb
 dnl END of enabled attempts to search for tntdb
 
 
+was_tntnet_check_lib_detected=no
+
+search_tntnet="no"
+
+AC_ARG_WITH([tntnet],
+    [
+        AS_HELP_STRING([--with-tntnet],
+        [yes or no. Optionally specify tntnet prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
+    ],
+    [
+        search_tntnet="yes"
+    ],
+    [
+        search_tntnet="yes"
+    ])
+AS_CASE([x"${with_tntnet}"],
+    [xyes], [search_tntnet="yes"],
+    [xno],  [search_tntnet="no"])
+
+
+AS_IF([test x"${search_tntnet}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
+    found_pkgconfig=""
+    found_linkname=""
+    PKG_CHECK_MODULES([tntnet], [tntnet >= 0.0.0],
+    [
+        AC_DEFINE(HAVE_TNTNET, 1, [The optional tntnet library is to be used])
+        PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE $tntnet_LIBS"
+        was_tntnet_check_lib_detected=pkgcfg
+        found_pkgconfig="tntnet"
+    ],
+    [
+        AC_MSG_WARN([Attribute 'test' is not set on zproject dependency 'tntnet' - please ensure it is set])
+    ])
+
+dnl END of PKG_CHECK_MODULES and/or direct tests for tntnet
+    AS_CASE(["x${was_tntnet_check_lib_detected}"],
+        [xpkgcfg], [
+                AC_SUBST([pkgconfig_name_tntnet],[${found_pkgconfig}])
+                CFLAGS="${tntnet_CFLAGS} ${CFLAGS}"
+                LIBS="${tntnet_LIBS} ${LIBS}"
+            ],
+        [xyes], [
+                AC_SUBST([pkgconfig_name_tntnet],[${found_linkname}])
+                CFLAGS="${tntnet_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${tntnet_synthetic_libs} ${LDFLAGS}"
+                LIBS="${tntnet_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([tntnet_CFLAGS],[${tntnet_synthetic_cflags}])
+                AC_SUBST([tntnet_LIBS],[${tntnet_synthetic_libs}])
+            ],
+        [xno], [
+                AC_SUBST([pkgconfig_name_tntnet],[tntnet])
+            AC_MSG_WARN([Cannot find pkg-config metadata for tntnet 0.0.0 or higher])
+    ])
+])
+dnl END of enabled attempts to search for tntnet
+
+
 was_libsasl2_check_lib_detected=no
 
 search_libsasl2="yes"
