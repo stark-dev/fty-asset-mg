@@ -233,12 +233,15 @@ fty_asset_server_new (void)
     fty_asset_server_t *self = (fty_asset_server_t *) zmalloc (sizeof (fty_asset_server_t));
     assert (self);
     self->mailbox_client = mlm_client_new ();
-    if (!self->mailbox_client)
+    if (!self->mailbox_client) {
+        log_fatal ("mailbox mlm_client failed");
         exit (1);
-
+    }
     self->stream_client = mlm_client_new ();
-    if (!self->stream_client)
+    if (!self->stream_client) {
+        log_fatal ("stream mlm_client failed");
         exit (1);
+    }
 
     self->test = false;
     self->limitations.max_active_power_devices = -1;
