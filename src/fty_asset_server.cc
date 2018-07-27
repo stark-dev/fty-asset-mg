@@ -234,11 +234,12 @@ fty_asset_server_new (void)
     assert (self);
     self->mailbox_client = mlm_client_new ();
     if (!self->mailbox_client)
-        fty_asset_server_destroy (&self);
+        exit (1);
 
     self->stream_client = mlm_client_new ();
     if (!self->stream_client)
-        fty_asset_server_destroy (&self);
+        exit (1);
+
     self->test = false;
     self->limitations.max_active_power_devices = -1;
     self->limitations.global_configurability = 1;
