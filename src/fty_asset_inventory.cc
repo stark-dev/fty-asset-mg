@@ -36,12 +36,11 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
     char *name = strdup ((const char*)args);
     mlm_client_t *client = mlm_client_new ();
     zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe (client), NULL);
-    bool verbose = false;
     bool test = false;
     std::unordered_map<std::string, std::string> ext_map_cache;
 
     zsock_signal (pipe, 0);
-    zsys_info ("%s:\tStarted", name);
+    log_info ("%s:\tStarted", name);
 
     while (!zsys_interrupted)
     {
@@ -52,27 +51,20 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
         if (which == pipe) {
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
-            if ( verbose ) {
-                zsys_debug ("%s:\tActor command=%s", name, cmd);
-            }
+            log_debug ("%s:\tActor command=%s", name, cmd);
 
             if (streq (cmd, "$TERM")) {
-                if ( !verbose ) // ! is here intentionally, to get rid of duplication information
-                    zsys_info ("%s:\tGot $TERM", name);
+                log_info ("%s:\tGot $TERM", name);
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 break;
-            }
-            else
-            if (streq (cmd, "VERBOSE")) {
-                verbose = true;
             }
             else
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
                 int rv = mlm_client_connect (client, endpoint, 1000, name);
                 if (rv == -1) {
-                    zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", name, endpoint);
+                    log_error ("%s:\tCan't connect to malamute endpoint '%s'", name, endpoint);
                 }
                 zstr_free (&endpoint);
                 zsock_signal (pipe, 0);
@@ -82,7 +74,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
                 char* stream = zmsg_popstr (msg);
                 int rv = mlm_client_set_producer (client, stream);
                 if (rv == -1) {
-                    zsys_error ("%s:\tCan't set producer on stream '%s'", name, stream);
+                    log_error ("%s:\tCan't set producer on stream '%s'", name, stream);
                 }
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
@@ -94,7 +86,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
                 test = streq (stream, "ASSETS-TEST");
                 int rv = mlm_client_set_consumer (client, stream, pattern);
                 if (rv == -1) {
-                    zsys_error ("%s:\tCan't set consumer on stream '%s', '%s'", name, stream, pattern);
+                    log_error ("%s:\tCan't set consumer on stream '%s', '%s'", name, stream, pattern);
                 }
                 zstr_free (&pattern);
                 zstr_free (&stream);
@@ -102,7 +94,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
             }
             else
             {
-                zsys_info ("%s:\tUnhandled command %s", name, cmd);
+                log_info ("%s:\tUnhandled command %s", name, cmd);
             }
             zstr_free (&cmd);
             zmsg_destroy (&msg);
@@ -112,7 +104,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
             zmsg_t *msg = mlm_client_recv (client);
             fty_proto_t *proto = fty_proto_decode (&msg);
             if (!proto) {
-                zsys_warning ("%s:'tfty_proto_decode () failed", name);
+                log_warning ("%s:'tfty_proto_decode () failed", name);
                 continue;
             }
 
@@ -123,7 +115,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
                 zhash_t *ext = fty_proto_ext (proto);
                 int rv = process_insert_inventory (device_name, ext, true, ext_map_cache, test);
                 if (rv != 0)
-                    zsys_error ("Could not insert inventory data into DB");
+                    log_error ("Could not insert inventory data into DB");
             } else if (streq (operation, "delete")) {
                 //  Vacuum the cache
                 //  The keys are formatted as asset_name:keytag[01]
@@ -154,28 +146,23 @@ fty_asset_inventory_test (bool verbose)
     //  @selftest
     //  Test #1: Simple create/destroy test
     {
-        zsys_debug ("fty-asset-server-test:Test #1");
+        log_debug ("fty-asset-server-test:Test #1");
         zactor_t *self = zactor_new (fty_asset_inventory_server, (void*) "asset-inventory-test");
         zclock_sleep (200);
         zactor_destroy (&self);
-        zsys_info ("fty-asset-server-test:Test #1: OK");
+        log_info ("fty-asset-server-test:Test #1: OK");
     }
     static const char* endpoint = "inproc://fty_asset_inventory_test";
 
     zactor_t *server = zactor_new (mlm_server, (void*) "Malamute");
     assert ( server != NULL );
     zstr_sendx (server, "BIND", endpoint, NULL);
-    if (verbose)
-                zstr_send (server, "VERBOSE");
 
     mlm_client_t *ui = mlm_client_new ();
     mlm_client_connect (ui, endpoint, 5000, "fty-asset-inventory-ui");
     mlm_client_set_producer (ui, "ASSETS-TEST");
 
     zactor_t *inventory_server = zactor_new (fty_asset_inventory_server, (void*)"asset-inventory-test");
-    if (verbose) {
-        zstr_send (inventory_server, "VERBOSE");
-    }
     zstr_sendx (inventory_server, "CONNECT", endpoint, NULL);
     zsock_wait (inventory_server);
     zstr_sendx (inventory_server, "CONSUMER", "ASSETS-TEST", "inventory@.*", NULL);
@@ -183,7 +170,7 @@ fty_asset_inventory_test (bool verbose)
 
     // Test #2: create inventory message and process it
     {
-        zsys_debug ("fty-asset-server-test:Test #2");
+        log_debug ("fty-asset-server-test:Test #2");
         zmsg_t *msg = fty_proto_encode_asset (
                 NULL,
                 "MyDC",
@@ -192,7 +179,7 @@ fty_asset_inventory_test (bool verbose)
         int rv = mlm_client_send (ui, "inventory@dc-1", &msg);
         assert (rv == 0);
         zclock_sleep (200);
-        zsys_info ("fty-asset-server-test:Test #2: OK");
+        log_info ("fty-asset-server-test:Test #2: OK");
     }
 
     zactor_destroy (&inventory_server);

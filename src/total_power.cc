@@ -175,9 +175,9 @@ static void
                 new_border_devices.insert(it->second);
             else
             {
-                zsys_error ("DB can be in inconsistant state or some device "
+                log_error ("DB can be in inconsistant state or some device "
                         "has power source in the other container");
-                zsys_error ("device(as element) %" PRIu32 " is not in container",
+                log_error ("device(as element) %" PRIu32 " is not in container",
                                                 adevice);
                 // do nothing in this case
             }
@@ -228,7 +228,7 @@ static std::vector<std::string>
     //   A is in the Container
     //   then A is border device
     for ( auto &oneLink : links ) {
-        zsys_debug ("  cur_link: %d->%d", oneLink.first, oneLink.second);
+        log_debug ("  cur_link: %d->%d", oneLink.first, oneLink.second);
         auto it = devices_in_container.find (oneLink.first);
         if ( it == devices_in_container.end() )
             // if in the link first point is out of the Container,
@@ -342,14 +342,14 @@ static int
 
     // here would be placed names of devices to summ up
     if ( rv != 0 ) {
-        zsys_warning ("asset_id='%" PRIu32 "': problems appeared in selecting devices",
+        log_warning ("asset_id='%" PRIu32 "': problems appeared in selecting devices",
                 assetId);
         // so return an empty set of power devices
         powerDevices = {};
         return -1;
     }
     if ( container_devices.empty() ) {
-        zsys_debug ("asset_id='%" PRIu32 "': has no devices", assetId);
+        log_debug ("asset_id='%" PRIu32 "': has no devices", assetId);
         // so return an empty set of power devices
         powerDevices = {};
         return 0;
@@ -357,7 +357,7 @@ static int
     std::set <std::pair<a_elmnt_id_t ,a_elmnt_id_t> > links{};
     rv = select_links_by_container (assetId, links);
     if ( rv != 0 ) {
-        zsys_warning ("asset_id='%" PRIu32 "': internal problems in links detecting",
+        log_warning ("asset_id='%" PRIu32 "': internal problems in links detecting",
                 assetId);
         // so return an empty set of power devices
         powerDevices = {};
@@ -365,7 +365,7 @@ static int
     }
 
     if ( links.empty() ) {
-        zsys_debug ("asset_id='%" PRIu32 "': has no power links", assetId);
+        log_debug ("asset_id='%" PRIu32 "': has no power links", assetId);
         // so return an empty set of power devices
         powerDevices = {};
         return 0;

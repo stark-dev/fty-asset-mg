@@ -27,6 +27,7 @@
 */
 
 #include "fty_asset_classes.h"
+#define DEFAULT_LOG_CONFIG "/etc/fty/ftylog.h"
 
 static int
 s_autoupdate_timer (zloop_t *loop, int timer_id, void *output)
@@ -45,9 +46,10 @@ s_repeat_assets_timer (zloop_t *loop, int timer_id, void *output)
 int main (int argc, char *argv [])
 {
     const char* endpoint = "ipc://@/malamute";
-
+    ManageFtyLog::setInstanceFtylog("fty-asset", DEFAULT_LOG_CONFIG);
     bool verbose = false;
     int argn;
+
     for (argn = 1; argn < argc; argn++) {
         if (streq (argv [argn], "--help")
         ||  streq (argv [argn], "-h")) {
@@ -64,12 +66,13 @@ int main (int argc, char *argv [])
             printf ("Unknown option: %s\n", argv [argn]);
         }
     }
+
+    log_info ("fty_asset - Agent managing assets");
+
     if (verbose)
-        zsys_info ("fty_asset - Agent managing assets");
+        ManageFtyLog::getInstanceFtylog()->setVeboseMode();
 
     zactor_t *asset_server = zactor_new (fty_asset_server, (void*) "asset-agent");
-    if (verbose)
-        zstr_send (asset_server, "VERBOSE");
     zstr_sendx (asset_server, "CONNECTSTREAM", endpoint, NULL);
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "PRODUCER", "ASSETS", NULL);
@@ -83,8 +86,6 @@ int main (int argc, char *argv [])
     zstr_sendx (asset_server, "REPEAT_ALL", NULL);
 
     zactor_t *autoupdate_server = zactor_new (fty_asset_autoupdate_server, (void*) "asset-autoupdate");
-    if (verbose)
-        zstr_send (autoupdate_server, "VERBOSE");
     zstr_sendx (autoupdate_server, "CONNECT", endpoint, NULL);
     zsock_wait (autoupdate_server);
     zstr_sendx (autoupdate_server, "PRODUCER", "ASSETS", NULL);

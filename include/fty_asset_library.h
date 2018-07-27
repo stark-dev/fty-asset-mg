@@ -33,6 +33,7 @@
 #include <czmq.h>
 #include <malamute.h>
 #include <magic.h>
+#include <fty_log.h>
 #include <ftyproto.h>
 #include <cxxtools/allocator.h>
 #include <tntdb.h>

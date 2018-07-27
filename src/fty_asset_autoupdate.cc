@@ -115,9 +115,9 @@ autoupdate_update_rc_self (fty_asset_autoupdate_t *self, const std::string &asse
             inventory);
         if (msg) {
             topic = "inventory@" + assetName;
-            zsys_debug ("new inventory message %s", topic.c_str());
+            log_debug ("new inventory message %s", topic.c_str());
             int r = mlm_client_send (self->client, topic.c_str (), &msg);
-            if( r != 0 ) zsys_error("failed to send inventory %s result %" PRIi32, topic.c_str(), r);
+            if( r != 0 ) log_error("failed to send inventory %s result %" PRIi32, topic.c_str(), r);
             zmsg_destroy (&msg);
         }
     } else {
@@ -142,9 +142,9 @@ autoupdate_update_rc_self (fty_asset_autoupdate_t *self, const std::string &asse
             inventory);
         if (msg) {
             topic = "inventory@" + assetName;
-            zsys_debug ("new inventory message %s", topic.c_str());
+            log_debug ("new inventory message %s", topic.c_str());
             int r = mlm_client_send (self->client, topic.c_str (), &msg);
-            if( r != 0 ) zsys_error("failed to send inventory %s result %" PRIi32, topic.c_str(), r);
+            if( r != 0 ) log_error("failed to send inventory %s result %" PRIi32, topic.c_str(), r);
             zmsg_destroy (&msg);
         }
     }
@@ -180,7 +180,7 @@ autoupdate_update_rc_information (fty_asset_autoupdate_t *self)
             if (i != std::string::npos) {
                 hostname.resize (i);
             }
-            zsys_info ("%s:\tip='%s', dns_name='%s'", self->name, ip.c_str (), name.c_str ());
+            log_info ("%s:\tip='%s', dns_name='%s'", self->name, ip.c_str (), name.c_str ());
             for (const auto &rc: self->rcs) {
                 if(rc.empty() || hostname.empty())
                     continue;
@@ -201,14 +201,14 @@ autoupdate_request_all_rcs (fty_asset_autoupdate_t *self)
     assert (self);
 
     if ( self->verbose)
-        zsys_debug ("%s:\tRequest RC list", self->name);
+        log_debug ("%s:\tRequest RC list", self->name);
     zmsg_t *msg = zmsg_new ();
     zmsg_addstr (msg, "GET");
     zmsg_addstr (msg, "");
     zmsg_addstr (msg, "rackcontroller");
     int rv = mlm_client_sendto (self->client, self->asset_agent_name, "ASSETS_IN_CONTAINER", NULL, 5000, &msg);
     if (rv != 0) {
-        zsys_error ("%s:\tRequest RC list failed", self->name);
+        log_error ("%s:\tRequest RC list failed", self->name);
         zmsg_destroy (&msg);
     }
 }
@@ -230,7 +230,7 @@ autoupdate_handle_message (fty_asset_autoupdate_t *self, zmsg_t *message)
     if (streq (sender, self->asset_agent_name)) {
         if (streq (subj, "ASSETS_IN_CONTAINER")) {
             if ( self->verbose ) {
-                zsys_debug ("%s:\tGot reply with RC:", self->name);
+                log_debug ("%s:\tGot reply with RC:", self->name);
                 zmsg_print (message);
             }
             self->rcs.clear ();
@@ -267,7 +267,7 @@ fty_asset_autoupdate_server (zsock_t *pipe, void *args)
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
-    zsys_info ("%s:\tStarted", self->name);
+    log_info ("%s:\tStarted", self->name);
 
     while (!zsys_interrupted) {
         void *which = zpoller_wait (poller, -1);
@@ -280,12 +280,12 @@ fty_asset_autoupdate_server (zsock_t *pipe, void *args)
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
             if ( self->verbose ) {
-                zsys_debug ("%s:\tActor command=%s", self->name, cmd);
+                log_debug ("%s:\tActor command=%s", self->name, cmd);
             }
 
             if (streq (cmd, "$TERM")) {
                 if ( !self->verbose ) // ! is here intentionally, to get rid of duplication information
-                    zsys_info ("%s:\tGot $TERM", self->name);
+                    log_info ("%s:\tGot $TERM", self->name);
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 goto exit;
@@ -299,7 +299,7 @@ fty_asset_autoupdate_server (zsock_t *pipe, void *args)
                 char* endpoint = zmsg_popstr (msg);
                 int rv = mlm_client_connect (self->client, endpoint, 1000, self->name);
                 if (rv == -1) {
-                    zsys_error ("%s:\tCan't connect to malamute endpoint '%s'", self->name, endpoint);
+                    log_error ("%s:\tCan't connect to malamute endpoint '%s'", self->name, endpoint);
                 }
                 zstr_free (&endpoint);
                 zsock_signal (pipe, 0);
@@ -309,7 +309,7 @@ fty_asset_autoupdate_server (zsock_t *pipe, void *args)
                 char* stream = zmsg_popstr (msg);
                 int rv = mlm_client_set_producer (self->client, stream);
                 if (rv == -1) {
-                    zsys_error ("%s:\tCan't set producer on stream '%s'", self->name, stream);
+                    log_error ("%s:\tCan't set producer on stream '%s'", self->name, stream);
                 }
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
@@ -320,7 +320,7 @@ fty_asset_autoupdate_server (zsock_t *pipe, void *args)
                 char* pattern = zmsg_popstr (msg);
                 int rv = mlm_client_set_consumer (self->client, stream, pattern);
                 if (rv == -1) {
-                    zsys_error ("%s:\tCan't set consumer on stream '%s', '%s'", self->name, stream, pattern);
+                    log_error ("%s:\tCan't set consumer on stream '%s', '%s'", self->name, stream, pattern);
                 }
                 zstr_free (&pattern);
                 zstr_free (&stream);
@@ -337,7 +337,7 @@ fty_asset_autoupdate_server (zsock_t *pipe, void *args)
             }
             else
             {
-                zsys_info ("%s:\tUnhandled command %s", self->name, cmd);
+                log_info ("%s:\tUnhandled command %s", self->name, cmd);
             }
             zstr_free (&cmd);
             zmsg_destroy (&msg);
@@ -350,7 +350,7 @@ fty_asset_autoupdate_server (zsock_t *pipe, void *args)
         }
     }
  exit:
-    zsys_info ("%s:\tended", self->name);
+    log_info ("%s:\tended", self->name);
     zpoller_destroy (&poller);
     fty_asset_autoupdate_destroy (&self);
 }
