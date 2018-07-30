@@ -72,26 +72,30 @@
         release = "2.2-FTY-master"
         />
 
-    <use project = "tntdb"
-        test="tntdb::connectCached"
-        repository = "https://github.com/42ity/tntdb.git"
-        release = "1.3-FTY-master"
-        builddir = "tntdb" />
-    <!-- use project = "tntdb" test="tntdb::connectCached" header="tntdb/connect.h" / -->
-    <!-- use project = "tntdb" test="tntdb::Date::gmtime" header="tntdb/connect.h" / -->
+    <use project = "fty-common-db" libname = "libfty_common_db" header="fty_common_db.h"
+        repository = "https://github.com/42ity/fty-common-db.git"
+        test = "fty_commmon_db_selftest" >
 
-    <use project = "fty-common" libname = "libfty_common" header="fty_common.h"
-        repository = "https://github.com/42ity/fty-common.git"
-        test = "fty_commmon_selftest" >
-      
-        <use project = "tntnet" optional = "1"
-	     repository = "https://github.com/42ity/tntnet.git"
-             release = "2.2-FTY-master"
-	     />
-        <use project = "libsasl2" header = "sasl/sasl.h"
-            debian_name="libsasl2-dev"
-            redhat_name="cyrus-sasl-devel"
+        <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec" header="cxxtools/allocator.h"
+            repository = "https://github.com/42ity/cxxtools.git"
+            release = "2.2-FTY-master"
             />
+
+        <use project = "tntdb"
+            test="tntdb::Date::gmtime"
+            repository = "https://github.com/42ity/tntdb.git"
+            release = "1.3-FTY-master"
+            builddir = "tntdb"/>
+
+        <use project = "fty-common" libname = "libfty_common" header="fty_common.h"
+            repository = "https://github.com/42ity/fty-common.git"
+            test = "fty_commmon_selftest" />
+    </use>
+
+    <use project = "fty-common-mlm" libname = "libfty_common_mlm" header="fty_common_mlm.h"
+        repository = "https://github.com/42ity/fty-common-mlm.git"
+        test = "fty_commmon_mlm_selftest" >
+        <use project = "openssl" header = "openssl/sha.h" debian_name="libssl-dev"/>
     </use>
 
     <class name = "defs" state="stable" private = "1"> Defines constants </class>
