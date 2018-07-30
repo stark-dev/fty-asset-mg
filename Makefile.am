@@ -22,13 +22,14 @@ AM_CPPFLAGS = \
     ${fty_proto_CFLAGS} \
     ${cxxtools_CFLAGS} \
     ${tntdb_CFLAGS} \
-    ${tntnet_CFLAGS} \
-    ${libsasl2_CFLAGS} \
     ${fty_common_CFLAGS} \
+    ${fty_common_db_CFLAGS} \
+    ${openssl_CFLAGS} \
+    ${fty_common_mlm_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${log4cplus_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${tntnet_LIBS} ${libsasl2_LIBS} ${fty_common_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${log4cplus_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${fty_common_LIBS} ${fty_common_db_LIBS} ${openssl_LIBS} ${fty_common_mlm_LIBS}
 
 SUBDIRS = doc
 SUBDIRS += include
@@ -59,9 +60,10 @@ EXTRA_DIST += \
     Findfty_proto.cmake \
     Findcxxtools.cmake \
     Findtntdb.cmake \
-    Findtntnet.cmake \
-    Findlibsasl2.cmake \
     Findfty_common.cmake \
+    Findfty_common_db.cmake \
+    Findopenssl.cmake \
+    Findfty_common_mlm.cmake \
     builds/cmake/Modules/ClangFormat.cmake \
     builds/cmake/clang-format-check.sh.in \
     builds/cmake/Config.cmake.in \
