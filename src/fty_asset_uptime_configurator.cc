@@ -40,7 +40,7 @@ bool
 (std::map <std::string, std::vector <std::string>>& dc_upses, std::string &asset_name)
 {
     try {
-        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Connection conn = tntdb::connectCached (DBConn::url);
 
         std::vector <std::string> container_upses{};
         std::function<void(const tntdb::Row&)> func = \

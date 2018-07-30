@@ -49,7 +49,7 @@ int
     )
 {
     try {
-        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Connection conn = tntdb::connectCached (DBConn::url);
         tntdb::Statement st = conn.prepareCached(
             " SELECT "
             "   v.id "
@@ -138,7 +138,7 @@ int
     try{
         // v_bios_asset_link are only devices,
         // so there is no need to add more constrains
-        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Connection conn = tntdb::connectCached (DBConn::url);
         tntdb::Statement st = conn.prepareCached(
             " SELECT"
             "   v.id_asset_element_src,"
@@ -213,7 +213,7 @@ int
     log_debug ("container element_id = %" PRIu32, element_id);
 
     try {
-        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Connection conn = tntdb::connectCached (DBConn::url);
         std::string request =
             " SELECT "
             "   v.name, "
@@ -328,7 +328,7 @@ int
     log_debug ("asset_name = %s", asset_name.c_str());
     tntdb::Connection conn;
     try {
-        conn = tntdb::connectCached (url);
+        conn = tntdb::connectCached (DBConn::url);
     }
     catch ( const std::exception &e) {
         log_error ("DB: cannot connect, %s", e.what());
@@ -383,7 +383,7 @@ int
         return 0;
     tntdb::Connection conn;
     try {
-        conn = tntdb::connectCached (url);
+        conn = tntdb::connectCached (DBConn::url);
     }
     catch ( const std::exception &e) {
         log_error ("DB: cannot connect, %s", e.what());
@@ -437,7 +437,7 @@ int
         return 0;
     tntdb::Connection conn;
     try {
-        conn = tntdb::connectCached (url);
+        conn = tntdb::connectCached (DBConn::url);
     }
     catch ( const std::exception &e) {
         log_error ("DB: cannot connect, %s", e.what());
@@ -509,7 +509,7 @@ int
     )
 {
     try {
-        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Connection conn = tntdb::connectCached (DBConn::url);
         std::string request =
             " SELECT "
             "   v.name, "
@@ -579,7 +579,7 @@ std::string get_status_from_db (std::string element_name, bool test = false) {
     }
     tntdb::Connection conn;
     try {
-        conn = tntdb::connectCached (url);
+        conn = tntdb::connectCached (DBConn::url);
     }
     catch ( const std::exception &e) {
         log_error ("DB: cannot connect, %s", e.what());
@@ -632,7 +632,7 @@ int
         return 0;
     tntdb::Connection conn;
     try {
-        conn = tntdb::connectCached (url);
+        conn = tntdb::connectCached (DBConn::url);
     }
     catch ( const std::exception &e) {
         log_error ("DB: cannot connect, %s", e.what());
@@ -703,7 +703,7 @@ process_insert_inventory
         return 0;
     tntdb::Connection conn;
     try {
-        conn = tntdb::connectCached (url);
+        conn = tntdb::connectCached (DBConn::url);
     }
     catch ( const std::exception &e) {
         log_error ("DB: cannot connect, %s", e.what());
@@ -771,7 +771,7 @@ process_insert_inventory
        return 0;
     tntdb::Connection conn;
     try {
-        conn = tntdb::connectCached (url);
+        conn = tntdb::connectCached (DBConn::url);
     }
     catch ( const std::exception &e) {
         log_error ("DB: cannot connect, %s", e.what());
@@ -840,7 +840,7 @@ select_ename_from_iname
     try
     {
 
-        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Connection conn = tntdb::connectCached (DBConn::url);
         tntdb::Statement st = conn.prepareCached (
             "SELECT e.value FROM  t_bios_asset_ext_attributes AS e "
             "INNER JOIN t_bios_asset_element AS a "
@@ -887,7 +887,7 @@ bool disable_power_nodes_if_limitation_applies (int max_active_power_devices, bo
         int active_power_devices = get_active_power_devices (test);
         if ( active_power_devices > max_active_power_devices) {
             // need to limit amount of active power devices
-            tntdb::Connection conn = tntdb::connectCached (url);
+            tntdb::Connection conn = tntdb::connectCached (DBConn::url);
             // this query would have been much easier if only MySQL supported LIMIT and IN in one query
             tntdb::Statement statement = conn.prepareCached (
                 "UPDATE t_bios_asset_element "
@@ -958,7 +958,7 @@ get_active_power_devices (bool test)
     }
     try
     {
-        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Connection conn = tntdb::connectCached (DBConn::url);
         tntdb::Statement st = conn.prepareCached (
             "SELECT COUNT(*) AS CNT FROM t_bios_asset_element "
             "WHERE id_subtype IN "
@@ -1078,7 +1078,7 @@ db_reply_t
     }
     try {
         // this concat with last_insert_id may have race condition issue but hopefully is not important
-        tntdb::Connection conn = tntdb::connectCached (url);
+        tntdb::Connection conn = tntdb::connectCached (DBConn::url);
         tntdb::Statement statement;
         if (update) {
             statement = conn.prepareCached (
