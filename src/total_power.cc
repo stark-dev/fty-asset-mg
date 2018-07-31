@@ -385,7 +385,7 @@ int
     if (test)
         return 0;
 
-    tntdb::Connection conn = tntdb::connectCached (url);
+    tntdb::Connection conn = tntdb::connectCached (DBConn::url);
     a_elmnt_id_t assetId = 0;
     int rv = select_asset_id (assetName, assetId);
     if ( rv != 0 ) {
