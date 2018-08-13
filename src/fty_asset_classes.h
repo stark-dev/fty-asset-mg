@@ -47,10 +47,6 @@ typedef struct _dbhelpers_t dbhelpers_t;
 typedef struct _fty_asset_uptime_configurator_t fty_asset_uptime_configurator_t;
 #define FTY_ASSET_UPTIME_CONFIGURATOR_T_DEFINED
 #endif
-#ifndef ASSET_DEFS_T_DEFINED
-typedef struct _asset_defs_t asset_defs_t;
-#define ASSET_DEFS_T_DEFINED
-#endif
 #ifndef TOTAL_POWER_T_DEFINED
 typedef struct _total_power_t total_power_t;
 #define TOTAL_POWER_T_DEFINED
@@ -65,7 +61,6 @@ typedef struct _dns_t dns_t;
 #include "defs.h"
 #include "dbhelpers.h"
 #include "fty_asset_uptime_configurator.h"
-#include "asset_defs.h"
 #include "total_power.h"
 #include "dns.h"
 

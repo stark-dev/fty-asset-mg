@@ -34,7 +34,7 @@
 #include <tuple>
 #include <string>
 #include "fty_asset_classes.h"
-#include "asset_defs.h"
+
 //#include "preproc.h"
 
 // all fields called name
@@ -258,7 +258,7 @@ FTY_ASSET_PRIVATE db_reply_t
     (fty_proto_t *fmsg,
      bool read_only,
      bool test,
-     LIMITATIONS_STRUCT *limitations);
+     persist::LIMITATIONS_STRUCT *limitations);
 
 FTY_ASSET_PRIVATE db_reply <std::map <uint32_t, std::string> >
     select_short_elements

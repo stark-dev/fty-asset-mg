@@ -203,7 +203,7 @@ struct _fty_asset_server_t {
     mlm_client_t *mailbox_client;
     mlm_client_t *stream_client;
     bool test;
-    LIMITATIONS_STRUCT limitations;
+    persist::LIMITATIONS_STRUCT limitations;
 };
 
 
@@ -509,17 +509,17 @@ static zmsg_t *
 
             foo_i = 0;
             row ["id_type"].get (foo_i);
-            zhash_insert (aux, "type", (void*) asset_type2str (foo_i));
+            zhash_insert (aux, "type", (void*) persist::typeid_to_type (foo_i).c_str());
 
             // additional aux items (requiered by uptime)
-            if (streq (asset_type2str (foo_i), "datacenter"))
+            if (streq (persist::typeid_to_type (foo_i).c_str(), "datacenter"))
             {
                 if (!insert_upses_to_aux (aux, asset_name))
                     log_error ("insert_upses_to_aux: failed to insert upses");
             }
             foo_i = 0;
             row ["subtype_id"].get (foo_i);
-            zhash_insert (aux, "subtype", (void*) asset_subtype2str (foo_i));
+            zhash_insert (aux, "subtype", (void*) persist::subtypeid_to_subtype (foo_i).c_str());
 
             foo_i = 0;
             row ["id_parent"].get (foo_i);

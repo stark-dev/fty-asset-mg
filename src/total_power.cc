@@ -60,7 +60,7 @@ static bool
         const ShortAssetInfo &device
     )
 {
-    if ( device.subtype_id == asset_subtype::UPS ) {
+    if ( device.subtype_id == persist::asset_subtype::UPS ) {
         return true;
     }
     else {
@@ -76,7 +76,7 @@ static bool
         const ShortAssetInfo &device
     )
 {
-    if ( device.subtype_id == asset_subtype::EPDU ) {
+    if ( device.subtype_id == persist::asset_subtype::EPDU ) {
         return true;
     }
     else {
@@ -322,7 +322,7 @@ static int
                     a_elmnt_tp_id_t type_id = 0;
                     row["type_id"].get(type_id);
 
-                    if ( type_id == asset_type::DEVICE ) {
+                    if ( type_id == persist::asset_type::DEVICE ) {
                         std::string device_name = "";
                         row["name"].get(device_name);
 
