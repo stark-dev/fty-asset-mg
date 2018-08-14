@@ -992,7 +992,7 @@ get_active_power_devices (bool test)
  *          -1 - in case of some unexpected error
  */
 db_reply_t
-create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, persist::LIMITATIONS_STRUCT *limitations)
+create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATIONS_STRUCT *limitations)
 {
     const char   *element_name;
     uint64_t      type_id;

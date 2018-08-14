@@ -203,7 +203,7 @@ struct _fty_asset_server_t {
     mlm_client_t *mailbox_client;
     mlm_client_t *stream_client;
     bool test;
-    persist::LIMITATIONS_STRUCT limitations;
+    LIMITATIONS_STRUCT limitations;
 };
 
 
