@@ -1427,7 +1427,7 @@ fty_asset_server_test (bool verbose)
         rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
         if (aux)
             zhash_destroy(&aux);
-        zclock_sleep (200);
+        zclock_sleep (1000);
         assert (rv == 0);
         reply = mlm_client_recv (ui);
         assert (streq (mlm_client_subject (ui), subject));
