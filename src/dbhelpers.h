@@ -116,47 +116,6 @@ struct db_a_elmnt_t {
 };
 
 
-typedef std::function<void(const tntdb::Row&)> row_cb_f ;
-
-template <typename T>
-struct db_reply{
-    int status; // ok/fail
-    int errtype;
-    int errsubtype;
-    uint64_t rowid;  // insert/update or http error code if status == 0
-    uint64_t affected_rows; // for update/insert/delete
-    std::string msg;
-    zhash_t *addinfo;
-    T item;
-};
-
-typedef db_reply<uint64_t> db_reply_t;
-
-inline db_reply_t db_reply_new() {
-    return db_reply_t {
-/* .status  */        1,
-/* .errtype */        0,
-/* .errsubtype */     0,
-/* .rowid */          0,
-/* .affected_rows */  0,
-/* .msg = */         "",
-/* .addinfo  */    NULL,
-/* .item */          0};
-}
-
-template <typename T>
-inline db_reply<T> db_reply_new(T& item) {
-    return db_reply<T> {
-/* .status  */       1,
-/* .errtype */       0,
-/* .errsubtype */    0,
-/* .rowid */         0,
-/* .affected_rows  */0,
-/* .msg  */         "",
-/* .addinfo  */   NULL,
-/* .item  */     item};
-}
-
 // Converts asset name to the DB id
 FTY_ASSET_PRIVATE int
     select_asset_id (
