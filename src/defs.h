@@ -1,21 +1,21 @@
 /*  =========================================================================
     defs - Defines constants
 
-    Copyright (C) 2014 - 2015 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2015 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -37,6 +37,15 @@
  *
  */
 #define BIOS_ERROR_DB DB_ERR
+
+
+typedef struct _LIMITATIONS_STRUCT
+{
+    int max_active_power_devices;
+    int global_configurability;
+
+} LIMITATIONS_STRUCT;
+
 
 //! Possible error types
 enum errtypes {
@@ -91,7 +100,7 @@ enum licensing_err {
 #define NUT_POLLING_INTERVAL            5000    //!< (check with upsd ever 5s)
 
 // Note !!! If you change this value you have to change the following tests as well: TODO
-#define AGENT_NUT_REPEAT_INTERVAL_SEC       NUT_MEASUREMENT_REPEAT_AFTER     //<! TODO 
+#define AGENT_NUT_REPEAT_INTERVAL_SEC       NUT_MEASUREMENT_REPEAT_AFTER     //<! TODO
 #define AGENT_NUT_SAMPLING_INTERVAL_SEC     5   //!< TODO: We might not need this anymore
 
 #define KEY_REPEAT "repeat"
@@ -123,7 +132,7 @@ enum licensing_err {
 
 //static const std::string url = "sqlite:/work/core/tools/my1db.db";
 
-// self test 
+// self test
 void
     defs_test (bool verbose);
 

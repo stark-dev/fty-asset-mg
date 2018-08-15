@@ -62,7 +62,7 @@ bool
 
         // select dcs and their IDs
         db_reply <std::map <uint32_t, std::string> > reply =
-            select_short_elements (conn, asset_type::DATACENTER, asset_subtype::N_A);
+            select_short_elements (conn, persist::asset_type::DATACENTER, persist::asset_subtype::N_A);
         if (reply.status == 0) {
             log_error ("Cannot select datacenters");
             return false;
