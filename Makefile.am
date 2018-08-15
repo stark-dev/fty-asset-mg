@@ -74,7 +74,6 @@ EXTRA_DIST += \
     src/defs.h \
     src/dbhelpers.h \
     src/fty_asset_uptime_configurator.h \
-    src/asset_defs.h \
     src/total_power.h \
     src/dns.h \
     README.md \

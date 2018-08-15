@@ -509,17 +509,17 @@ static zmsg_t *
 
             foo_i = 0;
             row ["id_type"].get (foo_i);
-            zhash_insert (aux, "type", (void*) asset_type2str (foo_i));
+            zhash_insert (aux, "type", (void*) persist::typeid_to_type (foo_i).c_str());
 
             // additional aux items (requiered by uptime)
-            if (streq (asset_type2str (foo_i), "datacenter"))
+            if (streq (persist::typeid_to_type (foo_i).c_str(), "datacenter"))
             {
                 if (!insert_upses_to_aux (aux, asset_name))
                     log_error ("insert_upses_to_aux: failed to insert upses");
             }
             foo_i = 0;
             row ["subtype_id"].get (foo_i);
-            zhash_insert (aux, "subtype", (void*) asset_subtype2str (foo_i));
+            zhash_insert (aux, "subtype", (void*) persist::subtypeid_to_subtype (foo_i).c_str());
 
             foo_i = 0;
             row ["id_parent"].get (foo_i);
@@ -1427,7 +1427,7 @@ fty_asset_server_test (bool verbose)
         rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
         if (aux)
             zhash_destroy(&aux);
-        zclock_sleep (200);
+        zclock_sleep (1000);
         assert (rv == 0);
         reply = mlm_client_recv (ui);
         assert (streq (mlm_client_subject (ui), subject));

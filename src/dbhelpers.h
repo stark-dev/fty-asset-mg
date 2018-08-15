@@ -34,7 +34,7 @@
 #include <tuple>
 #include <string>
 #include "fty_asset_classes.h"
-#include "asset_defs.h"
+
 //#include "preproc.h"
 
 // all fields called name
