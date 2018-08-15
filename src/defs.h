@@ -26,6 +26,12 @@
 #define UI_PROPERTIES_CLIENT_ID 5
 #define DUMMY_DEVICE_ID 1
 
+typedef struct _LIMITATIONS_STRUCT
+{
+    int max_active_power_devices;
+    int global_configurability;
+} LIMITATIONS_STRUCT;
+
 //! Constants for licensing-related errors
 enum licensing_err {
     LICENSING_POWER_DEVICES_COUNT_REACHED,
