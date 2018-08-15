@@ -89,12 +89,12 @@ select_assets_by_container_filter (
     std::string types, subtypes, filter;
 
     for (const auto &i: types_and_subtypes) {
-        uint32_t t = subtype_to_subtypeid (i);
-        if (t != asset_subtype::SUNKNOWN) {
+        uint16_t t = persist::subtype_to_subtypeid (i);
+        if (t != persist::asset_subtype::SUNKNOWN) {
             subtypes +=  "," + std::to_string (t);
         } else {
-            t = type_to_typeid (i);
-            if (t == asset_type::TUNKNOWN) {
+            t = persist::type_to_typeid (i);
+            if (t == persist::asset_type::TUNKNOWN) {
                 throw std::invalid_argument ("'" + i + "' is not known type or subtype ");
             }
             types += "," + std::to_string (t);
@@ -992,7 +992,7 @@ get_active_power_devices (bool test)
  *          -1 - in case of some unexpected error
  */
 db_reply_t
-    create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATIONS_STRUCT *limitations)
+create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATIONS_STRUCT *limitations)
 {
     const char   *element_name;
     uint64_t      type_id;
@@ -1011,9 +1011,9 @@ db_reply_t
         ret.errsubtype = LICENSING_GLOBAL_CONFIGURABILITY_DISABLED;
         return ret;
     }
-    type_id = type_to_typeid (fty_proto_aux_string (fmsg, "type", ""));
-    subtype_id = subtype_to_subtypeid (fty_proto_aux_string (fmsg, "subtype", ""));
-    if (subtype_id == 0) subtype_id = asset_subtype::N_A;
+    type_id = persist::type_to_typeid (fty_proto_aux_string (fmsg, "type", ""));
+    subtype_id = persist::subtype_to_subtypeid (fty_proto_aux_string (fmsg, "subtype", ""));
+    if (subtype_id == 0) subtype_id = persist::asset_subtype::N_A;
     parent_id = fty_proto_aux_number (fmsg, "parent", 0);
     status = fty_proto_aux_string (fmsg, "status", "nonactive");
     priority = fty_proto_aux_number (fmsg, "priority", 5);
@@ -1024,29 +1024,29 @@ db_reply_t
 
     if (!update) {
         if (streq (element_name,"")) {
-            if (type_id == asset_type::DEVICE) {
-                element_name = asset_subtype2str (subtype_id);
+            if (type_id == persist::asset_type::DEVICE) {
+                element_name = persist::subtypeid_to_subtype (subtype_id).c_str ();
             } else {
-                element_name = asset_type2str (type_id);
+                element_name = persist::typeid_to_type (type_id).c_str ();
             }
         }
         // TODO: sanitize name ("rack controller")
     }
     log_debug ("  element_name = '%s'", element_name);
-    if (limitations->max_active_power_devices >= 0 && type_id == asset_type::DEVICE && streq (status, "active")) {
+    if (limitations->max_active_power_devices >= 0 && type_id == persist::asset_type::DEVICE && streq (status, "active")) {
         std::string db_status = get_status_from_db (element_name, test);
         // limit applies only to assets that are attempted to be activated, but are disabled in database
         // or to new assets, also may trigger in case of DB failure, but that's fine
         if (db_status != "active") {
             switch (subtype_id) {
                 default:
-                    // no default, not to generate warning
+                // no default, not to generate warning
                     break;
-                case asset_subtype::PDU:
-                case asset_subtype::GENSET:
-                case asset_subtype::EPDU:
-                case asset_subtype::UPS:
-                case asset_subtype::STS:
+                case persist::asset_subtype::PDU:
+                case persist::asset_subtype::GENSET:
+                case persist::asset_subtype::EPDU:
+                case persist::asset_subtype::UPS:
+                case persist::asset_subtype::STS:
                     // check if power devices exceeded allowed limit
                     int pd_active = get_active_power_devices(test);
                     if (pd_active + 1 > limitations->max_active_power_devices) {
@@ -1062,7 +1062,7 @@ db_reply_t
     }
 
     // ASSUMPTION: all datacenters are unlocated elements
-    if (type_id == asset_type::DATACENTER && parent_id != 0)
+    if (type_id == persist::asset_type::DATACENTER && parent_id != 0)
     {
         ret.status     = 0;
         ret.errtype    = DB_ERR;
