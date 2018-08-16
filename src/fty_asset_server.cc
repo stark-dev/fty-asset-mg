@@ -1155,24 +1155,50 @@ fty_asset_server_test (bool verbose)
         int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
         assert (rv == 0);
         zmsg_t *reply = mlm_client_recv (ui);
-        assert (streq (mlm_client_subject (ui), subject));
-        assert (zmsg_size (reply) == 2);
-        char *str = zmsg_popstr (reply);
-        assert (streq (str, "OK"));
-        zstr_free (&str);
-        str = zmsg_popstr (reply);
-        assert (streq (str, asset_name));
-        zstr_free (&str);
-        zmsg_destroy (&reply) ;
+        if (!fty_proto_is (reply)) {
+            assert (streq (mlm_client_subject (ui), subject));
+            assert (zmsg_size (reply) == 2);
+            char *str = zmsg_popstr (reply);
+            assert (streq (str, "OK"));
+            zstr_free (&str);
+            str = zmsg_popstr (reply);
+            assert (streq (str, asset_name));
+            zstr_free (&str);
+            zmsg_destroy (&reply);
+        }
+        else {
+            assert (is_fty_proto (reply));
+            fty_proto_t *fmsg = fty_proto_decode (&reply);
+            std::string expected_subject="unknown.unknown@";
+            expected_subject.append(asset_name);
+            assert(streq(mlm_client_subject (ui),expected_subject.c_str()));
+            assert (streq (fty_proto_operation (fmsg), FTY_PROTO_ASSET_OP_CREATE));
+            fty_proto_destroy (&fmsg);
+            zmsg_destroy (&reply) ;
+        }
+
         reply = mlm_client_recv (ui);
-        assert (is_fty_proto (reply));
-        fty_proto_t *fmsg = fty_proto_decode (&reply);
-        std::string expected_subject="unknown.unknown@";
-        expected_subject.append(asset_name);
-        assert(streq(mlm_client_subject (ui),expected_subject.c_str()));
-        assert (streq (fty_proto_operation (fmsg), FTY_PROTO_ASSET_OP_CREATE));
-        fty_proto_destroy (&fmsg);
-        zmsg_destroy (&reply) ;
+        if (!fty_proto_is (reply)) {
+            assert (streq (mlm_client_subject (ui), subject));
+            assert (zmsg_size (reply) == 2);
+            char *str = zmsg_popstr (reply);
+            assert (streq (str, "OK"));
+            zstr_free (&str);
+            str = zmsg_popstr (reply);
+            assert (streq (str, asset_name));
+            zstr_free (&str);
+            zmsg_destroy (&reply);
+        }
+        else {
+            assert (is_fty_proto (reply));
+            fty_proto_t *fmsg = fty_proto_decode (&reply);
+            std::string expected_subject="unknown.unknown@";
+            expected_subject.append(asset_name);
+            assert(streq(mlm_client_subject (ui),expected_subject.c_str()));
+            assert (streq (fty_proto_operation (fmsg), FTY_PROTO_ASSET_OP_CREATE));
+            fty_proto_destroy (&fmsg);
+            zmsg_destroy (&reply) ;
+        }
         log_info ("fty-asset-server-test:Test #2: OK");
     }
 
@@ -1353,15 +1379,28 @@ fty_asset_server_test (bool verbose)
         int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
         zclock_sleep (200);
         assert (rv == 0);
+        char *str = NULL;
         zmsg_t *reply = mlm_client_recv (ui);
-        assert (streq (mlm_client_subject (ui), subject));
-        assert (zmsg_size (reply) == 2);
-        char *str = zmsg_popstr (reply);
-        assert (streq (str, "OK"));
-        zstr_free (&str);
-        zmsg_destroy (&reply);
-        reply = mlm_client_recv (ui); // throw away stream message
-        zmsg_destroy (&reply) ;
+        if (!fty_proto_is (reply)) {
+            assert (streq (mlm_client_subject (ui), subject));
+            assert (zmsg_size (reply) == 2);
+            str = zmsg_popstr (reply);
+            assert (streq (str, "OK"));
+            zstr_free (&str);
+        }
+        zmsg_destroy (&reply); // throw away stream message
+
+
+        reply = mlm_client_recv (ui);
+        if (!fty_proto_is (reply)) {
+            assert (streq (mlm_client_subject (ui), subject));
+            assert (zmsg_size (reply) == 2);
+            str = zmsg_popstr (reply);
+            assert (streq (str, "OK"));
+            zstr_free (&str);
+        }
+        zmsg_destroy (&reply) ; // throw away stream message
+
         // disable configurability
         mlm_client_set_producer (ui, "LICENSING-ANNOUNCEMENTS-TEST");
         mlm_client_sendx (ui, "LIMITATIONS", "0", "GLOBAL", "CONFIGURABILITY", NULL);
@@ -1406,14 +1445,25 @@ fty_asset_server_test (bool verbose)
         zclock_sleep (200);
         assert (rv == 0);
         reply = mlm_client_recv (ui);
-        assert (streq (mlm_client_subject (ui), subject));
-        assert (zmsg_size (reply) == 2);
-        str = zmsg_popstr (reply);
-        assert (streq (str, "OK"));
-        zstr_free (&str);
-        zmsg_destroy (&reply);
-        reply = mlm_client_recv (ui); // throw away stream message - test1
-        zmsg_destroy (&reply) ;
+        if (!fty_proto_is (reply)) {
+            assert (streq (mlm_client_subject (ui), subject));
+            assert (zmsg_size (reply) == 2);
+            str = zmsg_popstr (reply);
+            assert (streq (str, "OK"));
+            zstr_free (&str);
+        }
+        zmsg_destroy (&reply); // throw away stream message
+
+        reply = mlm_client_recv (ui);
+        if (!fty_proto_is (reply)) {
+            assert (streq (mlm_client_subject (ui), subject));
+            assert (zmsg_size (reply) == 2);
+            str = zmsg_popstr (reply);
+            assert (streq (str, "OK"));
+            zstr_free (&str);
+        }
+        zmsg_destroy (&reply) ; // throw away stream message
+
         aux = zhash_new ();
         zhash_autofree (aux);
         zhash_insert (aux, "type", (void *) "device");
@@ -1430,14 +1480,25 @@ fty_asset_server_test (bool verbose)
         zclock_sleep (1000);
         assert (rv == 0);
         reply = mlm_client_recv (ui);
-        assert (streq (mlm_client_subject (ui), subject));
-        assert (zmsg_size (reply) == 2);
-        str = zmsg_popstr (reply);
-        assert (streq (str, "OK"));
-        zstr_free (&str);
-        zmsg_destroy (&reply);
-        reply = mlm_client_recv (ui); // throw away stream message - test2
-        zmsg_destroy (&reply) ;
+        if (!fty_proto_is (reply)) {
+            assert (streq (mlm_client_subject (ui), subject));
+            assert (zmsg_size (reply) == 2);
+            str = zmsg_popstr (reply);
+            assert (streq (str, "OK"));
+            zstr_free (&str);
+        }
+        zmsg_destroy (&reply); // throw away stream message
+
+        reply = mlm_client_recv (ui);
+        if (!fty_proto_is (reply)) {
+            assert (streq (mlm_client_subject (ui), subject));
+            assert (zmsg_size (reply) == 2);
+            str = zmsg_popstr (reply);
+            assert (streq (str, "OK"));
+            zstr_free (&str);
+        }
+        zmsg_destroy (&reply) ; // throw away stream message
+
         aux = zhash_new ();
         zhash_autofree (aux);
         zhash_insert (aux, "type", (void *) "device");
@@ -1453,15 +1514,27 @@ fty_asset_server_test (bool verbose)
             zhash_destroy(&aux);
         zclock_sleep (200);
         assert (rv == 0);
+
         reply = mlm_client_recv (ui);
-        assert (streq (mlm_client_subject (ui), subject));
-        assert (zmsg_size (reply) == 2);
-        str = zmsg_popstr (reply);
-        assert (streq (str, "OK"));
-        zstr_free (&str);
-        zmsg_destroy (&reply);
-        reply = mlm_client_recv (ui); // throw away stream message - test3
-        zmsg_destroy (&reply) ;
+        if (!fty_proto_is (reply)) {
+            assert (streq (mlm_client_subject (ui), subject));
+            assert (zmsg_size (reply) == 2);
+            str = zmsg_popstr (reply);
+            assert (streq (str, "OK"));
+            zstr_free (&str);
+        }
+        zmsg_destroy (&reply); // throw away stream message
+
+        reply = mlm_client_recv (ui);
+        if (!fty_proto_is (reply)) {
+            assert (streq (mlm_client_subject (ui), subject));
+            assert (zmsg_size (reply) == 2);
+            str = zmsg_popstr (reply);
+            assert (streq (str, "OK"));
+            zstr_free (&str);
+        }
+        zmsg_destroy (&reply) ; // throw away stream message
+
         aux = zhash_new ();
         zhash_autofree (aux);
         zhash_insert (aux, "type", (void *) "device");
