@@ -35,11 +35,11 @@
 
 class ShortAssetInfo {
 public:
-    a_elmnt_id_t asset_id;
+    uint32_t asset_id;
     std::string asset_name;
-    a_elmnt_stp_id_t subtype_id;
+    uint16_t subtype_id;
 
-    ShortAssetInfo (a_elmnt_id_t aasset_id, const std::string &aasset_name, a_elmnt_stp_id_t asubtype_id)
+    ShortAssetInfo (uint32_t aasset_id, const std::string &aasset_name, uint16_t asubtype_id)
     {
         asset_id = aasset_id;
         asset_name = aasset_name;
@@ -97,13 +97,13 @@ static bool
  *
  *  \return a set of powered devices. It can be empty.
  */
-static std::set<a_elmnt_id_t>
+static std::set<uint32_t>
     find_dests (
-        const std::set <std::pair<a_elmnt_id_t, a_elmnt_id_t> > &links,
-        a_elmnt_id_t element_id
+        const std::set <std::pair<uint32_t, uint32_t> > &links,
+        uint32_t element_id
     )
 {
-    std::set<a_elmnt_id_t> dests;
+    std::set<uint32_t> dests;
 
     for ( auto &one_link: links )
     {
@@ -127,8 +127,8 @@ static std::set<a_elmnt_id_t>
 static bool
     is_powering_other_rack (
         const ShortAssetInfo &device,
-        const std::map <a_elmnt_id_t, ShortAssetInfo> &devices_in_container,
-        const std::set <std::pair<a_elmnt_id_t, a_elmnt_id_t> > &links
+        const std::map <uint32_t, ShortAssetInfo> &devices_in_container,
+        const std::set <std::pair<uint32_t, uint32_t> > &links
     )
 {
     auto adevice_dests = find_dests (links, device.asset_id);
@@ -159,8 +159,8 @@ static bool
  */
 static void
     update_border_devices (
-        const std::map <a_elmnt_id_t, ShortAssetInfo> &container_devices,
-        const std::set <std::pair<a_elmnt_id_t, a_elmnt_id_t> > &links,
+        const std::map <uint32_t, ShortAssetInfo> &container_devices,
+        const std::set <std::pair<uint32_t, uint32_t> > &links,
         std::set <ShortAssetInfo> &border_devices
     )
 {
@@ -210,15 +210,15 @@ static void
  */
 static std::vector<std::string>
     total_power_v2 (
-        const std::map <a_elmnt_id_t, ShortAssetInfo> &devices_in_container,
-        const std::set <std::pair<a_elmnt_id_t, a_elmnt_id_t> > &links
+        const std::map <uint32_t, ShortAssetInfo> &devices_in_container,
+        const std::set <std::pair<uint32_t, uint32_t> > &links
     )
 {
 
     // the set of all border devices ("starting points")
     std::set <ShortAssetInfo> border_devices;
     // the set of all destination devices in selected links
-    std::set <a_elmnt_id_t> dest_dvcs{};
+    std::set <uint32_t> dest_dvcs{};
     //  from (first)   to (second)
     //           +--------------+
     //  B________|______A__C    |
@@ -308,28 +308,28 @@ static std::vector<std::string>
 static int
     select_total_power_by_id (
         tntdb::Connection &conn,
-        a_elmnt_id_t assetId,
+        uint32_t assetId,
         std::vector<std::string> &powerDevices
     )
 {
     // at the beginning clear
     powerDevices.clear();
     // select all devices in the container
-    std::map <a_elmnt_id_t, ShortAssetInfo> container_devices{};
+    std::map <uint32_t, ShortAssetInfo> container_devices{};
     std::function<void(const tntdb::Row&)> func = \
                 [&container_devices](const tntdb::Row& row)
                 {
-                    a_elmnt_tp_id_t type_id = 0;
+                    uint16_t type_id = 0;
                     row["type_id"].get(type_id);
 
                     if ( type_id == persist::asset_type::DEVICE ) {
                         std::string device_name = "";
                         row["name"].get(device_name);
 
-                        a_elmnt_id_t asset_id = 0;
+                        uint32_t asset_id = 0;
                         row["asset_id"].get(asset_id);
 
-                        a_elmnt_stp_id_t subtype_id = 0;
+                        uint16_t subtype_id = 0;
                         row["subtype_id"].get(subtype_id);
 
                         container_devices.emplace (asset_id,
@@ -338,7 +338,7 @@ static int
                     }
                 };
 
-    auto rv = select_assets_by_container_cb (assetId, func);
+    auto rv = DBAssets::select_assets_by_container (conn, assetId, func);
 
     // here would be placed names of devices to summ up
     if ( rv != 0 ) {
@@ -354,7 +354,7 @@ static int
         powerDevices = {};
         return 0;
     }
-    std::set <std::pair<a_elmnt_id_t ,a_elmnt_id_t> > links{};
+    std::set <std::pair<uint32_t ,uint32_t> > links{};
     rv = select_links_by_container (assetId, links);
     if ( rv != 0 ) {
         log_warning ("asset_id='%" PRIu32 "': internal problems in links detecting",
@@ -386,10 +386,9 @@ int
         return 0;
 
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
-    a_elmnt_id_t assetId = 0;
-    int rv = select_asset_id (assetName, assetId);
-    if ( rv != 0 ) {
-        return rv;
+    int64_t assetId = DBAssets::name_to_asset_id (assetName);
+    if ( assetId < 0 ) {
+        return assetId;
     }
     return select_total_power_by_id (conn, assetId, powerDevices);
 }

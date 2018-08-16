@@ -33,50 +33,6 @@
 std::map<std::string, std::string> test_map_asset_state;
 
 /**
- *  \brief Converts asset name to the DB id
- *
- *  \param[in] name - name of the asset to convert
- *  \param[out] id - converted id
- *
- *  \return  0 - in case of success
- *          -2 - in case if asset was not found
- *          -1 - in case of some unexpected error
- */
-int
-    select_asset_id (
-        const std::string &name,
-        a_elmnt_id_t &id
-    )
-{
-    try {
-        tntdb::Connection conn = tntdb::connectCached (DBConn::url);
-        tntdb::Statement st = conn.prepareCached(
-            " SELECT "
-            "   v.id "
-            " FROM "
-            "   v_bios_asset_element v "
-            " WHERE "
-            "   v.name = :name "
-        );
-
-        tntdb::Row row = st.set("name", name).
-                            selectRow();
-        row["id"].get(id);
-        return 0;
-    }
-    catch (const tntdb::NotFound &e) {
-        log_debug ("Requested element not found");
-        id = 0;
-        return -2;
-    }
-    catch (const std::exception& e) {
-        log_error ("Error: ",e.what());
-        id = 0;
-        return -1;
-    }
-}
-
-/**
  * \brief Creates condition for type/subtype filtering
  *
  * \param[in] types_and_subtypes - types and subtypes we are interested in
@@ -124,10 +80,11 @@ select_assets_by_container_filter (
  *  \return  0 - in case of success (even if nothing was found)
  *          -1 - in case of some unexpected error
  */
+//TODO: replace with select_links_by_container from fty-common-db
 int
     select_links_by_container (
-        a_elmnt_id_t element_id,
-        std::set <std::pair<a_elmnt_id_t ,a_elmnt_id_t> > &links
+        uint32_t element_id,
+        std::set <std::pair<uint32_t ,uint32_t> > &links
     )
 {
     links.clear();
@@ -174,16 +131,16 @@ int
         for ( auto &row: result )
         {
             // id_asset_element_src, required
-            a_elmnt_id_t id_asset_element_src = 0;
+            uint32_t id_asset_element_src = 0;
             row[0].get(id_asset_element_src);
             assert ( id_asset_element_src );
 
             // id_asset_element_dest, required
-            a_elmnt_id_t id_asset_element_dest = 0;
+            uint32_t id_asset_element_dest = 0;
             row[1].get(id_asset_element_dest);
             assert ( id_asset_element_dest );
 
-            links.insert(std::pair<a_elmnt_id_t ,a_elmnt_id_t>(id_asset_element_src, id_asset_element_dest));
+            links.insert(std::pair<uint32_t ,uint32_t>(id_asset_element_src, id_asset_element_dest));
         } // end for
         return 0;
     }
@@ -194,26 +151,45 @@ int
 }
 
 /**
- *  \brief Selects assets in a given container
+ *  \brief Wrapper for select_assets_by_container_cb
  *
- *  \param[in] element_id - DB id of container
- *  \param[in] types_and_subtypes - types and subtypes we are interested in
- *  \param[in] cb - function to call on each row
+ *  \param[in] container_name - iname of container
+ *  \param[in] filter - types and subtypes we are interested in
+ *  \param[out] assets - inames of assets in this container
+ *  \param[in] test - unit tests indicator
  *
- *  \return  0 - in case of success (even if nothing was found)
+ *  \return  0 - in case of success
  *          -1 - in case of some unexpected error
  */
- int
-    select_assets_by_container_cb (
-        a_elmnt_id_t element_id,
-        const std::set<std::string> &types_and_subtypes,
-        std::function<void(const tntdb::Row&)> cb
-    )
+//TODO: move to fty-common-db as DBAssets:select_assets_by_container_name
+int
+select_assets_by_container (
+        const std::string& container_name,
+        const std::set <std::string>& filter,
+        std::vector <std::string>& assets,
+        bool test)
 {
-    log_debug ("container element_id = %" PRIu32, element_id);
+    if (test)
+        return 0;
+
+    uint32_t id = 0;
 
     try {
         tntdb::Connection conn = tntdb::connectCached (DBConn::url);
+        // get container asset id
+        tntdb::Statement select_id = conn.prepareCached(
+            " SELECT "
+            "   v.id "
+            " FROM "
+            "   v_bios_asset_element v "
+            " WHERE "
+            "   v.name = :name "
+        );
+
+        tntdb::Row row = select_id.set("name", container_name).
+                            selectRow();
+        row["id"].get(id);
+
         std::string request =
             " SELECT "
             "   v.name, "
@@ -229,19 +205,21 @@ int
             "                     v.id_parent7, v.id_parent8, v.id_parent9, "
             "                     v.id_parent10) OR :containerid = 0 ) ";
 
-        if(!types_and_subtypes.empty())
-            request += " AND ( " + select_assets_by_container_filter (types_and_subtypes) +")";
+        if(!filter.empty())
+            request += " AND ( " + select_assets_by_container_filter (filter) +")";
         log_debug("[v_bios_asset_element_super_parent]: %s", request.c_str());
 
         // Can return more than one row.
-        tntdb::Statement st = conn.prepareCached(request);
+        tntdb::Statement select_data = conn.prepareCached(request);
 
-        tntdb::Result result = st.set("containerid", element_id).
+        tntdb::Result result = select_data.set("containerid", id).
                                   select();
         log_debug("[v_bios_asset_element_super_parent]: were selected %" PRIu32 " rows",
                                                             result.size());
         for ( auto &row: result ) {
-            cb(row);
+            std::string name;
+            row["name"].get (name);
+            assets.push_back (name);
         }
         return 0;
     }
@@ -249,62 +227,6 @@ int
         log_error ("Error: ",e.what());
         return -1;
     }
-}
-
-/**
- * \brief Selects all assets in a given container without type/subtype filtering.
- *  Wrapper for select_assets_by_container_cb with 3 arguments
- */
-int
-    select_assets_by_container_cb (
-        a_elmnt_id_t element_id,
-        std::function<void(const tntdb::Row&)> cb
-    )
-{
-
-    std::set <std::string> empty;
-    return select_assets_by_container_cb (element_id, empty, cb);
-}
-
-/**
- *  \brief Wrapper for select_assets_by_container_cb
- *
- *  \param[in] container_name - iname of container
- *  \param[in] filter - types and subtypes we are interested in
- *  \param[out] assets - inames of assets in this container
- *  \param[in] test - unit tests indicator
- *
- *  \return  0 - in case of success
- *          -1 - in case of some unexpected error
- */
-int
-select_assets_by_container (
-        const std::string& container_name,
-        const std::set <std::string>& filter,
-        std::vector <std::string>& assets,
-        bool test)
-{
-    if (test)
-        return 0;
-
-    a_elmnt_id_t id = 0;
-
-    // get container asset id
-    if (! container_name.empty ()) {
-        if (select_asset_id (container_name, id) != 0) {
-            return -1;
-        }
-    }
-
-    std::function<void(const tntdb::Row&)> func =
-        [&assets](const tntdb::Row& row)
-        {
-            std::string name;
-            row["name"].get (name);
-            assets.push_back (name);
-        };
-
-    return select_assets_by_container_cb (id, filter, func);
 }
 
 /**
@@ -317,6 +239,7 @@ select_assets_by_container (
  *  \return  0 - in case of success
  *          -1 - in case of some unexpected error
  */
+//TODO: move to fty-common-db as DBAssets::select_asset_element_web_byName_cb
 int
     select_asset_element_basic
         (const std::string &asset_name,
@@ -373,6 +296,7 @@ int
  *  \return  0 - in case of success
  *          -1 - in case of some unexpected error
  */
+// TODO: move to fty_common_db as DBAssets::select_ext_attributes_cb
 int
     select_ext_attributes
         (uint32_t asset_id,
@@ -425,6 +349,7 @@ int
  *  \return  0 - in case of success
  *          -1 - in case of some unexpected error
  */
+//TODO: replace with DBAssets::select_asset_element_super_parent
 int
     select_asset_element_super_parent (
             uint32_t id,
@@ -435,62 +360,9 @@ int
 {
     if (test)
         return 0;
-    tntdb::Connection conn;
-    try {
-        conn = tntdb::connectCached (DBConn::url);
-    }
-    catch ( const std::exception &e) {
-        log_error ("DB: cannot connect, %s", e.what());
-        return -1;
-    }
-    try{
-        tntdb::Statement st = conn.prepareCached(
-            " SELECT "
-            "   v.id_asset_element as id, "
-            "   v.id_parent1 as id_parent1, "
-            "   v.id_parent2 as id_parent2, "
-            "   v.id_parent3 as id_parent3, "
-            "   v.id_parent4 as id_parent4, "
-            "   v.id_parent5 as id_parent5, "
-            "   v.id_parent6 as id_parent6, "
-            "   v.id_parent7 as id_parent7, "
-            "   v.id_parent8 as id_parent8, "
-            "   v.id_parent9 as id_parent9, "
-            "   v.id_parent10 as id_parent10, "
-            "   v.name_parent1 as parent_name1, "
-            "   v.name_parent2 as parent_name2, "
-            "   v.name_parent3 as parent_name3, "
-            "   v.name_parent4 as parent_name4, "
-            "   v.name_parent5 as parent_name5, "
-            "   v.name_parent6 as parent_name6, "
-            "   v.name_parent7 as parent_name7, "
-            "   v.name_parent8 as parent_name8, "
-            "   v.name_parent9 as parent_name9, "
-            "   v.name_parent10 as parent_name10, "
-            "   v.name as name, "
-            "   v.type_name as type_name, "
-            "   v.id_asset_device_type as device_type, "
-            "   v.status as status, "
-            "   v.asset_tag as asset_tag, "
-            "   v.priority as priority, "
-            "   v.id_type as id_type "
-            " FROM v_bios_asset_element_super_parent v "
-            " WHERE "
-            "   v.id_asset_element = :id "
-            );
-
-        tntdb::Result res = st.set ("id", id).select ();
-        log_debug("[v_bios_asset_element_super_parent]: were selected %i rows", 1);
-
-        for (const auto& r: res) {
-            cb(r);
-        }
-        return 0;
-    }
-    catch (const std::exception &e) {
-        log_error ("[v_bios_asset_element_super_parent]: error '%s'", e.what());
-        return -1;
-    }
+    tntdb::Connection conn = tntdb::connectCached (DBConn::url);
+    int rv = DBAssets::select_asset_element_super_parent (conn, id, cb);
+    return rv;
 }
 
 /**
@@ -502,7 +374,8 @@ int
  *  \return  0 - in case of success
  *          -1 - in case of some unexpected error
  */
-int
+//TODO: move to fty-common-db
+static int
     select_assets_by_filter_cb (
         const std::set<std::string> &types_and_subtypes,
         std::function<void(const tntdb::Row&)> cb
@@ -573,7 +446,7 @@ select_assets_by_filter (
  *  \return <status> - in case of success
  *          "unknown" - in case of failure
  */
-std::string get_status_from_db (std::string element_name, bool test = false) {
+static std::string get_status_from_db (std::string element_name, bool test = false) {
     if (test) {
         return "nonactive";
     }
@@ -622,6 +495,7 @@ std::string get_status_from_db (std::string element_name, bool test = false) {
  *  \return  0 - in case of success
  *          -1 - in case of some unexpected error
  */
+// TODO: move to fty-common-db
 int
     select_assets (
             std::function<void(
@@ -1150,76 +1024,6 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
         ret.errtype    = DB_ERR;
         ret.errsubtype = DB_ERROR_INTERNAL;
         // bios_error_idx(ret.rowid, ret.msg, "internal-error", "Unspecified issue with database.");
-        return ret;
-    }
-}
-
-// returns map with desired assets and their ids
-db_reply <std::map <uint32_t, std::string> >
-    select_short_elements
-        (tntdb::Connection &conn,
-         uint32_t type_id,
-         uint32_t subtype_id)
-{
-    log_debug ("  type_id = %" PRIi16, type_id);
-    log_debug ("  subtype_id = %" PRIi16, subtype_id);
-    std::map <uint32_t, std::string> item{};
-    db_reply <std::map <uint32_t, std::string> > ret = db_reply_new(item);
-
-    std::string query;
-    if ( subtype_id == 0 )
-    {
-        query = " SELECT "
-                "   v.name, v.id "
-                " FROM "
-                "   v_bios_asset_element v "
-                " WHERE "
-                "   v.id_type = :typeid ";
-    }
-    else
-    {
-        query = " SELECT "
-                "   v.name, v.id "
-                " FROM "
-                "   v_bios_asset_element v "
-                " WHERE "
-                "   v.id_type = :typeid AND "
-                "   v.id_subtype = :subtypeid ";
-    }
-    try {
-        // Can return more than one row.
-        tntdb::Statement st = conn.prepareCached(query);
-
-        tntdb::Result result;
-        if ( subtype_id == 0 )
-        {
-            result = st.set("typeid", type_id).
-                    select();
-        } else {
-            result = st.set("typeid", type_id).
-                    set("subtypeid", subtype_id).
-                    select();
-        }
-
-        // Go through the selected elements
-        for (auto const& row: result) {
-            std::string name;
-            row[0].get(name);
-            uint32_t id = 0;
-            row[1].get(id);
-            ret.item.insert(std::pair<uint32_t, std::string>(id, name));
-        }
-        ret.status = 1;
-
-        return ret;
-    }
-    catch (const std::exception &e) {
-        ret.status        = 0;
-        ret.errtype       = DB_ERR;
-        ret.errsubtype    = DB_ERROR_INTERNAL;
-        ret.msg           = e.what();
-        ret.item.clear();
-        log_error ("Exception caught %s", e.what());
         return ret;
     }
 }
