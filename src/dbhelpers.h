@@ -52,75 +52,11 @@
 
 #define MAX_DESCRIPTION_LENGTH  255
 
-
-/**
- * \brief helper structure for results of v_bios_asset_element
- */
-// ----- table:  t_bios_asset_element_type ------------
-// ----- column: id_asset_element_type  ---------------
-// TODO tntdb can't manage uint8_t, so for now there is
-// uint16_t
-typedef uint16_t  a_elmnt_tp_id_t;
-// ----- table:  t_bios_asset_element -----------------
-// ----- column: id_asset_element ---------------------
-typedef uint32_t a_elmnt_id_t;
-// ----- table:  t_bios_asset_element_type ------------
-// ----- column: id_asset_element_type  ---------------
-// TODO tntdb can't manage uint8_t, so for now there is
-// uint16_t
-typedef uint16_t  a_elmnt_stp_id_t;
-
-struct db_a_elmnt_t {
-    uint32_t         id;
-    std::string      name;
-    std::string      status;
-    uint32_t         parent_id;
-    uint32_t         priority;
-    uint32_t         type_id;
-    uint32_t         subtype_id;
-    std::string      asset_tag;
-    std::map <std::string, std::string> ext;
-
-    db_a_elmnt_t () :
-        id{},
-        name{},
-        status{},
-        parent_id{},
-        priority{},
-        type_id{},
-        subtype_id{},
-        asset_tag{},
-        ext{}
-    {}
-
-    db_a_elmnt_t (
-        uint32_t         id,
-        std::string      name,
-        std::string      status,
-        uint32_t         parent_id,
-        uint32_t         priority,
-        uint32_t         type_id,
-        uint32_t         subtype_id,
-        std::string      asset_tag) :
-
-        id(id),
-        name(name),
-        status(status),
-        parent_id(parent_id),
-        priority(priority),
-        type_id(type_id),
-        subtype_id(subtype_id),
-        asset_tag(asset_tag),
-        ext{}
-    {}
-};
-
-
-// Converts asset name to the DB id
+// Selects all assets which have our container in input power chain
 FTY_ASSET_PRIVATE int
-    select_asset_id (
-        const std::string &name,
-        a_elmnt_id_t &id
+    select_links_by_container (
+        uint32_t element_id,
+        std::set <std::pair<uint32_t ,uint32_t> > &links
     );
 
 // Selects assets in a given container
@@ -132,39 +68,17 @@ FTY_ASSET_PRIVATE int
         bool test
     );
 
-// Selects all assets in a given container without type/subtype filtering.
+// Selects basic asset info
 FTY_ASSET_PRIVATE int
-    select_assets_by_container_cb (
-        a_elmnt_id_t element_id,
-        std::function<void(const tntdb::Row&)> cb
-    );
-
-// Selects all assets in the DB of given types/subtypes
-FTY_ASSET_PRIVATE int
-    select_assets_by_filter (
-        const std::set <std::string>& filter,
-        std::vector <std::string>& assets,
-        bool test
-    );
-
-// Selects all assets which have our container in input power chain
-FTY_ASSET_PRIVATE int
-    select_links_by_container (
-        a_elmnt_id_t element_id,
-        std::set <std::pair<a_elmnt_id_t ,a_elmnt_id_t> > &links
-    );
+    select_asset_element_basic
+        (const std::string &asset_name,
+         std::function<void(const tntdb::Row&)> cb,
+         bool test);
 
 // Selects ext attributes for given asset
 FTY_ASSET_PRIVATE int
     select_ext_attributes
         (uint32_t asset_id,
-         std::function<void(const tntdb::Row&)> cb,
-         bool test);
-
-// Selects basic asset info
-FTY_ASSET_PRIVATE int
-    select_asset_element_basic
-        (const std::string &asset_name,
          std::function<void(const tntdb::Row&)> cb,
          bool test);
 
@@ -174,6 +88,14 @@ FTY_ASSET_PRIVATE int
         uint32_t id,
         std::function<void(const tntdb::Row&)>& cb,
         bool test);
+
+// Selects all assets in the DB of given types/subtypes
+FTY_ASSET_PRIVATE int
+    select_assets_by_filter (
+        const std::set <std::string>& filter,
+        std::vector <std::string>& assets,
+        bool test
+    );
 
 // Selects basic asset info for all assets in the DB
 FTY_ASSET_PRIVATE int
@@ -219,12 +141,6 @@ FTY_ASSET_PRIVATE db_reply_t
      bool test,
      LIMITATIONS_STRUCT *limitations);
 
-FTY_ASSET_PRIVATE db_reply <std::map <uint32_t, std::string> >
-    select_short_elements
-        (tntdb::Connection &conn,
-         uint32_t type_id,
-         uint32_t subtype_id);
-
 FTY_ASSET_PRIVATE bool
     disable_power_nodes_if_limitation_applies
         (int max_active_power_devices,
@@ -238,7 +154,4 @@ void
     dbhelpers_test (bool verbose);
 
 //  @end
-
-
-
 #endif

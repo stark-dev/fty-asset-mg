@@ -34,6 +34,7 @@
 #include <tntdb/error.h>
 #include <exception>
 #include <functional>
+#include <fty_common_db_asset.h>
 
 bool
     get_dc_upses
@@ -62,7 +63,7 @@ bool
 
         // select dcs and their IDs
         db_reply <std::map <uint32_t, std::string> > reply =
-            select_short_elements (conn, persist::asset_type::DATACENTER, persist::asset_subtype::N_A);
+            DBAssets::select_short_elements (conn, persist::asset_type::DATACENTER, persist::asset_subtype::N_A);
         if (reply.status == 0) {
             log_error ("Cannot select datacenters");
             return false;
@@ -70,7 +71,7 @@ bool
         // for each DC save its devices (/upses...done by fun)
         for (const auto& dc : reply.item )
         {
-            int rv = select_assets_by_container_cb (dc.first, func);
+            int rv = DBAssets::select_assets_by_container (conn, dc.first, func);
             if (rv != 0) {
                 log_error ("Cannot read upses for dc with id = '%" PRIu32"'", dc.first);
                 continue;
