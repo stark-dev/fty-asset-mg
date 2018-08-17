@@ -38,7 +38,6 @@
 #include <cxxtools/allocator.h>
 #include <fty_common_db.h>
 #include <fty_common_mlm.h>
-#include <fty_common.h>
 
 //  FTY_ASSET version macros for compile-time API detection
 #define FTY_ASSET_VERSION_MAJOR 1

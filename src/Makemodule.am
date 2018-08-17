@@ -13,7 +13,6 @@ lib_LTLIBRARIES += src/libfty_asset.la
 pkgconfig_DATA = src/libfty_asset.pc
 
 src_libfty_asset_la_SOURCES = \
-    src/defs.cc \
     src/dbhelpers.cc \
     src/fty_asset_uptime_configurator.cc \
     src/total_power.cc \

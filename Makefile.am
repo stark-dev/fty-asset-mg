@@ -71,7 +71,6 @@ EXTRA_DIST += \
 endif
 
 EXTRA_DIST += \
-    src/defs.h \
     src/dbhelpers.h \
     src/fty_asset_uptime_configurator.h \
     src/total_power.h \
