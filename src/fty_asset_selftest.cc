@@ -29,17 +29,6 @@
 
 #include "fty_asset_classes.h"
 
-#ifndef streq
-/*
- *  Allow projects without czmq dependency:
- *  The generated code expects that czmq pulls in a few headers and macro
- *  definitions. This is a minimal fix for the generated selftest file in
- *  C++ mode.
- */
-#include <string.h>
-#define streq(s1,s2)    (!strcmp ((s1), (s2)))
-#endif
-
 typedef struct {
     const char *testname;           // test name, can be called from command line this way
     void (*test) (bool);            // function to run the test (or NULL for private tests)
@@ -57,7 +46,6 @@ all_tests [] = {
 #ifdef FTY_ASSET_BUILD_DRAFT_API
 // Tests for stable/draft private classes:
 // Now built only with --enable-drafts, so even stable builds are hidden behind the flag
-    { "defs", NULL, true, false, "defs_test" },
     { "dbhelpers", NULL, true, false, "dbhelpers_test" },
     { "fty_asset_uptime_configurator", NULL, true, false, "fty_asset_uptime_configurator_test" },
     { "total_power", NULL, true, false, "total_power_test" },

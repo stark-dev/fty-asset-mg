@@ -35,10 +35,6 @@
 //  Extra headers
 
 //  Opaque class structures to allow forward references
-#ifndef DEFS_T_DEFINED
-typedef struct _defs_t defs_t;
-#define DEFS_T_DEFINED
-#endif
 #ifndef DBHELPERS_T_DEFINED
 typedef struct _dbhelpers_t dbhelpers_t;
 #define DBHELPERS_T_DEFINED
@@ -58,7 +54,6 @@ typedef struct _dns_t dns_t;
 
 //  Internal API
 
-#include "defs.h"
 #include "dbhelpers.h"
 #include "fty_asset_uptime_configurator.h"
 #include "total_power.h"

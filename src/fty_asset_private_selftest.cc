@@ -38,8 +38,6 @@ void
 fty_asset_private_selftest (bool verbose, const char *subtest)
 {
 // Tests for stable private classes:
-    if (streq (subtest, "$ALL") || streq (subtest, "defs_test"))
-        defs_test (verbose);
     if (streq (subtest, "$ALL") || streq (subtest, "dbhelpers_test"))
         dbhelpers_test (verbose);
     if (streq (subtest, "$ALL") || streq (subtest, "fty_asset_uptime_configurator_test"))
