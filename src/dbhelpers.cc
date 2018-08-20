@@ -184,42 +184,9 @@ static std::string get_status_from_db (std::string element_name, bool test = fal
     if (test) {
         return "nonactive";
     }
-    tntdb::Connection conn;
-    try {
-        conn = tntdb::connectCached (DBConn::url);
-    }
-    catch ( const std::exception &e) {
-        log_error ("DB: cannot connect, %s", e.what());
-        return "unknown";
-    }
-    try{
-        log_debug("get_status_from_db: getting status for asset %s", element_name.c_str());
-        tntdb::Statement st = conn.prepareCached(
-            " SELECT v.status "
-            " FROM v_bios_asset_element v "
-            " WHERE v.name=:vname ;"
-            );
-
-        tntdb::Row row = st.set ("vname", element_name).selectRow ();
-        log_debug("get_status_from_db: [v_bios_asset_element]: were selected %zu rows", row.size());
-        if (row.size() == 1) {
-            std::string ret;
-            row [0].get (ret);
-            return ret;
-        } else {
-            return "unknown";
-        }
-    }
-    catch (const tntdb::NotFound &e) {
-        log_debug("get_status_from_db: [v_bios_asset_element]: %s asset not found", element_name.c_str ());
-        return "unknown";
-    }
-    catch (const std::exception &e) {
-        log_error ("get_status_from_db: [v_bios_asset_element]: error '%s'", e.what());
-        return "unknown";
-    }
+    tntdb::Connection conn = tntdb::connectCached (DBConn::url);
+    return DBAssets::get_status_from_db (conn, element_name);
 }
-
 
 #define SQL_EXT_ATT_INVENTORY " INSERT INTO" \
         "   t_bios_asset_ext_attributes" \
@@ -486,7 +453,6 @@ bool disable_power_nodes_if_limitation_applies (int max_active_power_devices, bo
     return false;
 }
 
-
 /**
  *  \brief Get number of active power devices
  *
@@ -506,29 +472,8 @@ get_active_power_devices (bool test)
         }
         return count;
     }
-    try
-    {
-        tntdb::Connection conn = tntdb::connectCached (DBConn::url);
-        tntdb::Statement st = conn.prepareCached (
-            "SELECT COUNT(*) AS CNT FROM t_bios_asset_element "
-            "WHERE id_subtype IN "
-                "(SELECT id_asset_device_type FROM t_bios_asset_device_type "
-                "WHERE name IN ('epdu', 'sts', 'ups', 'pdu', 'genset')) "
-            "AND status = 'active'; "
-        );
-
-        tntdb::Row row = st.selectRow ();
-        log_debug ("[get_active_power_devices]: were selected %" PRIu32 " rows", 1);
-
-        row [0].get (count);
-    }
-    catch (const std::exception &e)
-    {
-        log_error ("[get_active_power_devices]: exception caught %s when getting count of active power devices", e.what ());
-        return 0;
-    }
-
-    return count;
+    tntdb::Connection conn = tntdb::connectCached (DBConn::url);
+    return DBAssets::get_active_power_devices (conn);
 }
 
 /**
@@ -583,6 +528,7 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
         // TODO: sanitize name ("rack controller")
     }
     log_debug ("  element_name = '%s'", element_name);
+
     if (limitations->max_active_power_devices >= 0 && type_id == persist::asset_type::DEVICE && streq (status, "active")) {
         std::string db_status = get_status_from_db (element_name, test);
         // limit applies only to assets that are attempted to be activated, but are disabled in database
@@ -622,10 +568,12 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
     // TODO: check whether asset exists and drop?
 
     if (test) {
+        log_debug ("[create_or_update_asset]: runs in test mode");
         test_map_asset_state[std::string(element_name)] = std::string(status);
         ret.status = 1;
         return ret;
     }
+
     try {
         // this concat with last_insert_id may have race condition issue but hopefully is not important
         tntdb::Connection conn = tntdb::connectCached (DBConn::url);
