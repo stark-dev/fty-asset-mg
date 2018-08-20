@@ -47,7 +47,6 @@ all_tests [] = {
 // Tests for stable/draft private classes:
 // Now built only with --enable-drafts, so even stable builds are hidden behind the flag
     { "dbhelpers", NULL, true, false, "dbhelpers_test" },
-    { "fty_asset_uptime_configurator", NULL, true, false, "fty_asset_uptime_configurator_test" },
     { "total_power", NULL, true, false, "total_power_test" },
     { "dns", NULL, true, false, "dns_test" },
     { "private_classes", NULL, false, false, "$ALL" }, // compat option for older projects

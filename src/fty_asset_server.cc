@@ -194,6 +194,7 @@
 #include <string>
 #include <tntdb/connect.h>
 #include <functional>
+#include <fty_common_db_uptime.h>
 // TODO add dependencies tntdb and cxxtools
 
 //  Structure of our class
@@ -514,8 +515,9 @@ static zmsg_t *
             // additional aux items (requiered by uptime)
             if (streq (persist::typeid_to_type (foo_i).c_str(), "datacenter"))
             {
-                if (!insert_upses_to_aux (aux, asset_name))
-                    log_error ("insert_upses_to_aux: failed to insert upses");
+                if (!DBUptime::get_dc_upses (asset_name.c_str(), aux))
+                    log_error ("Cannot read upses for dc with id = %s", asset_name.c_str ());
+
             }
             foo_i = 0;
             row ["subtype_id"].get (foo_i);

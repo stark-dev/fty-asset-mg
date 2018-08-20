@@ -14,7 +14,6 @@ pkgconfig_DATA = src/libfty_asset.pc
 
 src_libfty_asset_la_SOURCES = \
     src/dbhelpers.cc \
-    src/fty_asset_uptime_configurator.cc \
     src/total_power.cc \
     src/dns.cc \
     src/fty_asset_server.cc \
