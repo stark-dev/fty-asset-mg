@@ -35,13 +35,6 @@
 #include <string>
 #include "fty_asset_classes.h"
 
-// Selects all assets which have our container in input power chain
-FTY_ASSET_PRIVATE int
-    select_links_by_container (
-        uint32_t element_id,
-        std::set <std::pair<uint32_t ,uint32_t> > &links
-    );
-
 // Selects assets in a given container
 FTY_ASSET_PRIVATE int
     select_assets_by_container (
@@ -86,6 +79,8 @@ FTY_ASSET_PRIVATE int
             std::function<void(
                 const tntdb::Row&
                 )>& cb, bool test);
+
+//////////////////////////////////////////////////////////////////////////////////
 
 // Inserts ext attributes from inventory message into DB
 FTY_ASSET_PRIVATE int

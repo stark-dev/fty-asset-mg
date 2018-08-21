@@ -354,9 +354,21 @@ static int
         powerDevices = {};
         return 0;
     }
-    std::set <std::pair<uint32_t ,uint32_t> > links{};
-    rv = select_links_by_container (assetId, links);
-    if ( rv != 0 ) {
+
+    auto ret_active = DBAssets::select_links_by_container (conn, assetId, "active");
+    std::set <std::pair<uint32_t ,uint32_t> > links = ret_active.item;
+    //rv = select_links_by_container (assetId, links);
+    if ( ret_active.status == 0 ) {
+        log_warning ("asset_id='%" PRIu32 "': internal problems in links detecting",
+                assetId);
+        // so return an empty set of power devices
+        powerDevices = {};
+        return -1;
+    }
+
+    auto ret_nonactive = DBAssets::select_links_by_container (conn, assetId, "nonactive");
+    links.insert (ret_nonactive.item.begin (), ret_nonactive.item.end ());
+    if ( ret_nonactive.status == 0 ) {
         log_warning ("asset_id='%" PRIu32 "': internal problems in links detecting",
                 assetId);
         // so return an empty set of power devices
