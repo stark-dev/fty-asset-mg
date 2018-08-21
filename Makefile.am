@@ -72,7 +72,6 @@ endif
 
 EXTRA_DIST += \
     src/dbhelpers.h \
-    src/fty_asset_uptime_configurator.h \
     src/total_power.h \
     src/dns.h \
     README.md \
