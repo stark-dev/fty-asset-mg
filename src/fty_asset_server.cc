@@ -884,41 +884,27 @@ void
 handle_incoming_limitations (fty_asset_server_t *cfg, zmsg_t *msg)
 {
     const char *subject = mlm_client_subject (cfg->stream_client);
-    assert(subject);
+    assert (subject);
     assert(streq (subject, "LIMITATIONS"));
     zmsg_print (msg);
     // should there be any data to share, they come in a group of three (value, item, category)
-    char *value = zmsg_popstr (msg);
-    char *item = zmsg_popstr (msg);
-    char *category = zmsg_popstr (msg);
-    while (value && item && category) {
-        if (streq (category, "POWER_NODES") && streq (item, "MAX_ACTIVE")) {
-            log_debug("Setting power_nodes/max_active to %s.", value);
-            cfg->limitations.max_active_power_devices = atoi(value);
+    assert (fty_proto_is(msg));
+    fty_proto_t *metric = fty_proto_decode(&msg);
+    assert (fty_proto_id(metric) == FTY_PROTO_METRIC);
+    if (streq (fty_proto_type(metric), "POWER_NODES") && streq (fty_proto_name(metric), "MAX_ACTIVE")) {
+        log_debug("Setting power_nodes/max_active to %s.", fty_proto_value (metric));
+        cfg->limitations.max_active_power_devices = atoi (fty_proto_value (metric));
+        // based on limitations we may have to limit some features
+        // force disable some power nodes
+        if (disable_power_nodes_if_limitation_applies(cfg->limitations.max_active_power_devices, cfg->test)) {
+            // there was a change, so repeat all is mandatory
+            s_repeat_all (cfg);
         }
-        else if (streq (category, "CONFIGURABILITY") && streq (item, "GLOBAL")) {
-            log_debug("Setting configurability/global to %s.", value);
-            cfg->limitations.global_configurability = atoi(value);
-        }
-        zstr_free (&value);
-        zstr_free (&item);
-        zstr_free (&category);
-        value = zmsg_popstr (msg);
-        item = zmsg_popstr (msg);
-        category = zmsg_popstr (msg);
+    } else if (streq (fty_proto_type(metric), "CONFIGURABILITY") && streq (fty_proto_name(metric), "GLOBAL")) {
+        log_debug("Setting configurability/global to %s.", fty_proto_value (metric));
+        cfg->limitations.global_configurability = atoi (fty_proto_value (metric));
     }
-    if (NULL != value)
-        zstr_free (&value);
-    if (NULL != item)
-        zstr_free (&item);
-    if (NULL != category)
-        zstr_free (&category);
-    // based on limitations we may have to limit some features
-    // force disable some power nodes
-    if (disable_power_nodes_if_limitation_applies(cfg->limitations.max_active_power_devices, cfg->test)) {
-        // there was a change, so repeat all is mandatory
-        s_repeat_all (cfg);
-    }
+    fty_proto_destroy(&metric);
 }
 
 void
@@ -1079,6 +1065,7 @@ fty_asset_server (zsock_t *pipe, void *args)
             const char *subject = mlm_client_subject (cfg->stream_client);
             if (streq (subject, "LIMITATIONS")) {
                 handle_incoming_limitations (cfg, zmessage);
+                // zmessage is destroyed in the function call
             } else if ( is_fty_proto (zmessage) ) {
                 fty_proto_t *bmsg = fty_proto_decode (&zmessage);
                 if ( fty_proto_id (bmsg) == FTY_PROTO_ASSET ) {
@@ -1088,8 +1075,8 @@ fty_asset_server (zsock_t *pipe, void *args)
             }
             else {
                 // DO NOTHING for now
+                zmsg_destroy (&zmessage);
             }
-            zmsg_destroy (&zmessage);
         }
         else {
             // DO NOTHING for now
@@ -1405,7 +1392,8 @@ fty_asset_server_test (bool verbose)
 
         // disable configurability
         mlm_client_set_producer (ui, "LICENSING-ANNOUNCEMENTS-TEST");
-        mlm_client_sendx (ui, "LIMITATIONS", "0", "GLOBAL", "CONFIGURABILITY", NULL);
+        zmsg_t *smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "CONFIGURABILITY", "GLOBAL", "0", "");
+        mlm_client_send (ui, "LIMITATIONS", &smsg);
         zclock_sleep (200);
         // try to create asset when configurability is disabled
         msg = fty_proto_encode_asset (
@@ -1428,8 +1416,11 @@ fty_asset_server_test (bool verbose)
         zstr_free (&str);
         zmsg_destroy (&reply);
         // enable configurability again, but set limit to power devices
-        mlm_client_sendx (ui, "LIMITATIONS", "1", "GLOBAL", "CONFIGURABILITY", "3", "MAX_ACTIVE", "POWER_NODES", NULL);
-        zclock_sleep (200);
+        smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "CONFIGURABILITY", "GLOBAL", "1", "");
+        mlm_client_send (ui, "LIMITATIONS", &smsg);
+        smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "POWER_NODES", "MAX_ACTIVE", "3", "");
+        mlm_client_send (ui, "LIMITATIONS", &smsg);
+        zclock_sleep (300);
         // send power devices
         zhash_t *aux = zhash_new ();
         zhash_autofree (aux);
