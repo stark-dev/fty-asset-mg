@@ -891,7 +891,7 @@ handle_incoming_limitations (fty_asset_server_t *cfg, zmsg_t *msg)
     assert (fty_proto_is(msg));
     fty_proto_t *metric = fty_proto_decode(&msg);
     assert (fty_proto_id(metric) == FTY_PROTO_METRIC);
-    if (streq (fty_proto_type(metric), "POWER_NODES") && streq (fty_proto_name(metric), "MAX_ACTIVE")) {
+    if (streq (fty_proto_name(metric), "rackcontroller-0") && streq (fty_proto_type(metric), "power_nodes.max_active")) {
         log_debug("Setting power_nodes/max_active to %s.", fty_proto_value (metric));
         cfg->limitations.max_active_power_devices = atoi (fty_proto_value (metric));
         // based on limitations we may have to limit some features
@@ -900,7 +900,7 @@ handle_incoming_limitations (fty_asset_server_t *cfg, zmsg_t *msg)
             // there was a change, so repeat all is mandatory
             s_repeat_all (cfg);
         }
-    } else if (streq (fty_proto_type(metric), "CONFIGURABILITY") && streq (fty_proto_name(metric), "GLOBAL")) {
+    } else if (streq (fty_proto_name(metric), "rackcontroller-0") && streq (fty_proto_type(metric), "configurability.global")) {
         log_debug("Setting configurability/global to %s.", fty_proto_value (metric));
         cfg->limitations.global_configurability = atoi (fty_proto_value (metric));
     }
@@ -1392,7 +1392,7 @@ fty_asset_server_test (bool verbose)
 
         // disable configurability
         mlm_client_set_producer (ui, "LICENSING-ANNOUNCEMENTS-TEST");
-        zmsg_t *smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "CONFIGURABILITY", "GLOBAL", "0", "");
+        zmsg_t *smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "configurability.global", "rackcontroller-0", "0", "");
         mlm_client_send (ui, "LIMITATIONS", &smsg);
         zclock_sleep (200);
         // try to create asset when configurability is disabled
@@ -1416,9 +1416,9 @@ fty_asset_server_test (bool verbose)
         zstr_free (&str);
         zmsg_destroy (&reply);
         // enable configurability again, but set limit to power devices
-        smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "CONFIGURABILITY", "GLOBAL", "1", "");
+        smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "configurability.global", "rackcontroller-0", "1", "");
         mlm_client_send (ui, "LIMITATIONS", &smsg);
-        smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "POWER_NODES", "MAX_ACTIVE", "3", "");
+        smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "power_nodes.max_active", "rackcontroller-0", "3", "");
         mlm_client_send (ui, "LIMITATIONS", &smsg);
         zclock_sleep (300);
         // send power devices
