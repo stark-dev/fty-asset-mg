@@ -1119,7 +1119,7 @@ fty_asset_server_test (bool verbose)
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONSUMER", "ASSETS-TEST", ".*", NULL);
     zsock_wait (asset_server);
-    zstr_sendx (asset_server, "CONSUMER", "LICENSING-ANNOUNCEMENTS-TEST", "LIMITATIONS.*", NULL);
+    zstr_sendx (asset_server, "CONSUMER", "LICENSING-ANNOUNCEMENTS-TEST", ".*", NULL);
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONNECTMAILBOX", endpoint, NULL);
     zsock_wait (asset_server);
@@ -1386,7 +1386,7 @@ fty_asset_server_test (bool verbose)
         // disable configurability
         mlm_client_set_producer (ui, "LICENSING-ANNOUNCEMENTS-TEST");
         zmsg_t *smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "configurability.global", "rackcontroller-0", "0", "");
-        mlm_client_send (ui, "LIMITATIONS", &smsg);
+        mlm_client_send (ui, "configurability.global@rackcontroller-0", &smsg);
         zclock_sleep (200);
         // try to create asset when configurability is disabled
         msg = fty_proto_encode_asset (
@@ -1410,9 +1410,9 @@ fty_asset_server_test (bool verbose)
         zmsg_destroy (&reply);
         // enable configurability again, but set limit to power devices
         smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "configurability.global", "rackcontroller-0", "1", "");
-        mlm_client_send (ui, "LIMITATIONS", &smsg);
+        mlm_client_send (ui, "configurability.global@rackcontroller-0", &smsg);
         smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "power_nodes.max_active", "rackcontroller-0", "3", "");
-        mlm_client_send (ui, "LIMITATIONS", &smsg);
+        mlm_client_send (ui, "power_nodes.max_active@rackcontroller-0", &smsg);
         zclock_sleep (300);
         // send power devices
         zhash_t *aux = zhash_new ();
