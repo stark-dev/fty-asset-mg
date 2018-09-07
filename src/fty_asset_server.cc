@@ -881,30 +881,25 @@ s_repeat_all (fty_asset_server_t *cfg)
 }
 
 void
-handle_incoming_limitations (fty_asset_server_t *cfg, zmsg_t *msg)
+handle_incoming_limitations (fty_asset_server_t *cfg, fty_proto_t *metric)
 {
-    const char *subject = mlm_client_subject (cfg->stream_client);
-    assert (subject);
-    assert(streq (subject, "LIMITATIONS"));
-    zmsg_print (msg);
-    // should there be any data to share, they come in a group of three (value, item, category)
-    assert (fty_proto_is(msg));
-    fty_proto_t *metric = fty_proto_decode(&msg);
+    // subject matches type.name, so checking those should be sufficient
     assert (fty_proto_id(metric) == FTY_PROTO_METRIC);
-    if (streq (fty_proto_name(metric), "rackcontroller-0") && streq (fty_proto_type(metric), "power_nodes.max_active")) {
-        log_debug("Setting power_nodes/max_active to %s.", fty_proto_value (metric));
-        cfg->limitations.max_active_power_devices = atoi (fty_proto_value (metric));
-        // based on limitations we may have to limit some features
-        // force disable some power nodes
-        if (disable_power_nodes_if_limitation_applies(cfg->limitations.max_active_power_devices, cfg->test)) {
-            // there was a change, so repeat all is mandatory
-            s_repeat_all (cfg);
-        }
-    } else if (streq (fty_proto_name(metric), "rackcontroller-0") && streq (fty_proto_type(metric), "configurability.global")) {
+    if (streq (fty_proto_name(metric), "rackcontroller-0")) {
+        if (streq (fty_proto_type(metric), "power_nodes.max_active")) {
+            log_debug("Setting power_nodes/max_active to %s.", fty_proto_value (metric));
+            cfg->limitations.max_active_power_devices = atoi (fty_proto_value (metric));
+            // based on limitations we may have to limit some features
+            // force disable some power nodes
+            if (disable_power_nodes_if_limitation_applies(cfg->limitations.max_active_power_devices, cfg->test)) {
+                // there was a change, so repeat all is mandatory
+                s_repeat_all (cfg);
+            }
+        } else if (streq (fty_proto_type(metric), "configurability.global")) {
         log_debug("Setting configurability/global to %s.", fty_proto_value (metric));
         cfg->limitations.global_configurability = atoi (fty_proto_value (metric));
+        }
     }
-    fty_proto_destroy(&metric);
 }
 
 void
@@ -1062,14 +1057,12 @@ fty_asset_server (zsock_t *pipe, void *args)
             if ( zmessage == NULL ) {
                 continue;
             }
-            const char *subject = mlm_client_subject (cfg->stream_client);
-            if (streq (subject, "LIMITATIONS")) {
-                handle_incoming_limitations (cfg, zmessage);
-                // zmessage is destroyed in the function call
-            } else if ( is_fty_proto (zmessage) ) {
+            if ( is_fty_proto (zmessage) ) {
                 fty_proto_t *bmsg = fty_proto_decode (&zmessage);
                 if ( fty_proto_id (bmsg) == FTY_PROTO_ASSET ) {
                     s_update_topology (cfg, bmsg);
+                } else if ( fty_proto_id (bmsg) == FTY_PROTO_METRIC ) {
+                    handle_incoming_limitations (cfg, bmsg);
                 }
                 fty_proto_destroy (&bmsg);
             }

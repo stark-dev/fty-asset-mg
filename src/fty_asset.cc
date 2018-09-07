@@ -79,7 +79,7 @@ int main (int argc, char *argv [])
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONSUMER", "ASSETS", ".*", NULL);
     zsock_wait (asset_server);
-    zstr_sendx (asset_server, "CONSUMER", "LICENSING-ANNOUNCEMENTS", "LIMITATIONS.*", NULL);
+    zstr_sendx (asset_server, "CONSUMER", "LICENSING-ANNOUNCEMENTS", ".*", NULL);
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONNECTMAILBOX", endpoint, NULL);
     zsock_wait (asset_server);
