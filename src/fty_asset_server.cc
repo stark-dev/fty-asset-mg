@@ -881,43 +881,24 @@ s_repeat_all (fty_asset_server_t *cfg)
 }
 
 void
-handle_incoming_limitations (fty_asset_server_t *cfg, zmsg_t *msg)
+handle_incoming_limitations (fty_asset_server_t *cfg, fty_proto_t *metric)
 {
-    const char *subject = mlm_client_subject (cfg->stream_client);
-    assert(subject);
-    assert(streq (subject, "LIMITATIONS"));
-    zmsg_print (msg);
-    // should there be any data to share, they come in a group of three (value, item, category)
-    char *value = zmsg_popstr (msg);
-    char *item = zmsg_popstr (msg);
-    char *category = zmsg_popstr (msg);
-    while (value && item && category) {
-        if (streq (category, "POWER_NODES") && streq (item, "MAX_ACTIVE")) {
-            log_debug("Setting power_nodes/max_active to %s.", value);
-            cfg->limitations.max_active_power_devices = atoi(value);
+    // subject matches type.name, so checking those should be sufficient
+    assert (fty_proto_id(metric) == FTY_PROTO_METRIC);
+    if (streq (fty_proto_name(metric), "rackcontroller-0")) {
+        if (streq (fty_proto_type(metric), "power_nodes.max_active")) {
+            log_debug("Setting power_nodes/max_active to %s.", fty_proto_value (metric));
+            cfg->limitations.max_active_power_devices = atoi (fty_proto_value (metric));
+            // based on limitations we may have to limit some features
+            // force disable some power nodes
+            if (disable_power_nodes_if_limitation_applies(cfg->limitations.max_active_power_devices, cfg->test)) {
+                // there was a change, so repeat all is mandatory
+                s_repeat_all (cfg);
+            }
+        } else if (streq (fty_proto_type(metric), "configurability.global")) {
+        log_debug("Setting configurability/global to %s.", fty_proto_value (metric));
+        cfg->limitations.global_configurability = atoi (fty_proto_value (metric));
         }
-        else if (streq (category, "CONFIGURABILITY") && streq (item, "GLOBAL")) {
-            log_debug("Setting configurability/global to %s.", value);
-            cfg->limitations.global_configurability = atoi(value);
-        }
-        zstr_free (&value);
-        zstr_free (&item);
-        zstr_free (&category);
-        value = zmsg_popstr (msg);
-        item = zmsg_popstr (msg);
-        category = zmsg_popstr (msg);
-    }
-    if (NULL != value)
-        zstr_free (&value);
-    if (NULL != item)
-        zstr_free (&item);
-    if (NULL != category)
-        zstr_free (&category);
-    // based on limitations we may have to limit some features
-    // force disable some power nodes
-    if (disable_power_nodes_if_limitation_applies(cfg->limitations.max_active_power_devices, cfg->test)) {
-        // there was a change, so repeat all is mandatory
-        s_repeat_all (cfg);
     }
 }
 
@@ -1076,20 +1057,19 @@ fty_asset_server (zsock_t *pipe, void *args)
             if ( zmessage == NULL ) {
                 continue;
             }
-            const char *subject = mlm_client_subject (cfg->stream_client);
-            if (streq (subject, "LIMITATIONS")) {
-                handle_incoming_limitations (cfg, zmessage);
-            } else if ( is_fty_proto (zmessage) ) {
+            if ( is_fty_proto (zmessage) ) {
                 fty_proto_t *bmsg = fty_proto_decode (&zmessage);
                 if ( fty_proto_id (bmsg) == FTY_PROTO_ASSET ) {
                     s_update_topology (cfg, bmsg);
+                } else if ( fty_proto_id (bmsg) == FTY_PROTO_METRIC ) {
+                    handle_incoming_limitations (cfg, bmsg);
                 }
                 fty_proto_destroy (&bmsg);
             }
             else {
                 // DO NOTHING for now
+                zmsg_destroy (&zmessage);
             }
-            zmsg_destroy (&zmessage);
         }
         else {
             // DO NOTHING for now
@@ -1139,7 +1119,7 @@ fty_asset_server_test (bool verbose)
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONSUMER", "ASSETS-TEST", ".*", NULL);
     zsock_wait (asset_server);
-    zstr_sendx (asset_server, "CONSUMER", "LICENSING-ANNOUNCEMENTS-TEST", "LIMITATIONS.*", NULL);
+    zstr_sendx (asset_server, "CONSUMER", "LICENSING-ANNOUNCEMENTS-TEST", ".*", NULL);
     zsock_wait (asset_server);
     zstr_sendx (asset_server, "CONNECTMAILBOX", endpoint, NULL);
     zsock_wait (asset_server);
@@ -1405,7 +1385,8 @@ fty_asset_server_test (bool verbose)
 
         // disable configurability
         mlm_client_set_producer (ui, "LICENSING-ANNOUNCEMENTS-TEST");
-        mlm_client_sendx (ui, "LIMITATIONS", "0", "GLOBAL", "CONFIGURABILITY", NULL);
+        zmsg_t *smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "configurability.global", "rackcontroller-0", "0", "");
+        mlm_client_send (ui, "configurability.global@rackcontroller-0", &smsg);
         zclock_sleep (200);
         // try to create asset when configurability is disabled
         msg = fty_proto_encode_asset (
@@ -1428,8 +1409,11 @@ fty_asset_server_test (bool verbose)
         zstr_free (&str);
         zmsg_destroy (&reply);
         // enable configurability again, but set limit to power devices
-        mlm_client_sendx (ui, "LIMITATIONS", "1", "GLOBAL", "CONFIGURABILITY", "3", "MAX_ACTIVE", "POWER_NODES", NULL);
-        zclock_sleep (200);
+        smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "configurability.global", "rackcontroller-0", "1", "");
+        mlm_client_send (ui, "configurability.global@rackcontroller-0", &smsg);
+        smsg = fty_proto_encode_metric ( NULL, time(NULL), 24*60*60, "power_nodes.max_active", "rackcontroller-0", "3", "");
+        mlm_client_send (ui, "power_nodes.max_active@rackcontroller-0", &smsg);
+        zclock_sleep (300);
         // send power devices
         zhash_t *aux = zhash_new ();
         zhash_autofree (aux);
