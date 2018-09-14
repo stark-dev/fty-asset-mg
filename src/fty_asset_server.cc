@@ -1023,6 +1023,7 @@ fty_asset_server (zsock_t *pipe, void *args)
             if (subject == "REPUBLISH") {
 
                 zmsg_print (zmessage);
+                log_trace ("REPUBLISH received from '%s'",mlm_client_sender (cfg->mailbox_client));
                 char *asset = zmsg_popstr (zmessage);
                 if (!asset)
                     s_repeat_all (cfg);
