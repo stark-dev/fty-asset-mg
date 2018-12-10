@@ -31,12 +31,12 @@
     <abi current = "1" revision = "0" age = "0" />
 
     <use project = "czmq"
-        repository="https://github.com/42ity/czmq.git"
+        repository = "https://github.com/42ity/czmq.git"
         release = "v3.0.2-FTY-master"
         min_major = "3" min_minor = "0" min_patch = "2" >
 
         <use project = "libzmq"
-            repository="https://github.com/42ity/libzmq.git"
+            repository = "https://github.com/42ity/libzmq.git"
             release = "4.2.0-FTY-master" >
 
             <use project = "libsodium" prefix = "sodium"
@@ -47,7 +47,7 @@
     </use>
 
     <use project = "malamute" min_major = "1" test = "mlm_server_test"
-        repository="https://github.com/42ity/malamute.git"
+        repository = "https://github.com/42ity/malamute.git"
         release = "1.0-FTY-master"
         />
 
@@ -57,7 +57,7 @@
         redhat_name = "file-devel"
         release = "5.18-FTY-master" />
 
-    <use project = "fty-common-logging" libname = "libfty_common_logging" header="fty_log.h"
+    <use project = "fty-common-logging" libname = "libfty_common_logging" header = "fty_log.h"
         repository = "https://github.com/42ity/fty-common-logging.git"
         release = "master"
         test = "fty_common_logging_selftest" >
@@ -68,19 +68,19 @@
             />
     </use>
 
-    <use project = "fty-proto" libname = "libfty_proto" header="ftyproto.h" prefix="fty_proto"
+    <use project = "fty-proto" libname = "libfty_proto" header = "ftyproto.h" prefix = "fty_proto"
     min_major = "1" min_minor = "0" min_patch = "0"
     repository = "https://github.com/42ity/fty-proto.git"
     release = "master"
     test = "fty_proto_test" >
 
         <use project = "czmq"
-        repository="https://github.com/42ity/czmq.git"
+        repository = "https://github.com/42ity/czmq.git"
         release = "v3.0.2-FTY-master"
         min_major = "3" min_minor = "0" min_patch = "2" >
 
             <use project = "libzmq"
-            repository="https://github.com/42ity/libzmq.git"
+            repository = "https://github.com/42ity/libzmq.git"
             release = "4.2.0-FTY-master" >
 
                 <use project = "libsodium" prefix = "sodium"
@@ -91,11 +91,11 @@
         </use>
 
         <use project = "malamute" min_major = "1" test = "mlm_server_test"
-        repository="https://github.com/42ity/malamute.git"
+        repository = "https://github.com/42ity/malamute.git"
         release = "1.0-FTY-master"
         />
 
-        <use project = "fty-common-logging" libname = "libfty_common_logging" header="fty_log.h"
+        <use project = "fty-common-logging" libname = "libfty_common_logging" header = "fty_log.h"
         repository = "https://github.com/42ity/fty-common-logging.git"
         release = "master"
         test = "fty_common_logging_selftest" >
@@ -107,23 +107,23 @@
         </use>
     </use>
 
-    <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec" header="cxxtools/allocator.h"
+    <use project = "cxxtools" test = "cxxtools::Utf8Codec::Utf8Codec" header = "cxxtools/allocator.h"
         repository = "https://github.com/42ity/cxxtools.git"
         release = "2.2-FTY-master"
         />
 
-    <use project = "fty-common-db" libname = "libfty_common_db" header="fty_common_db.h"
+    <use project = "fty-common-db" libname = "libfty_common_db" header = "fty_common_db.h"
         repository = "https://github.com/42ity/fty-common-db.git"
         release = "master"
         test = "fty_commmon_db_selftest" >
 
         <use project = "czmq"
-            repository="https://github.com/42ity/czmq.git"
+            repository = "https://github.com/42ity/czmq.git"
             release = "v3.0.2-FTY-master"
             min_major = "3" min_minor = "0" min_patch = "2" >
 
             <use project = "libzmq"
-                repository="https://github.com/42ity/libzmq.git"
+                repository = "https://github.com/42ity/libzmq.git"
                 release = "4.2.0-FTY-master" >
 
                 <use project = "libsodium" prefix = "sodium"
@@ -134,22 +134,22 @@
         </use>
 
         <use project = "tntdb"
-            test="tntdb::Date::gmtime"
+            test = "tntdb::Date::gmtime"
             repository = "https://github.com/42ity/tntdb.git"
             release = "1.3-FTY-master"
             builddir = "tntdb">
 
-            <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec" header="cxxtools/allocator.h"
+            <use project = "cxxtools" test = "cxxtools::Utf8Codec::Utf8Codec" header = "cxxtools/allocator.h"
                 repository = "https://github.com/42ity/cxxtools.git"
                 release = "2.2-FTY-master"
                 />
         </use>
 
-        <use project = "fty-common" libname = "libfty_common" header="fty_common.h"
+        <use project = "fty-common" libname = "libfty_common" header = "fty_common.h"
             repository = "https://github.com/42ity/fty-common.git"
             test = "fty_commmon_selftest" >
 
-            <use project = "fty-common-logging" libname = "libfty_common_logging" header="fty_log.h"
+            <use project = "fty-common-logging" libname = "libfty_common_logging" header = "fty_log.h"
             repository = "https://github.com/42ity/fty-common-logging.git"
             release = "master"
             test = "fty_common_logging_selftest" >
@@ -162,18 +162,18 @@
         </use>
     </use>
 
-    <use project = "fty-common-mlm" libname = "libfty_common_mlm" header="fty_common_mlm.h"
+    <use project = "fty-common-mlm" libname = "libfty_common_mlm" header = "fty_common_mlm.h"
         repository = "https://github.com/42ity/fty-common-mlm.git"
 	release = "master"
         test = "fty_commmon_mlm_selftest" >
 
         <use project = "czmq"
-            repository="https://github.com/42ity/czmq.git"
+            repository = "https://github.com/42ity/czmq.git"
             release = "v3.0.2-FTY-master"
             min_major = "3" min_minor = "0" min_patch = "2" >
 
             <use project = "libzmq"
-                repository="https://github.com/42ity/libzmq.git"
+                repository = "https://github.com/42ity/libzmq.git"
                 release = "4.2.0-FTY-master" >
 
                 <use project = "libsodium" prefix = "sodium"
@@ -183,23 +183,23 @@
             </use>
         </use>
 
-        <use project = "cxxtools" test="cxxtools::Utf8Codec::Utf8Codec" header="cxxtools/allocator.h"
+        <use project = "cxxtools" test = "cxxtools::Utf8Codec::Utf8Codec" header = "cxxtools/allocator.h"
         repository = "https://github.com/42ity/cxxtools.git"
         release = "2.2-FTY-master"
         />
 
         <use project = "malamute" min_major = "1" test = "mlm_server_test"
-        repository="https://github.com/42ity/malamute.git"
+        repository = "https://github.com/42ity/malamute.git"
         release = "1.0-FTY-master"
         />
 
-        <use project = "openssl" header = "openssl/sha.h" debian_name="libssl-dev"/>
+        <use project = "openssl" header = "openssl/sha.h" debian_name = "libssl-dev"/>
 
-        <use project = "fty-common" libname = "libfty_common" header="fty_common.h"
+        <use project = "fty-common" libname = "libfty_common" header = "fty_common.h"
             repository = "https://github.com/42ity/fty-common.git"
             test = "fty_commmon_selftest" >
 
-            <use project = "fty-common-logging" libname = "libfty_common_logging" header="fty_log.h"
+            <use project = "fty-common-logging" libname = "libfty_common_logging" header = "fty_log.h"
             repository = "https://github.com/42ity/fty-common-logging.git"
             release = "master"
             test = "fty_common_logging_selftest" >
@@ -211,7 +211,7 @@
            </use>
         </use>
 
-        <use project = "fty-common-logging" libname = "libfty_common_logging" header="fty_log.h"
+        <use project = "fty-common-logging" libname = "libfty_common_logging" header = "fty_log.h"
         repository = "https://github.com/42ity/fty-common-logging.git"
         release = "master"
         test = "fty_common_logging_selftest" >
@@ -223,7 +223,7 @@
         </use>
     </use>
 
-    <class name = "dbhelpers" state="stable" private = "1"> Helpers functions for database </class>
+    <class name = "dbhelpers" state = "stable" private = "1"> Helpers functions for database </class>
 
     <class name = "total_power" private = "1" state = "stable"> Calculation of total power for one asset</class>
     <class name = "dns" private = "1" state = "stable">DNS and networking helper</class>
