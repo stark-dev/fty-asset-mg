@@ -489,7 +489,6 @@ get_active_power_devices (bool test)
 db_reply_t
 create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATIONS_STRUCT *limitations)
 {
-    const char   *element_name;
     uint64_t      type_id;
     unsigned int  subtype_id;
     uint64_t      parent_id;
@@ -512,25 +511,25 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
     parent_id = fty_proto_aux_number (fmsg, "parent", 0);
     status = fty_proto_aux_string (fmsg, "status", "nonactive");
     priority = fty_proto_aux_number (fmsg, "priority", 5);
-    element_name = fty_proto_name (fmsg);
+    std::string element_name (fty_proto_name (fmsg));
     // TODO: element name from ext.name?
     operation = fty_proto_operation (fmsg);
     update = streq (operation, "update");
 
     if (!update) {
-        if (streq (element_name,"")) {
+        if (element_name.empty ()) {
             if (type_id == persist::asset_type::DEVICE) {
-                element_name = persist::subtypeid_to_subtype (subtype_id).c_str ();
+                element_name = persist::subtypeid_to_subtype (subtype_id);
             } else {
-                element_name = persist::typeid_to_type (type_id).c_str ();
+                element_name = persist::typeid_to_type (type_id);
             }
         }
         // TODO: sanitize name ("rack controller")
     }
-    log_debug ("  element_name = '%s'", element_name);
+    log_debug ("  element_name = '%s'", element_name.c_str ());
 
     if (limitations->max_active_power_devices >= 0 && type_id == persist::asset_type::DEVICE && streq (status, "active")) {
-        std::string db_status = get_status_from_db (element_name, test);
+        std::string db_status = get_status_from_db (element_name.c_str (), test);
         // limit applies only to assets that are attempted to be activated, but are disabled in database
         // or to new assets, also may trigger in case of DB failure, but that's fine
         if (db_status != "active") {
@@ -633,7 +632,7 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
                 set ("id", ret.rowid).
                 execute();
             // also set name to fty_proto
-            fty_proto_set_name (fmsg, "%s-%" PRIu64, element_name, ret.rowid);
+            fty_proto_set_name (fmsg, "%s-%" PRIu64, element_name.c_str (), ret.rowid);
         }
         if (ret.affected_rows == 0)
             log_debug ("Asset unchanged, processing inventory");
