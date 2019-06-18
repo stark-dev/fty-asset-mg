@@ -32,8 +32,6 @@
 //  External API
 #include "../include/fty_asset.h"
 
-//  Extra headers
-
 //  Opaque class structures to allow forward references
 #ifndef DBHELPERS_T_DEFINED
 typedef struct _dbhelpers_t dbhelpers_t;
@@ -47,6 +45,8 @@ typedef struct _total_power_t total_power_t;
 typedef struct _dns_t dns_t;
 #define DNS_T_DEFINED
 #endif
+
+//  Extra headers
 
 //  Internal API
 
