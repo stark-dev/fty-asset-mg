@@ -1,7 +1,9 @@
 /*  =========================================================================
     dbhelpers - Helpers functions for database
 
-    Copyright (C) 2014 - 2015 Eaton
+    Copyright (C)
+        2014 - 2015 Eaton
+        2019        Arnaud Quette <arnaud.quette@free.fr>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -433,6 +435,9 @@ bool disable_power_nodes_if_limitation_applies (int max_active_power_devices, bo
                                 "WHERE name = 'pdu' LIMIT 1) "
                             "OR id_subtype = (SELECT id_asset_device_type "
                                 "FROM t_bios_asset_device_type "
+                                "WHERE name = 'powermeter' LIMIT 1) "
+                            "OR id_subtype = (SELECT id_asset_device_type "
+                                "FROM t_bios_asset_device_type "
                                 "WHERE name = 'genset' LIMIT 1) "
                         ")"
                         "ORDER BY id_asset_element ASC "
@@ -542,6 +547,7 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
                 case persist::asset_subtype::EPDU:
                 case persist::asset_subtype::UPS:
                 case persist::asset_subtype::STS:
+                case persist::asset_subtype::POWERMETER:
                     // check if power devices exceeded allowed limit
                     int pd_active = get_active_power_devices(test);
                     if (pd_active + 1 > limitations->max_active_power_devices) {
