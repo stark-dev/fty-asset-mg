@@ -1314,6 +1314,90 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libfty_common_mlm
 dnl END of enabled attempts to search for libfty_common_mlm
 
 
+was_etn_licensing_credits_check_lib_detected=no
+
+search_libetn_licensing_credits="yes"
+
+AC_ARG_WITH([libetn_licensing_credits],
+    [
+        AS_HELP_STRING([--with-libetn_licensing_credits],
+        [yes or no. Optionally specify libetn_licensing_credits prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
+    ],
+    [
+        search_libetn_licensing_credits="yes"
+    ],
+    [
+        search_libetn_licensing_credits="yes"
+    ])
+AS_CASE([x"${with_libetn_licensing_credits}"],
+    [xyes], [search_libetn_licensing_credits="yes"],
+    [xno],  [search_libetn_licensing_credits="no"])
+
+dnl We do not abort right now, because the maintainer/developer may have
+dnl something particular in mind, e.g. to build just parts of a project.
+AS_IF([test x"${search_libetn_licensing_credits}" = xno],
+    [AC_MSG_WARN([Required dependency on etn_licensing_credits was explicitly disabled during configuration by '--with-libetn_licensing_credits=no'; subsequent full build of fty-asset may fail])])
+
+AS_IF([test x"${search_libetn_licensing_credits}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
+    found_pkgconfig=""
+    PKG_CHECK_MODULES([etn_licensing_credits], [libetn_licensing_credits >= 0.0.0],
+    [
+        was_etn_licensing_credits_check_lib_detected=pkgcfg
+        found_pkgconfig="libetn_licensing_credits"
+    ],
+    [
+        AC_MSG_NOTICE([Package libetn_licensing_credits not found; falling back to defined compilability tests])
+
+        etn_licensing_credits_synthetic_cflags=""
+        etn_licensing_credits_synthetic_libs="-letn-licensing-credits"
+
+        if test -n "${with_libetn_licensing_credits}" && test x"${with_libetn_licensing_credits}" != xyes && test x"${with_libetn_licensing_credits}" != xno; then
+            if test -r "${with_libetn_licensing_credits}/include/etn_licensing_credits.h"; then
+                etn_licensing_credits_synthetic_cflags="-I${with_libetn_licensing_credits}/include"
+                etn_licensing_credits_synthetic_libs="-L${with_libetn_licensing_credits}/lib -letn-licensing-credits"
+            else
+            AC_MSG_ERROR([Header file ${with_libetn_licensing_credits}/include/etn_licensing_credits.h was not found. Please check libetn_licensing_credits prefix])
+            fi
+        else
+            AC_CHECK_HEADER([etn_licensing_credits.h], [],
+            AC_MSG_ERROR([Header file etn_licensing_credits.h was not found in default search paths])
+                )
+        fi
+
+        AC_CHECK_LIB([etn-licensing-credits], [etn_licensing_credits_selftest],
+            [
+                was_etn_licensing_credits_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -letn-licensing-credits"
+            ],
+            [AC_MSG_ERROR([cannot link with -letn-licensing-credits, install libetn_licensing_credits])])
+    ])
+
+dnl END of PKG_CHECK_MODULES and/or direct tests for libetn_licensing_credits
+    AS_CASE(["x${was_etn_licensing_credits_check_lib_detected}"],
+        [xpkgcfg], [
+                PKGCFG_NAMES_PRIVATE="$PKGCFG_NAMES_PRIVATE ${found_pkgconfig}"
+                CFLAGS="${etn_licensing_credits_CFLAGS} ${CFLAGS}"
+                LIBS="${etn_licensing_credits_LIBS} ${LIBS}"
+            ],
+        [xyes], [
+                CFLAGS="${etn_licensing_credits_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${etn_licensing_credits_synthetic_libs} ${LDFLAGS}"
+                LIBS="${etn_licensing_credits_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([etn_licensing_credits_CFLAGS],[${etn_licensing_credits_synthetic_cflags}])
+                AC_SUBST([etn_licensing_credits_LIBS],[${etn_licensing_credits_synthetic_libs}])
+            ],
+        [xno], [
+            AC_MSG_ERROR([Cannot find pkg-config metadata for libetn_licensing_credits 0.0.0 or higher])
+    ])
+])
+dnl END of enabled attempts to search for libetn_licensing_credits
+
+
 CFLAGS="${PREVIOUS_CFLAGS}"
 LIBS="${PREVIOUS_LIBS}"
 

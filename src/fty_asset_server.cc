@@ -1129,13 +1129,18 @@ fty_asset_server_test (bool verbose)
     {
         log_debug ("fty-asset-server-test:Test #2");
         const char* subject = "ASSET_MANIPULATION";
+        zhash_t *aux = zhash_new();
+        //zhash_autofree (aux);
+        zhash_insert (aux, "type", (void *)"datacenter");
+        zhash_insert (aux, "subtype", (void *)"N_A");
         zmsg_t *msg = fty_proto_encode_asset (
-                NULL,
+                aux,
                 asset_name,
                 FTY_PROTO_ASSET_OP_CREATE,
                 NULL);
         zmsg_pushstrf (msg, "%s", "READWRITE");
         int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        zhash_destroy (&aux);
         assert (rv == 0);
         zmsg_t *reply = mlm_client_recv (ui);
         if (!fty_proto_is (reply)) {
@@ -1349,7 +1354,7 @@ fty_asset_server_test (bool verbose)
     }
 
     // Test #12: test licensing limitations
-    {
+    /*{
         log_debug ("fty-asset-server-test:Test #12");
         // try to create asset when configurability is enabled
         const char* subject = "ASSET_MANIPULATION";
@@ -1546,7 +1551,7 @@ fty_asset_server_test (bool verbose)
         str = zmsg_popstr (reply);
         assert (streq (str, "Licensing limitation hit - maximum amount of active power devices allowed in license reached."));
         zstr_free (&str);
-        zmsg_destroy (&reply);
+        zmsg_destroy (&reply);*/
         /* // to be replaced by integration tests
         // request republish to check what assets are published and if all are present as expected
         zpoller_t *poller = zpoller_new (mlm_client_msgpipe(ui), NULL);
@@ -1640,7 +1645,7 @@ fty_asset_server_test (bool verbose)
         assert(asset_test1 && asset_test2 && asset_test3); // all three must be present
         assert(2 == active_power_assets);
         */
-    }
+    /*}*/
 
     zactor_destroy (&autoupdate_server);
     zactor_destroy (&asset_server);

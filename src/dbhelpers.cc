@@ -26,8 +26,11 @@
 @end
 */
 
+#include <cxxtools/jsonserializer.h>
 #include "fty_asset_classes.h"
 #define INPUT_POWER_CHAIN     1
+
+using namespace fty;
 
 // for test purposes
 std::map<std::string, std::string> test_map_asset_state;
@@ -283,7 +286,7 @@ process_insert_inventory
     bool readonly,
     std::unordered_map<std::string,std::string> &map_cache,
     bool test)
- {
+{
     if (test)
        return 0;
     tntdb::Connection conn;
@@ -476,6 +479,16 @@ get_active_power_devices (bool test)
     return DBAssets::get_active_power_devices (conn);
 }
 
+bool
+should_activate (std::string operation, std::string current_status, std::string new_status)
+{
+    bool rv = (operation == FTY_PROTO_ASSET_OP_CREATE && new_status == "active");
+    rv |= (operation == FTY_PROTO_ASSET_OP_UPDATE && current_status == "active" && new_status == "active");
+    rv |= (operation == FTY_PROTO_ASSET_OP_UPDATE && current_status == "inactive" && new_status == "active");
+
+    return rv;
+}
+
 /**
  *  \brief Inserts data from create/update message into DB
  *
@@ -489,17 +502,65 @@ get_active_power_devices (bool test)
 db_reply_t
 create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATIONS_STRUCT *limitations)
 {
-    uint64_t      type_id;
+    /*uint64_t      type_id;
     unsigned int  subtype_id;
     uint64_t      parent_id;
     const char   *status;
     unsigned int  priority;
     const char   *operation;
-    bool          update;
+    bool          update;*/
+
 
     db_reply_t ret = db_reply_new ();
 
-    if (0 == limitations->global_configurability) {
+    std::unique_ptr<FullAsset> assetSmartPtr = getFullAssetFromFtyProto (fmsg);
+    FullAsset *assetPtr = assetSmartPtr.get();
+
+    cxxtools::SerializationInfo rootSi;
+    rootSi <<= *assetPtr;
+    std::ostringstream assetJsonStream;
+    cxxtools::JsonSerializer serializer (assetJsonStream);
+    serializer.serialize (rootSi).finish ();
+
+    std::string operation = fty_proto_operation (fmsg);
+
+    std::string id = assetPtr->getId();
+    std::string new_status = assetPtr->getStatusString ();
+
+    std::string current_status = get_status_from_db (id, test);
+
+    // because even adding of inactive asset may be prohibited if global_configurability == 0
+    try
+    {
+        if (test) {
+            log_debug ("[create_or_update_asset]: runs in test mode");
+            test_map_asset_state[id] = new_status;
+            ret.status = 1;
+            return ret;
+        }
+
+        mlm::MlmSyncClient client (AGENT_FTY_ASSET, ETN_LICENSING_CREDITS_AGENT);
+        lic_cred::LicensingCreditsAccessor licCredAccessor (client);
+        if (should_activate (operation, current_status, new_status))
+        {
+            licCredAccessor.activateAsset (assetJsonStream.str());
+        }
+        else
+        {
+            licCredAccessor.deactivateAsset (assetJsonStream.str());
+        }
+    }
+    catch (std::exception &e)
+    {
+        // TODO: feed the DB reply so we would fail the same as before
+        log_error ("Error during asset activation - %s", e.what());
+    }
+    catch (...)
+    {
+        // TODO: feed the DB reply so we would fail the same as before
+        log_error ("Error during asset activation - unknown error");
+    }
+    /*if (0 == limitations->global_configurability) {
         ret.status     = -1;
         ret.errtype    = LICENSING_ERR;
         ret.errsubtype = LICENSING_GLOBAL_CONFIGURABILITY_DISABLED;
@@ -648,7 +709,7 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
         ret.errsubtype = DB_ERROR_INTERNAL;
         // bios_error_idx(ret.rowid, ret.msg, "internal-error", "Unspecified issue with database.");
         return ret;
-    }
+    }*/
 }
 
 //  Self test of this class

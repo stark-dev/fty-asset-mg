@@ -65,6 +65,7 @@ BuildRequires:  fty-common-devel
 BuildRequires:  fty-common-db-devel
 BuildRequires:  openssl-devel
 BuildRequires:  fty-common-mlm-devel
+BuildRequires:  etn-licensing-credits-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
@@ -103,6 +104,7 @@ Requires:       fty-common-devel
 Requires:       fty-common-db-devel
 Requires:       openssl-devel
 Requires:       fty-common-mlm-devel
+Requires:       etn-licensing-credits-devel
 
 %description devel
 agent managing information about assets development tools

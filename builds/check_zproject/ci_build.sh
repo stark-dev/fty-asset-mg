@@ -22,6 +22,7 @@ git clone --quiet --depth 1 -b 1.3-FTY-master https://github.com/42ity/tntdb.git
 git clone --quiet --depth 1 -b master https://github.com/42ity/fty-common.git fty-common
 git clone --quiet --depth 1 -b master https://github.com/42ity/fty-common-db.git fty-common-db
 git clone --quiet --depth 1 -b master https://github.com/42ity/fty-common-mlm.git fty-common-mlm
+git clone --quiet --depth 1 -b master https://bitbucket-prod.tcc.etn.com/scm/bios/etn-licensing-credits.git etn-licensing-credits
 cd -
 
 if ! ((command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list zproject >/dev/null 2>&1) || \

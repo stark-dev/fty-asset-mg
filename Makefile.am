@@ -26,10 +26,11 @@ AM_CPPFLAGS = \
     ${fty_common_db_CFLAGS} \
     ${openssl_CFLAGS} \
     ${fty_common_mlm_CFLAGS} \
+    ${etn_licensing_credits_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${log4cplus_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${fty_common_LIBS} ${fty_common_db_LIBS} ${openssl_LIBS} ${fty_common_mlm_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${log4cplus_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${fty_common_LIBS} ${fty_common_db_LIBS} ${openssl_LIBS} ${fty_common_mlm_LIBS} ${etn_licensing_credits_LIBS}
 
 SUBDIRS = doc
 SUBDIRS += include
@@ -64,6 +65,7 @@ EXTRA_DIST += \
     Findfty_common_db.cmake \
     Findopenssl.cmake \
     Findfty_common_mlm.cmake \
+    Findetn_licensing_credits.cmake \
     builds/cmake/Modules/ClangFormat.cmake \
     builds/cmake/clang-format-check.sh.in \
     builds/cmake/Config.cmake.in \
