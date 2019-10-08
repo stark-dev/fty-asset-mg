@@ -27,7 +27,10 @@
 */
 
 #include "fty_asset_classes.h"
-#define INPUT_POWER_CHAIN     1
+#include <cxxtools/jsonserializer.h>
+
+#define INPUT_POWER_CHAIN       1
+#define AGENT_ASSET_ACTIVATOR   "etn-licensing-credits"
 
 // for test purposes
 std::map<std::string, std::string> test_map_asset_state;
@@ -639,6 +642,42 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
         else
             log_debug ("Insert went well, processing inventory.");
         process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), read_only, false);
+
+        std::unique_ptr<fty::FullAsset> assetSmartPtr = fty::getFullAssetFromFtyProto (fmsg);
+        fty::FullAsset *assetPtr = assetSmartPtr.get();
+
+        cxxtools::SerializationInfo rootSi;
+        rootSi <<= *assetPtr;
+        std::ostringstream assetJsonStream;
+        cxxtools::JsonSerializer serializer (assetJsonStream);
+        serializer.serialize (rootSi).finish ();
+
+        mlm::MlmSyncClient client (AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
+        fty::AssetActivator activationAccessor (client);
+        bool rv = activationAccessor.isActivable (assetJsonStream.str());
+        log_info ("asset is activable = %d", rv);
+
+        try
+        {
+            activationAccessor.activate (assetJsonStream.str());
+        }
+        catch (const std::exception &e)
+        {
+            log_error ("Error during asset activation - %s", e.what());
+        }
+
+        try
+        {
+            activationAccessor.deactivate (assetJsonStream.str());
+        }
+        catch (const std::exception &e)
+        {
+            log_error ("Error during asset deactivation - %s", e.what());
+        }
+
+        rv = activationAccessor.isActive (assetJsonStream.str());
+        log_info ("asset is active = %d", rv);
+
         ret.status = 1;
         return ret;
     }
