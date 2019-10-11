@@ -479,6 +479,24 @@ get_active_power_devices (bool test)
     return DBAssets::get_active_power_devices (conn);
 }
 
+bool
+should_activate (std::string operation, std::string current_status, std::string new_status)
+{
+    bool rv = (operation == FTY_PROTO_ASSET_OP_CREATE && new_status == "active");
+    rv |= (operation == FTY_PROTO_ASSET_OP_UPDATE && current_status == "nonactive" && new_status == "active");
+
+    return rv;
+}
+
+bool
+should_deactivate (std::string operation, std::string current_status, std::string new_status)
+{
+    bool rv = (operation == FTY_PROTO_ASSET_OP_UPDATE && current_status == "active" && new_status == "nonactive");
+    rv |= (operation == FTY_PROTO_ASSET_OP_DELETE);
+
+    return rv;
+}
+
 /**
  *  \brief Inserts data from create/update message into DB
  *
@@ -498,7 +516,7 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
     const char   *status;
     unsigned int  priority;
     const char   *operation;
-    bool          update;
+    bool          create;
 
     db_reply_t ret = db_reply_new ();
 
@@ -517,9 +535,9 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
     std::string element_name (fty_proto_name (fmsg));
     // TODO: element name from ext.name?
     operation = fty_proto_operation (fmsg);
-    update = streq (operation, "update");
+    create = streq (operation, FTY_PROTO_ASSET_OP_CREATE);
 
-    if (!update) {
+    if (create) {
         if (element_name.empty ()) {
             if (type_id == persist::asset_type::DEVICE) {
                 element_name = persist::subtypeid_to_subtype (subtype_id);
@@ -531,7 +549,31 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
     }
     log_debug ("  element_name = '%s'", element_name.c_str ());
 
-    if (limitations->max_active_power_devices >= 0 && type_id == persist::asset_type::DEVICE && streq (status, "active")) {
+    std::string current_status ("unknown");
+    if (!create)
+    {
+        try
+        {
+            tntdb::Connection conn = tntdb::connectCached (DBConn::url);
+            current_status = DBAssets::get_status_from_db (conn, element_name);
+        }
+        catch (const std::exception &e) {
+            ret.status     = 0;
+            ret.errtype    = DB_ERR;
+            ret.errsubtype = DB_ERROR_INTERNAL;
+            return ret;
+        }
+    }
+
+    if (streq (operation, FTY_PROTO_ASSET_OP_DELETE) && current_status == "active")
+    {
+            log_error ("To delete %s, asset must be inactive", element_name.c_str ());
+            ret.status     = 0;
+            ret.errtype    = DB_ERR;
+            ret.errsubtype = DB_ERROR_BADINPUT;
+            return ret;
+    }
+    /*if (limitations->max_active_power_devices >= 0 && type_id == persist::asset_type::DEVICE && streq (status, "active")) {
         std::string db_status = get_status_from_db (element_name.c_str (), test);
         // limit applies only to assets that are attempted to be activated, but are disabled in database
         // or to new assets, also may trigger in case of DB failure, but that's fine
@@ -557,7 +599,7 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
                     break;
             }
         }
-    }
+    }*/
 
     // ASSUMPTION: all datacenters are unlocated elements
     if (type_id == persist::asset_type::DATACENTER && parent_id != 0)
@@ -576,11 +618,33 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
         return ret;
     }
 
+    std::unique_ptr<fty::FullAsset> assetSmartPtr = fty::getFullAssetFromFtyProto (fmsg);
+    fty::FullAsset *assetPtr = assetSmartPtr.get();
+
+    cxxtools::SerializationInfo rootSi;
+    rootSi <<= *assetPtr;
+    std::ostringstream assetJsonStream;
+    cxxtools::JsonSerializer serializer (assetJsonStream);
+    serializer.serialize (rootSi).finish ();
+
+    mlm::MlmSyncClient client (AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
+    fty::AssetActivator activationAccessor (client);
+    if (should_activate (operation, current_status, status))
+    {
+        if (!activationAccessor.isActivable (assetJsonStream.str()))
+        {
+            ret.status     = -1;
+            ret.errtype    = LICENSING_ERR;
+            ret.errsubtype = LICENSING_POWER_DEVICES_COUNT_REACHED;
+            return ret;
+        }
+    }
+
     try {
         // this concat with last_insert_id may have race condition issue but hopefully is not important
         tntdb::Connection conn = tntdb::connectCached (DBConn::url);
         tntdb::Statement statement;
-        if (update) {
+        if (!create) {
             statement = conn.prepareCached (
                 " INSERT INTO t_bios_asset_element "
                 " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
@@ -624,7 +688,7 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
 
         ret.rowid = conn.lastInsertId ();
         log_debug ("[t_bios_asset_element]: was inserted %" PRIu64 " rows", ret.affected_rows);
-        if (! update) {
+        if (create) {
             // it is insert, fix the name
             statement = conn.prepareCached (
                 " UPDATE t_bios_asset_element "
@@ -643,43 +707,48 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
             log_debug ("Insert went well, processing inventory.");
         process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), read_only, false);
 
-        std::unique_ptr<fty::FullAsset> assetSmartPtr = fty::getFullAssetFromFtyProto (fmsg);
-        fty::FullAsset *assetPtr = assetSmartPtr.get();
-
-        cxxtools::SerializationInfo rootSi;
-        rootSi <<= *assetPtr;
-        std::ostringstream assetJsonStream;
-        cxxtools::JsonSerializer serializer (assetJsonStream);
-        serializer.serialize (rootSi).finish ();
-
-        mlm::MlmSyncClient client (AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-        fty::AssetActivator activationAccessor (client);
-        bool rv = activationAccessor.isActivable (assetJsonStream.str());
-        log_info ("asset is activable = %d", rv);
-
-        try
+        // if asset was created, name has changed and we must re-serialize
+        if (create)
         {
-            activationAccessor.activate (assetJsonStream.str());
-        }
-        catch (const std::exception &e)
-        {
-            log_error ("Error during asset activation - %s", e.what());
+            assetSmartPtr = fty::getFullAssetFromFtyProto (fmsg);
+            assetPtr = assetSmartPtr.get();
+
+            rootSi <<= *assetPtr;
+            cxxtools::JsonSerializer serializer (assetJsonStream);
+            serializer.serialize (rootSi).finish ();
         }
 
-        try
+        if (should_activate (operation, current_status, status))
         {
-            activationAccessor.deactivate (assetJsonStream.str());
-        }
-        catch (const std::exception &e)
-        {
-            log_error ("Error during asset deactivation - %s", e.what());
+            try
+            {
+                activationAccessor.activate (assetJsonStream.str());
+            }
+            catch (const std::exception &e)
+            {
+                log_error ("Error during asset activation - %s", e.what());
+            }
+            ret.status = 1;
+            return ret;
         }
 
-        rv = activationAccessor.isActive (assetJsonStream.str());
-        log_info ("asset is active = %d", rv);
+        if (should_deactivate (operation, current_status, status))
+        {
+            try
+            {
+                activationAccessor.deactivate (assetJsonStream.str());
+            }
+            catch (const std::exception &e)
+            {
+                log_error ("Error during asset deactivation - %s", e.what());
+            }
 
-        ret.status = 1;
-        return ret;
+            /*rv = activationAccessor.isActive (assetJsonStream.str());
+            log_info ("asset is active = %d", rv);*/
+
+            ret.status = 1;
+            return ret;
+        }
     }
     catch (const std::exception &e) {
         ret.status     = 0;
