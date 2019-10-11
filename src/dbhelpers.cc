@@ -549,30 +549,6 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
     }
     log_debug ("  element_name = '%s'", element_name.c_str ());
 
-    std::string current_status ("unknown");
-    if (!create)
-    {
-        try
-        {
-            tntdb::Connection conn = tntdb::connectCached (DBConn::url);
-            current_status = DBAssets::get_status_from_db (conn, element_name);
-        }
-        catch (const std::exception &e) {
-            ret.status     = 0;
-            ret.errtype    = DB_ERR;
-            ret.errsubtype = DB_ERROR_INTERNAL;
-            return ret;
-        }
-    }
-
-    if (streq (operation, FTY_PROTO_ASSET_OP_DELETE) && current_status == "active")
-    {
-            log_error ("To delete %s, asset must be inactive", element_name.c_str ());
-            ret.status     = 0;
-            ret.errtype    = DB_ERR;
-            ret.errsubtype = DB_ERROR_BADINPUT;
-            return ret;
-    }
     /*if (limitations->max_active_power_devices >= 0 && type_id == persist::asset_type::DEVICE && streq (status, "active")) {
         std::string db_status = get_status_from_db (element_name.c_str (), test);
         // limit applies only to assets that are attempted to be activated, but are disabled in database
@@ -609,13 +585,37 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
         ret.errsubtype = DB_ERROR_BADINPUT;
         return ret;
     }
-    // TODO: check whether asset exists and drop?
 
     if (test) {
         log_debug ("[create_or_update_asset]: runs in test mode");
         test_map_asset_state[std::string(element_name)] = std::string(status);
         ret.status = 1;
         return ret;
+    }
+
+    std::string current_status ("unknown");
+    if (!create)
+    {
+        try
+        {
+            tntdb::Connection conn = tntdb::connectCached (DBConn::url);
+            current_status = DBAssets::get_status_from_db (conn, element_name);
+        }
+        catch (const std::exception &e) {
+            ret.status     = 0;
+            ret.errtype    = DB_ERR;
+            ret.errsubtype = DB_ERROR_INTERNAL;
+            return ret;
+        }
+    }
+
+    if (streq (operation, FTY_PROTO_ASSET_OP_DELETE) && current_status == "active")
+    {
+            log_error ("To delete %s, asset must be inactive", element_name.c_str ());
+            ret.status     = 0;
+            ret.errtype    = DB_ERR;
+            ret.errsubtype = DB_ERROR_BADINPUT;
+            return ret;
     }
 
     std::unique_ptr<fty::FullAsset> assetSmartPtr = fty::getFullAssetFromFtyProto (fmsg);
@@ -728,8 +728,6 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
             {
                 log_error ("Error during asset activation - %s", e.what());
             }
-            ret.status = 1;
-            return ret;
         }
 
         if (should_deactivate (operation, current_status, status))
@@ -745,10 +743,10 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
 
             /*rv = activationAccessor.isActive (assetJsonStream.str());
             log_info ("asset is active = %d", rv);*/
-
-            ret.status = 1;
-            return ret;
         }
+
+        ret.status = 1;
+        return ret;
     }
     catch (const std::exception &e) {
         ret.status     = 0;

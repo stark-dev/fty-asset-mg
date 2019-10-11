@@ -1533,7 +1533,8 @@ fty_asset_server_test (bool verbose)
         }
         zmsg_destroy (&reply) ; // throw away stream message
 
-        aux = zhash_new ();
+        // to be replaced by integration tests
+        /*aux = zhash_new ();
         zhash_autofree (aux);
         zhash_insert (aux, "type", (void *) "device");
         zhash_insert (aux, "subtype", (void *) "epdu");
@@ -1558,7 +1559,6 @@ fty_asset_server_test (bool verbose)
         assert (streq (str, "Licensing limitation hit - maximum amount of active power devices allowed in license reached."));
         zstr_free (&str);
         zmsg_destroy (&reply);
-        /* // to be replaced by integration tests
         // request republish to check what assets are published and if all are present as expected
         zpoller_t *poller = zpoller_new (mlm_client_msgpipe(ui), NULL);
         assert (poller);
