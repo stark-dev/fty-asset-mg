@@ -1,21 +1,21 @@
 /*  =========================================================================
     dns - DNS and networking helper
 
-    Copyright (C) 2014 - 2015 Eaton                                        
-                                                                           
-    This program is free software; you can redistribute it and/or modify   
-    it under the terms of the GNU General Public License as published by   
-    the Free Software Foundation; either version 2 of the License, or      
-    (at your option) any later version.                                    
-                                                                           
-    This program is distributed in the hope that it will be useful,        
-    but WITHOUT ANY WARRANTY; without even the implied warranty of         
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          
-    GNU General Public License for more details.                           
-                                                                           
+    Copyright (C) 2014 - 2015 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
     You should have received a copy of the GNU General Public License along
     with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.            
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     =========================================================================
 */
 
@@ -47,7 +47,7 @@ std::set<std::string> name_to_ip4 (const char *name)
     struct addrinfo *info, *infos = NULL;
     struct addrinfo hint;
     std::set<std::string> result;
-    
+
     memset(&hint, 0, sizeof (struct addrinfo));
     hint.ai_family = AF_INET;
     getaddrinfo(name, NULL, &hint, &infos);
@@ -70,7 +70,7 @@ std::set<std::string> name_to_ip6 (const char *name)
     struct addrinfo *info, *infos = NULL;
     struct addrinfo hint;
     std::set<std::string> result;
-    
+
     memset(&hint, 0, sizeof (struct addrinfo));
     hint.ai_family = AF_INET6;
     getaddrinfo(name, NULL, &hint, &infos);
@@ -104,7 +104,7 @@ std::string ip_to_name (const char *ip)
         struct sockaddr_in6 sa_in;
         memset (&sa_in, 0, sizeof(sa_in));
         sa_in.sin6_family = AF_INET6;
-        
+
         if (inet_pton (AF_INET6, ip, &sa_in.sin6_addr) == 1) {
             if (
                 getnameinfo(
@@ -124,7 +124,7 @@ std::string ip_to_name (const char *ip)
     struct sockaddr_in sa_in;
     memset (&sa_in, 0, sizeof(sa_in));
     sa_in.sin_family = AF_INET;
-        
+
     if (inet_pton (AF_INET, ip, &sa_in.sin_addr) == 1) {
         if (
             getnameinfo(
@@ -147,7 +147,7 @@ std::map<std::string,std::set<std::string>> local_addresses()
     struct ifaddrs *interfaces, *iface;
     char host[NI_MAXHOST];
     std::map<std::string,std::set<std::string>> result;
-    
+
     if (getifaddrs (&interfaces) == -1) {
         return result;
     }
@@ -166,7 +166,7 @@ std::map<std::string,std::set<std::string>> local_addresses()
                 // sometimes IPv6 addres looks like ::2342%IfaceName
                 char *p = strchr (host, '%');
                 if (p) *p = 0;
-                
+
                 auto it = result.find (iface->ifa_name);
                 if (it == result.end()) {
                     std::set<std::string> aSet;
@@ -175,7 +175,7 @@ std::map<std::string,std::set<std::string>> local_addresses()
                 } else {
                     result [iface->ifa_name].insert (host);
                 }
-            }            
+            }
         }
     }
     freeifaddrs (interfaces);
