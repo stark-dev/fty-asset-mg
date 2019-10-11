@@ -1,7 +1,7 @@
 #
 #    fty-asset - Agent managing information about assets
 #
-#    Copyright (C) 2014 - 2018 Eaton
+#    Copyright (C) 2014 - 2019 Eaton
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -50,7 +50,11 @@ BuildRequires:  systemd-devel
 BuildRequires:  systemd
 %{?systemd_requires}
 BuildRequires:  xmlto
-BuildRequires:  gcc-c++
+# Note that with current implementation of zproject use-cxx-gcc-4-9 option,
+# this effectively hardcodes the use of specifically 4.9, not allowing for
+# "4.9 or newer".
+BuildRequires:  devtoolset-3-gcc devtoolset-3-gcc-c++
+BuildRequires:  gcc-c++ >= 4.9.0
 BuildRequires:  libsodium-devel
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel >= 3.0.2
