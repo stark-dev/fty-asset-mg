@@ -175,22 +175,6 @@ int
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/**
- *  \brief Selects status string for selected asset in the DB
- *
- *  \param[in] element_name - name of asset in question
- *
- *  \return <status> - in case of success
- *          "unknown" - in case of failure
- */
-static std::string get_status_from_db (std::string element_name, bool test = false) {
-    if (test) {
-        return "nonactive";
-    }
-    tntdb::Connection conn = tntdb::connectCached (DBConn::url);
-    return DBAssets::get_status_from_db (conn, element_name);
-}
-
 #define SQL_EXT_ATT_INVENTORY " INSERT INTO" \
         "   t_bios_asset_ext_attributes" \
         "   (keytag, value, id_asset_element, read_only)" \
