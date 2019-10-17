@@ -71,9 +71,26 @@ EXTRA_DIST += \
 endif
 
 EXTRA_DIST += \
+    src/topology_power/msg/asset_msg.h \
+    src/topology_power/msg/common_msg.h \
+    src/topology_power/persist/assetcrud.h \
+    src/topology_power/persist/assettopology.h \
+    src/topology_power/persist/dbhelpers2.h \
+    src/topology_power/persist/monitor.h \
+    src/topology_power/persist/persist_error.h \
+    src/topology_power_to.h \
     src/dbhelpers.h \
     src/total_power.h \
     src/dns.h \
+    src/topology_power/dbtypes.h \
+    src/topology_power/preproc.h \
+    src/topology_power/topology2.h \
+    src/topology_power/types.h \
+    src/topology_power/cleanup.h \
+    src/topology_power/ymsg.h \
+    src/topology_power/app.h \
+    src/topology_power/bios_agent.h \
+    src/topology_power/bios_export.h \
     README.md \
     src/fty_asset_classes.h
 

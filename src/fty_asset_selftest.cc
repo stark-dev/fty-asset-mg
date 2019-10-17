@@ -39,18 +39,19 @@ typedef struct {
 
 static test_item_t
 all_tests [] = {
-// Tests for stable public classes:
-    { "fty_asset_server", fty_asset_server_test, true, true, NULL },
-    { "fty_asset_autoupdate", fty_asset_autoupdate_test, true, true, NULL },
-    { "fty_asset_inventory", fty_asset_inventory_test, true, true, NULL },
 #ifdef FTY_ASSET_BUILD_DRAFT_API
 // Tests for stable/draft private classes:
 // Now built only with --enable-drafts, so even stable builds are hidden behind the flag
+    { "topology_power_to", NULL, true, false, "topology_power_to_test" },
     { "dbhelpers", NULL, true, false, "dbhelpers_test" },
     { "total_power", NULL, true, false, "total_power_test" },
     { "dns", NULL, true, false, "dns_test" },
     { "private_classes", NULL, false, false, "$ALL" }, // compat option for older projects
 #endif // FTY_ASSET_BUILD_DRAFT_API
+// Tests for stable public classes:
+    { "fty_asset_server", fty_asset_server_test, true, true, NULL },
+    { "fty_asset_autoupdate", fty_asset_autoupdate_test, true, true, NULL },
+    { "fty_asset_inventory", fty_asset_inventory_test, true, true, NULL },
     {NULL, NULL, 0, 0, NULL}          //  Sentinel
 };
 
