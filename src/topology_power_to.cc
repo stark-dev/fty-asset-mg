@@ -161,8 +161,8 @@ topology_power_to_test (bool verbose)
         assert(r != 0);
     }
 
-//#undef __local_selftest__
-#define __local_selftest__
+#undef __local_selftest__
+//#define __local_selftest__
 #ifdef __local_selftest__
 #pragma message "=== __local_selftest__ ==="
 
