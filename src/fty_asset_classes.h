@@ -33,6 +33,10 @@
 #include "../include/fty-asset.h"
 
 //  Opaque class structures to allow forward references
+#ifndef TOPOLOGY_POWER_SHARED_UTILSPP_T_DEFINED
+typedef struct _topology_power_shared_utilspp_t topology_power_shared_utilspp_t;
+#define TOPOLOGY_POWER_SHARED_UTILSPP_T_DEFINED
+#endif
 #ifndef TOPOLOGY_POWER_MSG_ASSET_MSG_T_DEFINED
 typedef struct _topology_power_msg_asset_msg_t topology_power_msg_asset_msg_t;
 #define TOPOLOGY_POWER_MSG_ASSET_MSG_T_DEFINED
@@ -61,6 +65,10 @@ typedef struct _topology_power_persist_monitor_t topology_power_persist_monitor_
 typedef struct _topology_power_persist_persist_error_t topology_power_persist_persist_error_t;
 #define TOPOLOGY_POWER_PERSIST_PERSIST_ERROR_T_DEFINED
 #endif
+#ifndef TOPOLOGY_POWER_TOPOLOGY_POWER_T_DEFINED
+typedef struct _topology_power_topology_power_t topology_power_topology_power_t;
+#define TOPOLOGY_POWER_TOPOLOGY_POWER_T_DEFINED
+#endif
 #ifndef TOPOLOGY_POWER_TO_T_DEFINED
 typedef struct _topology_power_to_t topology_power_to_t;
 #define TOPOLOGY_POWER_TO_T_DEFINED
@@ -88,9 +96,11 @@ typedef struct _dns_t dns_t;
 #include "topology_power/app.h"
 #include "topology_power/bios_agent.h"
 #include "topology_power/bios_export.h"
+#include "topology_power/topology_power.h"
 
 //  Internal API
 
+#include "topology_power/shared/utilspp.h"
 #include "topology_power/msg/asset_msg.h"
 #include "topology_power/msg/common_msg.h"
 #include "topology_power/persist/assetcrud.h"
@@ -98,6 +108,7 @@ typedef struct _dns_t dns_t;
 #include "topology_power/persist/dbhelpers2.h"
 #include "topology_power/persist/monitor.h"
 #include "topology_power/persist/persist_error.h"
+#include "topology_power/topology_power.h"
 #include "topology_power_to.h"
 #include "dbhelpers.h"
 #include "total_power.h"

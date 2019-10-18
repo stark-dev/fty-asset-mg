@@ -250,9 +250,8 @@ fty_asset_server_new (void)
     return self;
 }
 
-
 // ============================================================
-//         Functionality for TOPOLOGY processing
+// TOPOLOGY_POWER command processing
 // ============================================================
 static void
     s_processTopology(
@@ -289,10 +288,73 @@ static void
             zmsg_addstr (msg, powerDeviceName.c_str());
         }
     }
+
     rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &msg);
     if ( rv != 0 )
         log_error ("%s:\tTOPOLOGY_POWER: cannot send response message", cfg->name);
+    zmsg_destroy(&msg);
 }
+
+// ============================================================
+// TOPOLOGY_POWER_TO command processing
+// ============================================================
+static void
+    s_processTopologyPowerTo(
+        fty_asset_server_t *cfg,
+        const std::string &assetName)
+{
+    log_debug ("%s:\tTOPOLOGY_POWER_TO assetName: %s", cfg->name, assetName.c_str());
+
+    cxxtools::SerializationInfo si;
+    int r = topology_power_to (assetName, si);
+
+    std::string siFrame; // msg frame on success
+    if (r == 0) { // serialize to json
+        try {
+            std::ostringstream output;
+            cxxtools::JsonSerializer s;
+            s.beautify(true);
+            s.begin(output);
+            s.serialize(si);
+            s.finish();
+            siFrame = output.str();
+        }
+        catch (...) {
+            log_error("%s:\tJson serialization failed", cfg->name);
+            r = -42;
+        }
+    }
+
+    // message to be sent as reply
+    zmsg_t *msg = zmsg_new ();
+    // these 2 parts are the same for OK and ERROR messages
+    zmsg_addstr (msg, "TOPOLOGY_POWER_TO");
+    zmsg_addstr (msg, assetName.c_str());
+
+    if (r != 0) {
+        log_error ("%s:\tTOPOLOGY_POWER_TO r: %d", cfg->name, r);
+        zmsg_addstr (msg, "ERROR");
+        zmsg_addstr (msg, "INTERNAL_ERROR");
+    }
+    else {
+        zmsg_addstr (msg, "OK");
+        zmsg_addstr (msg, siFrame.c_str());
+    }
+
+    r = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &msg);
+    if ( r != 0 ) {
+        log_error ("%s:\tTOPOLOGY_POWER_TO: cannot send response message", cfg->name);
+    }
+
+    zmsg_destroy(&msg);
+}
+
+// ============================================================
+//         Functionality for TOPOLOGY processing
+// ============================================================
+// bmsg request asset-agent TOPOLOGY TOPOLOGY_POWER <assetID>
+// bmsg request asset-agent TOPOLOGY TOPOLOGY_POWER_TO <assetID>
+// ============================================================
 
 static void
     s_handle_subject_topology(
@@ -302,13 +364,21 @@ static void
     assert (zmessage);
     assert (cfg);
     char* command = zmsg_popstr (zmessage);
+
     if ( streq (command, "TOPOLOGY_POWER") ) {
         char* asset_name = zmsg_popstr (zmessage);
         s_processTopology (cfg, asset_name);
         zstr_free (&asset_name);
     }
-    else
+    else if ( streq (command, "TOPOLOGY_POWER_TO") ) {
+        char* asset_name = zmsg_popstr (zmessage);
+        s_processTopologyPowerTo (cfg, asset_name);
+        zstr_free (&asset_name);
+    }
+    else {
         log_error ("%s:\tUnknown command for subject=TOPOLOGY '%s'", cfg->name, command);
+    }
+
     zstr_free (&command);
 }
 
@@ -350,7 +420,7 @@ static void
 
     // if there is no error msg prepared, call SQL
     if (zmsg_size (msg) == 0)
-            rv = select_assets_by_container (container_name, filters, assets, cfg->test);
+        rv = select_assets_by_container (container_name, filters, assets, cfg->test);
 
     if (rv == -1)
     {
@@ -372,9 +442,10 @@ static void
 
     // send the reply
     rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
-    if (rv == -1)
+    if (rv == -1) {
         log_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
-
+    }
+    zmsg_destroy(&reply);
 }
 
 static void
@@ -388,15 +459,17 @@ static void
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "MISSING_INAME");
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply);
+        zmsg_destroy(&reply);
         return;
     }
+
     char *iname_str = zmsg_popstr (msg);
     std::string iname (iname_str);
     std::string ename;
 
     select_ename_from_iname (iname, ename, cfg->test);
-
     zstr_free (&iname_str);
+
     if (ename.empty ())
     {
         zmsg_addstr (reply, "ERROR");
@@ -407,8 +480,13 @@ static void
         zmsg_addstr (reply, "OK");
         zmsg_addstr (reply, ename.c_str());
     }
-    if (-1 == mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply))
+
+    int rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply);
+    if (rv == -1) {
         log_error ("%s:\tENAME_FROM_INAME: mlm_client_sendto failed", cfg->name);
+    }
+
+    zmsg_destroy(&reply);
 }
 
 static void
@@ -423,8 +501,10 @@ static void
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "MISSING_COMMAND");
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
+        zmsg_destroy(&reply);
         return;
     }
+
     assert (msg);
     assert (cfg);
 
@@ -456,7 +536,7 @@ static void
 
     // if there is no error msg prepared, call SQL
     if (zmsg_size (msg) == 0){
-            rv = select_assets_by_filter(filters, assets, cfg->test);
+        rv = select_assets_by_filter(filters, assets, cfg->test);
     }
 
     if (rv == -1)
@@ -482,10 +562,12 @@ static void
 
     // send the reply
     rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
-    if (rv == -1)
+    if (rv == -1) {
         log_error ("%s:\tASSETS: mlm_client_sendto failed", cfg->name);
-    zstr_free (&uuid);
+    }
 
+    zstr_free (&uuid);
+    zmsg_destroy(&reply);
 }
 
 static zmsg_t *

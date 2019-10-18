@@ -28,40 +28,85 @@
 
 #include "fty_asset_classes.h"
 
-//  Structure of our class
+// implementation of REST /api/v1/topology/power?to (see RFC11)
+// filtered on dst-id == assetName
+// returns 0 if success, else <0
 
-struct _topology_power_to_t {
-    int filler;     //  Declare class properties here
-};
-
-
-//  --------------------------------------------------------------------------
-//  Create a new topology_power_to
-
-topology_power_to_t *
-topology_power_to_new (void)
+int topology_power_to (const std::string & assetName, cxxtools::SerializationInfo& siResult)
 {
-    topology_power_to_t *self = (topology_power_to_t *) zmalloc (sizeof (topology_power_to_t));
-    assert (self);
-    //  Initialize class properties here
-    return self;
-}
+    siResult.clear();
 
-
-//  --------------------------------------------------------------------------
-//  Destroy the topology_power_to
-
-void
-topology_power_to_destroy (topology_power_to_t **self_p)
-{
-    assert (self_p);
-    if (*self_p) {
-        topology_power_to_t *self = *self_p;
-        //  Free class properties here
-        //  Free object itself
-        free (self);
-        *self_p = NULL;
+    std::map<std::string, std::string> param;
+    std::string sResult; // JSON payload
+    param["to"] = assetName;
+    int r = topology_power (param, sResult);
+    if (r != 0) {
+        log_error("topology_power failed, r: %d", r);
+        return -1;
     }
+
+    //log_trace("topology_power() success, result: \n%s", sResult.c_str());
+
+    // deserialize result to si
+    cxxtools::SerializationInfo si;
+    try {
+        std::istringstream input(sResult);
+        cxxtools::JsonDeserializer deserializer(input);
+        deserializer.deserialize(si);
+    }
+    catch (...) {
+        log_error("json deserialize failed (exception reached), payload:\n%s", sResult.c_str());
+        return -2;
+    }
+
+    cxxtools::SerializationInfo *si_powerchains = si.findMember("powerchains");
+    if (si_powerchains == 0) {
+        log_error("powerchains member not defined, payload:\n%s", sResult.c_str());
+        return -3;
+    }
+    if (si_powerchains->category() != cxxtools::SerializationInfo::Category::Array) {
+        log_error("powerchains member category != Array, payload:\n%s", sResult.c_str());
+        return -4;
+    }
+
+    // prepare result (asset-id member + powerchains array member)
+    siResult.addMember("asset-id") <<= assetName;
+    siResult.addMember("powerchains").setCategory(cxxtools::SerializationInfo::Array);
+    cxxtools::SerializationInfo *siResulPowerchains = siResult.findMember("powerchains");
+    if (siResulPowerchains == 0) {
+        log_error("powerchains member creation failed");
+        return -5;
+    }
+
+    // powerchains member is defined (array), loop on items...
+    // filter on dst-id == assetName, check src-id & src-socket,
+    // keep entries in siResulPowerchains
+    cxxtools::SerializationInfo::Iterator it;
+    for (it = si_powerchains->begin(); it != si_powerchains->end(); ++it) {
+        cxxtools::SerializationInfo *xsi = &(*it);
+        if (xsi == 0) continue; //
+
+        cxxtools::SerializationInfo *si_dstId = xsi->findMember("dst-id");
+        if (si_dstId == 0 || si_dstId->isNull())
+            { log_error("dst-id member is missing"); continue; }
+        std::string dstId;
+        si_dstId->getValue(dstId);
+        if (dstId != assetName) continue;
+
+        cxxtools::SerializationInfo *si_srcId, *si_srcSock;
+        si_srcId = xsi->findMember("src-id");
+        if (si_srcId == 0 || si_srcId->isNull())
+            { log_error("src-id member is missing"); continue; }
+        si_srcSock = xsi->findMember("src-socket");
+        if (si_srcSock == 0 || si_srcSock->isNull())
+            { log_error("src-socket member is missing"); continue; }
+
+        // keep that entry
+        siResulPowerchains->addMember("") <<= (*xsi);
+    }
+
+    log_debug("topology_power_to() success");
+    return 0; // ok
 }
 
 //  --------------------------------------------------------------------------
@@ -80,16 +125,61 @@ topology_power_to_destroy (topology_power_to_t **self_p)
 #define SELFTEST_DIR_RO "src/selftest-ro"
 #define SELFTEST_DIR_RW "src/selftest-rw"
 
+//  dump SI to string (JSON payload)
+static std::string selftest_si_to_string (cxxtools::SerializationInfo& si)
+{
+    try {
+        std::ostringstream output;
+        cxxtools::JsonSerializer s;
+        s.beautify(true);
+        s.begin(output);
+        s.serialize(si);
+        s.finish();
+        return output.str();
+    }
+    catch (...) {
+        log_error("Exception reached");
+    }
+    return "";
+}
+
 void
 topology_power_to_test (bool verbose)
 {
-    printf (" * topology_power_to: ");
-
+    printf (" * topology_power_to: \n");
     //  @selftest
-    //  Simple create/destroy test
-    topology_power_to_t *self = topology_power_to_new ();
-    assert (self);
-    topology_power_to_destroy (&self);
+
+    //
+    printf("tests params\n");
+    {
+        cxxtools::SerializationInfo si;
+        int r;
+
+        r = topology_power_to("", si);
+        assert(r != 0);
+        r = topology_power_to("fake-asset-name", si);
+        assert(r != 0);
+    }
+
+//#undef __local_selftest__
+#define __local_selftest__
+#ifdef __local_selftest__
+#pragma message "=== __local_selftest__ ==="
+
+    // **run** this as admin (DB access rights)
+    printf("local tests\n");
+    {
+        cxxtools::SerializationInfo si;
+        int r;
+
+        // assume server-17 asset exists, powered by two epdu's
+        r = topology_power_to("server-17", si);
+        assert(r == 0);
+        std::string json = selftest_si_to_string(si);
+        printf("json:\n%s\n", json.c_str());
+    }
+#endif
+
     //  @end
     printf ("OK\n");
 }

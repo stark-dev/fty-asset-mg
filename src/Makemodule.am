@@ -13,6 +13,7 @@ lib_LTLIBRARIES += src/libfty_asset.la
 pkgconfig_DATA = src/libfty_asset.pc
 
 src_libfty_asset_la_SOURCES = \
+    src/topology_power/shared/utilspp.cc \
     src/topology_power/msg/asset_msg.cc \
     src/topology_power/msg/common_msg.cc \
     src/topology_power/persist/assetcrud.cc \
@@ -20,6 +21,7 @@ src_libfty_asset_la_SOURCES = \
     src/topology_power/persist/dbhelpers2.cc \
     src/topology_power/persist/monitor.cc \
     src/topology_power/persist/persist_error.cc \
+    src/topology_power/topology_power.cc \
     src/topology_power_to.cc \
     src/dbhelpers.cc \
     src/total_power.cc \

@@ -37,7 +37,6 @@ namespace bios
     class BiosErrorBase : public std::runtime_error
     {
         public:
-
         // Constructor
         explicit BiosErrorBase(const std::string& msg);
     };
@@ -67,6 +66,7 @@ namespace bios
      * \brief Exception thrown when speified element was not
      * found in database.
      */
+
     class NotFound : public BiosErrorBase
     {
         public:

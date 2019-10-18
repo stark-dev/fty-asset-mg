@@ -1,5 +1,5 @@
 /*  =========================================================================
-    topology_power_to - Retrieve the full or closest power chain which powers a requested target asset
+    topology_power_topology_power - class description
 
     Copyright (C) 2014 - 2018 Eaton
 
@@ -19,8 +19,8 @@
     =========================================================================
 */
 
-#ifndef TOPOLOGY_POWER_TO_H_INCLUDED
-#define TOPOLOGY_POWER_TO_H_INCLUDED
+#ifndef TOPOLOGY_POWER_TOPOLOGY_POWER_H_INCLUDED
+#define TOPOLOGY_POWER_TOPOLOGY_POWER_H_INCLUDED
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,15 +28,14 @@ extern "C" {
 
 //  @interface
 
-// implementation of REST /api/v1/topology/power?to (see RFC11)
-// filtered on dst-id == assetName
-// returns 0 if success, else <0
-FTY_ASSET_PRIVATE int
-    topology_power_to (const std::string & assetname, cxxtools::SerializationInfo& siResult);
+//  topology_power main entry
+//  PARAM map keys in from/to/filter_dc/filter_group
+//  attempt: from/to: assetID, filter_dc/filter_group:<to be completed>
+//  source: fty-rest src/web/src/topology_power.ecpp
+//  returns 0 if success (json payload is valid), else <0
 
-//  Self test of this class
-FTY_ASSET_PRIVATE void
-    topology_power_to_test (bool verbose);
+FTY_ASSET_PRIVATE
+    int topology_power (std::map<std::string, std::string> & param, std::string & json);
 
 //  @end
 
