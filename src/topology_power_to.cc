@@ -125,6 +125,10 @@ int topology_power_to (const std::string & assetName, cxxtools::SerializationInf
 #define SELFTEST_DIR_RO "src/selftest-ro"
 #define SELFTEST_DIR_RW "src/selftest-rw"
 
+//#define __local_selftest__
+#undef __local_selftest__
+
+#ifdef __local_selftest__
 //  dump SI to string (JSON payload)
 static std::string selftest_si_to_string (cxxtools::SerializationInfo& si)
 {
@@ -142,6 +146,7 @@ static std::string selftest_si_to_string (cxxtools::SerializationInfo& si)
     }
     return "";
 }
+#endif
 
 void
 topology_power_to_test (bool verbose)
@@ -161,8 +166,6 @@ topology_power_to_test (bool verbose)
         assert(r != 0);
     }
 
-#undef __local_selftest__
-//#define __local_selftest__
 #ifdef __local_selftest__
 #pragma message "=== __local_selftest__ ==="
 
