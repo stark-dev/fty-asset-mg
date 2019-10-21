@@ -28,7 +28,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <malamute.h>
 #include <stdbool.h>
 
-#include "ymsg.h"
+//#include "ymsg.h"
 
 #ifdef __cplusplus
 extern "C" {

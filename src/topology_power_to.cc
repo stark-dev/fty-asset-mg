@@ -21,7 +21,7 @@
 
 /*
 @header
-    topology_power_to - Retrieve the full or closest power chain which powers a requested target asset
+    topology_power_to - Retrieve the closest powerchain which powers a requested target asset
 @discuss
 @end
 */
@@ -162,7 +162,7 @@ topology_power_to_test (bool verbose)
 
         r = topology_power_to("", si);
         assert(r != 0);
-        r = topology_power_to("fake-asset-name", si);
+        r = topology_power_to("noname", si);
         assert(r != 0);
     }
 

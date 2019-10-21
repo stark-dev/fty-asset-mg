@@ -1,17 +1,5 @@
 /*  =========================================================================
-    asset_msg - assets management protocol
-
-    Codec class for asset_msg.
-
-    ** WARNING *************************************************************
-    THIS SOURCE FILE IS 100% GENERATED. If you edit this file, you will lose
-    your changes at the next build cycle. This is great for temporary printf
-    statements. DO NOT MAKE ANY CHANGES YOU WISH TO KEEP. The correct places
-    for commits are:
-
-     * The XML model used for this code generation: asset_msg.xml, or
-     * The code generation script that built this file: zproto_codec_c_v1
-    ************************************************************************
+    topology_power_msg_asset_msg - class description
 
     Copyright (C) 2014 - 2018 Eaton
 
@@ -33,17 +21,19 @@
 
 /*
 @header
-    asset_msg - assets management protocol
+    topology_power_msg_asset_msg -
 @discuss
 @end
 */
 
-#include "topology_power/msg/asset_msg.h"
+#include "../../fty_asset_classes.h"
+
+#include <czmq.h>
 #include <fty_log.h>
 
 //  Structure of our class
 
-struct _asset_msg_t {
+typedef struct _asset_msg_t {
     zframe_t *routing_id;               //  Routing_id from ROUTER, if any
     int id;                             //  asset_msg message ID
     byte *needle;                       //  Read/write pointer for serialization
@@ -75,7 +65,7 @@ struct _asset_msg_t {
     zframe_t *racks;                    //  List of racks, matryoshka of this msg
     zframe_t *devices;                  //  List of devices, matryoshka of this msg
     zframe_t *grps;                     //  List of groups, matryoshka of this msg
-};
+} asset_msg_t;
 
 //  --------------------------------------------------------------------------
 //  Network data encoding macros

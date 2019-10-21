@@ -59,8 +59,6 @@
 
 #include <czmq.h>
 
-#include "bios_export.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

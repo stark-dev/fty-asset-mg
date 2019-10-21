@@ -26,7 +26,7 @@
 @end
 */
 
-#include "fty_asset_classes.h"
+#include "../fty_asset_classes.h"
 
 ////////////////////////////////////////////////////////////////////////
 // copied from fty-rest src/web/src/topology_power.ecpp
@@ -44,6 +44,7 @@
  * \author Michal Vyskocil <MichalVyskocil@Eaton.com>
  * \brief  process power topology requests
  */
+
 #include <string>
 #include <sstream>
 #include <vector>
@@ -52,10 +53,6 @@
 #include <fty_common_db.h>
 #include <fty_common.h>
 #include <fty_common_macros.h>
-
-#include "topology_power/persist/assettopology.h"
-#include "topology_power/cleanup.h"
-#include "topology_power/shared/utilspp.h"
 
 //
 //
@@ -364,6 +361,5 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
     zmsg_destroy (&return_msg);
     return 0; //ok
 }
-
 
 

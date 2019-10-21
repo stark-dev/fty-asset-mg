@@ -1,22 +1,32 @@
+/*  =========================================================================
+    topology_power_persist_assetcrud - class description
+
+    Copyright (C) 2014 - 2018 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    =========================================================================
+*/
+
 /*
- *
- * Copyright (C) 2014 - 2018 Eaton
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- */
+@header
+    topology_power_persist_assetcrud -
+@discuss
+@end
+*/
+
+#include "../../fty_asset_classes.h"
 
 // ATTENTION: there is no easy way of getting last deleted id,
 // and there is no requirements to do this.
@@ -34,11 +44,6 @@
 #include <tntdb/transaction.h>
 #include <fty_common.h>
 #include <fty_common_macros.h>
-
-#include "topology_power/persist/assetcrud.h"
-#include "topology_power/persist/monitor.h"
-#include "topology_power/persist/persist_error.h"
-#include "topology_power/cleanup.h"
 
 zlist_t* select_asset_device_links_all(tntdb::Connection &conn,
                 a_elmnt_id_t device_id, a_lnk_tp_id_t link_type_id)
@@ -446,3 +451,4 @@ db_reply <std::set <std::pair<a_elmnt_id_t ,a_elmnt_id_t>>>
         return ret;
     }
 }
+

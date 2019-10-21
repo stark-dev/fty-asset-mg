@@ -60,8 +60,6 @@ Fields that are common with message 'send' are described there.
 
 #include <czmq.h>
 
-#include "topology_power/bios_export.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

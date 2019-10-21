@@ -113,4 +113,4 @@ typedef int16_t  m_msrmnt_scale_t;
 // uint16_t
 typedef uint16_t  m_msrmnt_tpc_id_t;
 
-#endif // SRC_PERSIST_DVTYPES_H_
+#endif // SRC_PERSIST_DBTYPES_H_

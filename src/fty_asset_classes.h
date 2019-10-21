@@ -33,6 +33,26 @@
 #include "../include/fty-asset.h"
 
 //  Opaque class structures to allow forward references
+#ifndef TOPOLOGY_POWER_PERSIST_DBHELPERS2_T_DEFINED
+typedef struct _topology_power_persist_dbhelpers2_t topology_power_persist_dbhelpers2_t;
+#define TOPOLOGY_POWER_PERSIST_DBHELPERS2_T_DEFINED
+#endif
+#ifndef TOPOLOGY_POWER_PERSIST_ASSETCRUD_T_DEFINED
+typedef struct _topology_power_persist_assetcrud_t topology_power_persist_assetcrud_t;
+#define TOPOLOGY_POWER_PERSIST_ASSETCRUD_T_DEFINED
+#endif
+#ifndef TOPOLOGY_POWER_PERSIST_ASSETTOPOLOGY_T_DEFINED
+typedef struct _topology_power_persist_assettopology_t topology_power_persist_assettopology_t;
+#define TOPOLOGY_POWER_PERSIST_ASSETTOPOLOGY_T_DEFINED
+#endif
+#ifndef TOPOLOGY_POWER_PERSIST_MONITOR_T_DEFINED
+typedef struct _topology_power_persist_monitor_t topology_power_persist_monitor_t;
+#define TOPOLOGY_POWER_PERSIST_MONITOR_T_DEFINED
+#endif
+#ifndef TOPOLOGY_POWER_PERSIST_PERSIST_ERROR_T_DEFINED
+typedef struct _topology_power_persist_persist_error_t topology_power_persist_persist_error_t;
+#define TOPOLOGY_POWER_PERSIST_PERSIST_ERROR_T_DEFINED
+#endif
 #ifndef TOPOLOGY_POWER_SHARED_UTILSPP_T_DEFINED
 typedef struct _topology_power_shared_utilspp_t topology_power_shared_utilspp_t;
 #define TOPOLOGY_POWER_SHARED_UTILSPP_T_DEFINED
@@ -44,26 +64,6 @@ typedef struct _topology_power_msg_asset_msg_t topology_power_msg_asset_msg_t;
 #ifndef TOPOLOGY_POWER_MSG_COMMON_MSG_T_DEFINED
 typedef struct _topology_power_msg_common_msg_t topology_power_msg_common_msg_t;
 #define TOPOLOGY_POWER_MSG_COMMON_MSG_T_DEFINED
-#endif
-#ifndef TOPOLOGY_POWER_PERSIST_ASSETCRUD_T_DEFINED
-typedef struct _topology_power_persist_assetcrud_t topology_power_persist_assetcrud_t;
-#define TOPOLOGY_POWER_PERSIST_ASSETCRUD_T_DEFINED
-#endif
-#ifndef TOPOLOGY_POWER_PERSIST_ASSETTOPOLOGY_T_DEFINED
-typedef struct _topology_power_persist_assettopology_t topology_power_persist_assettopology_t;
-#define TOPOLOGY_POWER_PERSIST_ASSETTOPOLOGY_T_DEFINED
-#endif
-#ifndef TOPOLOGY_POWER_PERSIST_DBHELPERS2_T_DEFINED
-typedef struct _topology_power_persist_dbhelpers2_t topology_power_persist_dbhelpers2_t;
-#define TOPOLOGY_POWER_PERSIST_DBHELPERS2_T_DEFINED
-#endif
-#ifndef TOPOLOGY_POWER_PERSIST_MONITOR_T_DEFINED
-typedef struct _topology_power_persist_monitor_t topology_power_persist_monitor_t;
-#define TOPOLOGY_POWER_PERSIST_MONITOR_T_DEFINED
-#endif
-#ifndef TOPOLOGY_POWER_PERSIST_PERSIST_ERROR_T_DEFINED
-typedef struct _topology_power_persist_persist_error_t topology_power_persist_persist_error_t;
-#define TOPOLOGY_POWER_PERSIST_PERSIST_ERROR_T_DEFINED
 #endif
 #ifndef TOPOLOGY_POWER_TOPOLOGY_POWER_T_DEFINED
 typedef struct _topology_power_topology_power_t topology_power_topology_power_t;
@@ -87,27 +87,25 @@ typedef struct _dns_t dns_t;
 #endif
 
 //  Extra headers
-#include "topology_power/dbtypes.h"
 #include "topology_power/preproc.h"
-#include "topology_power/topology2.h"
+#include "topology_power/dbtypes.h"
+#include "topology_power/bios_export.h"
+#include "topology_power/ymsg.h"
+#include "topology_power/bios_agent.h"
+#include "topology_power/app.h"
 #include "topology_power/types.h"
 #include "topology_power/cleanup.h"
-#include "topology_power/ymsg.h"
-#include "topology_power/app.h"
-#include "topology_power/bios_agent.h"
-#include "topology_power/bios_export.h"
-#include "topology_power/topology_power.h"
 
 //  Internal API
 
+#include "topology_power/persist/dbhelpers2.h"
+#include "topology_power/persist/assetcrud.h"
+#include "topology_power/persist/assettopology.h"
+#include "topology_power/persist/monitor.h"
+#include "topology_power/persist/persist_error.h"
 #include "topology_power/shared/utilspp.h"
 #include "topology_power/msg/asset_msg.h"
 #include "topology_power/msg/common_msg.h"
-#include "topology_power/persist/assetcrud.h"
-#include "topology_power/persist/assettopology.h"
-#include "topology_power/persist/dbhelpers2.h"
-#include "topology_power/persist/monitor.h"
-#include "topology_power/persist/persist_error.h"
 #include "topology_power/topology_power.h"
 #include "topology_power_to.h"
 #include "dbhelpers.h"

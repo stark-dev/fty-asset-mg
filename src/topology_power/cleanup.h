@@ -31,13 +31,10 @@
 
 #include <czmq.h>
 #include <malamute.h>
-#include "topology_power/ymsg.h"
-#include "topology_power/app.h"
-#include "topology_power/bios_agent.h"
 
 #ifdef LEGACY_PROTOCOL
-#include "msg/asset_msg.h"
-#include "msg/common_msg.h"
+#include "./msg/asset_msg.h"
+#include "./msg/common_msg.h"
 #endif
 
 #ifndef __GNUC__
@@ -47,6 +44,7 @@
 static inline void _destroy_zmsg (zmsg_t **self_p) {
     zmsg_destroy (self_p);
 }
+
 static inline void _destroy_ymsg (ymsg_t **self_p) {
     ymsg_destroy (self_p);
 }
@@ -67,7 +65,6 @@ static inline void _destroy_asset_msg (asset_msg_t **self_p) {
 static inline void _destroy_common_msg (common_msg_t **self_p) {
     common_msg_destroy (self_p);
 }
-
 #endif
 
 static inline void _destroy_zactor (zactor_t **self_p) {

@@ -1,24 +1,32 @@
-/*
- *
- * Copyright (C) 2015 - 2018 Eaton
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- */
+/*  =========================================================================
+    topology_power_persist_dbhelpers2 - class description
 
-#include "topology_power/persist/dbhelpers2.h"
+    Copyright (C) 2014 - 2018 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    =========================================================================
+*/
+
+/*
+@header
+    topology_power_persist_dbhelpers2 -
+@discuss
+@end
+*/
+
+#include "../../fty_asset_classes.h"
 
 #include <assert.h>
 
@@ -31,8 +39,6 @@
 #include <fty_common_db.h>
 #include <fty_common.h>
 #include <fty_log.h>
-#include "topology_power/persist/persist_error.h"
-
 
 //TODO: used only in tests for legacy autodiscovery - should proably be removed
 int convert_asset_to_monitor_safe(const char* url,
@@ -167,3 +173,5 @@ a_elmnt_id_t convert_monitor_to_asset(const char* url,
     log_info("end: monitor device %" PRIu32 " converted to %" PRIu32, discovered_device_id, asset_element_id);
     return asset_element_id;
 }
+
+

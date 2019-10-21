@@ -1,17 +1,5 @@
 /*  =========================================================================
-    common_msg - common messages
-
-    Codec header for common_msg.
-
-    ** WARNING *************************************************************
-    THIS SOURCE FILE IS 100% GENERATED. If you edit this file, you will lose
-    your changes at the next build cycle. This is great for temporary printf
-    statements. DO NOT MAKE ANY CHANGES YOU WISH TO KEEP. The correct places
-    for commits are:
-
-     * The XML model used for this code generation: common_msg.xml, or
-     * The code generation script that built this file: zproto_codec_c_v1
-    ************************************************************************
+    topology_power_msg_common_msg - class description
 
     Copyright (C) 2014 - 2018 Eaton
 
@@ -31,8 +19,8 @@
     =========================================================================
 */
 
-#ifndef __COMMON_MSG_H_INCLUDED__
-#define __COMMON_MSG_H_INCLUDED__
+#ifndef TOPOLOGY_POWER_MSG_COMMON_MSG_H_INCLUDED
+#define TOPOLOGY_POWER_MSG_COMMON_MSG_H_INCLUDED
 
 /*  These are the common_msg messages:
 

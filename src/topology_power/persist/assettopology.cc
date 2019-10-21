@@ -1,22 +1,32 @@
+/*  =========================================================================
+    topology_power_persist_assettopology - class description
+
+    Copyright (C) 2014 - 2018 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    =========================================================================
+*/
+
 /*
- *
- * Copyright (C) 2014 - 2018 Eaton
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- */
+@header
+    topology_power_persist_assettopology -
+@discuss
+@end
+*/
+
+#include "../../fty_asset_classes.h"
 
 #include <cassert>
 #include <cstring>
@@ -33,12 +43,6 @@
 #include <fty_common.h>
 #include <fty_common_db.h>
 #include <fty_common_macros.h>
-
-#include "topology_power/persist/assetcrud.h"
-#include "topology_power/msg/common_msg.h"
-#include "topology_power/persist/assettopology.h"
-#include "topology_power/persist/persist_error.h"
-#include "topology_power/cleanup.h"
 
 // TODO HARDCODED CONSTANTS for asset device types
 
@@ -2196,3 +2200,4 @@ zmsg_t* get_return_power_topology_datacenter(const char* url,
     log_info ("end normal");
     return result;
 }
+

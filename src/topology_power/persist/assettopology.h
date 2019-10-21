@@ -1,35 +1,29 @@
-/*
- *
- * Copyright (C) 2015 - 2018 Eaton
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- */
+/*  =========================================================================
+    topology_power_persist_assettopology - class description
 
-/*! \file   assettopology.h
-    \brief  Functions for getting the topology (location and power) from the database.
-    \author Alena Chernikava <AlenaChernikava@Eaton.com>
+    Copyright (C) 2014 - 2018 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    =========================================================================
 */
 
-#ifndef SRC_PERSIST_ASSETTOPOLOGY_H_
-#define SRC_PERSIST_ASSETTOPOLOGY_H_
+#ifndef TOPOLOGY_POWER_PERSIST_ASSETTOPOLOGY_H_INCLUDED
+#define TOPOLOGY_POWER_PERSIST_ASSETTOPOLOGY_H_INCLUDED
+
 #include <set>
 #include <inttypes.h>
-#include "src/topology_power/msg/asset_msg.h"
-#include "src/topology_power/dbtypes.h"
-#include "src/topology_power/persist/dbhelpers2.h"
 
 // 0 ok, -1 error
 int
@@ -478,4 +472,5 @@ zmsg_t*
         asset_msg_t **message_p,
         a_elmnt_id_t feed_by_id = 0);
 
-#endif // SRC_PERSIST_ASSETTOPOLOGY_H_
+
+#endif

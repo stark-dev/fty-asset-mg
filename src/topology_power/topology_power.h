@@ -34,8 +34,8 @@ extern "C" {
 //  source: fty-rest src/web/src/topology_power.ecpp
 //  returns 0 if success (json payload is valid), else <0
 
-FTY_ASSET_PRIVATE
-    int topology_power (std::map<std::string, std::string> & param, std::string & json);
+FTY_ASSET_PRIVATE int
+    topology_power (std::map<std::string, std::string> & param, std::string & json);
 
 //  @end
 

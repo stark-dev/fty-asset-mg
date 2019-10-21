@@ -1,28 +1,27 @@
-/*
-Copyright (C) 2015 - 2018 Eaton
+/*  =========================================================================
+    topology_power_persist_dbhelpers2 - class description
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
+    Copyright (C) 2014 - 2018 Eaton
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
 
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    =========================================================================
 */
 
-/*! \file   dbhelpers.h
-    \brief  Helper function for direct interact with DB
-    \author Alena Chernikava <AlenaChernikava@Eaton.com>
-*/
+#ifndef TOPOLOGY_POWER_PERSIST_DBHELPERS2_H_INCLUDED
+#define TOPOLOGY_POWER_PERSIST_DBHELPERS2_H_INCLUDED
 
-#ifndef SRC_DB_DBHELPERS_H_
-#define SRC_DB_DBHELPERS_H_
 #include <functional>
 #include <string>
 #include <map>
@@ -31,8 +30,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <vector>
 #include <tuple>
 #include <string>
-#include "src/topology_power/dbtypes.h"
-#include "src/topology_power/preproc.h"
 
 /**
  * \brief helper structure for results of v_bios_measurement
@@ -138,4 +135,4 @@ a_elmnt_id_t convert_monitor_to_asset(const char* url,
 int convert_monitor_to_asset_safe(const char* url,
                     m_dvc_id_t discovered_device_id, a_elmnt_id_t *asset_element_id);
 
-#endif // SRC_DB_DBHELPERS_H_
+#endif

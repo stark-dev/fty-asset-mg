@@ -1,33 +1,34 @@
-/*
-Copyright (C) 2015 - 2018 Eaton
+/*  =========================================================================
+    topology_power_shared_utilspp - class description
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
+    Copyright (C) 2014 - 2018 Eaton
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
 
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    =========================================================================
 */
 
-/*! \file utilspp.h
-    \brief c++ utilities
-    \author Karol Hrdina <KarolHrdina@Eaton.com>
-*/
+#ifndef TOPOLOGY_POWER_SHARED_UTILSPP_H_INCLUDED
+#define TOPOLOGY_POWER_SHARED_UTILSPP_H_INCLUDED
 
-#ifndef SRC_SHARED_UTILS_PLUSPLUS_H__
-#define SRC_SHARED_UTILS_PLUSPLUS_H__
+//  @interface
 
 #include <sstream>
 #include <string>
 #include <map>
 #include <czmq.h>
+//#include "topology_power/persist/dbhelpers2.h"
 
 namespace utils {
 
@@ -120,4 +121,6 @@ std::string join (const char **str_arr, const char *separator);
 
 } // namespace utils
 
-#endif // SRC_SHARED_UTILS_PLUSPLUS_H__
+//  @end
+
+#endif
