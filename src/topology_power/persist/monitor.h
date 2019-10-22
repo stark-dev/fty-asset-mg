@@ -23,7 +23,6 @@
 #define TOPOLOGY_POWER_PERSIST_MONITOR_H_INCLUDED
 
 #include <tntdb/connect.h>
-//#include "topology_power/persist/dbhelpers2.h"
 #include <fty_common_db.h>
 
 // ===============================================================

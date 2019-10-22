@@ -87,13 +87,7 @@ typedef struct _dns_t dns_t;
 #endif
 
 //  Extra headers
-#include "topology_power/preproc.h"
 #include "topology_power/dbtypes.h"
-#include "topology_power/bios_export.h"
-#include "topology_power/ymsg.h"
-#include "topology_power/bios_agent.h"
-#include "topology_power/app.h"
-#include "topology_power/types.h"
 #include "topology_power/cleanup.h"
 
 //  Internal API

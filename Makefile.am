@@ -84,13 +84,7 @@ EXTRA_DIST += \
     src/dbhelpers.h \
     src/total_power.h \
     src/dns.h \
-    src/topology_power/preproc.h \
     src/topology_power/dbtypes.h \
-    src/topology_power/bios_export.h \
-    src/topology_power/ymsg.h \
-    src/topology_power/bios_agent.h \
-    src/topology_power/app.h \
-    src/topology_power/types.h \
     src/topology_power/cleanup.h \
     README.md \
     src/fty_asset_classes.h

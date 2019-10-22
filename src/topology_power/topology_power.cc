@@ -187,22 +187,23 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
 
         if (common_msg_id (common_msg) == COMMON_MSG_FAIL) {
             log_error ("common_msg is COMMON_MSG_FAIL");
-            switch(common_msg_errorno(common_msg)) {
+            uint32_t err = common_msg_errorno(common_msg);
+            switch(err) {
                 case(DB_ERROR_BADINPUT):
                 {
                     //std::string received = TRANSLATE_ME("id of the asset, that is not a device");
                     //std::string expected = TRANSLATE_ME("id of the asset, that is a device");
                     //http_die("request-param-bad", parameter_name.c_str(), received.c_str (), expected.c_str ());
-                    log_error("request-param-bad-input");
+                    log_error("request-param-bad parameter_name: %s", parameter_name.c_str());
                     break;
                 }
                 case(DB_ERROR_NOTFOUND):
                     //http_die("element-not-found", asset_id.c_str());
-                    log_error("element-not-found");
+                    log_error("element-not-found %s", asset_id.c_str());
                     break;
                 default:
                     //http_die("internal-error", "");
-                    log_error("internal-error", "");
+                    log_error("internal-error err: %" PRIu32, err);
             }
             common_msg_destroy(&common_msg);
             return -21;
