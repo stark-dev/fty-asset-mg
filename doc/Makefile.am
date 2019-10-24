@@ -80,14 +80,14 @@ fty_asset_inventory.txt: $(top_srcdir)/src/fty_asset_inventory.cc
 ### so that the manpages for binary programs match their name, at expense
 ### of perhaps being built in a subdirectory under doc/.
 GENERATED_DOCS += fty-asset.txt fty-asset.doc
-fty-asset.txt: $(top_srcdir)/src/fty_asset.cc
+fty-asset.txt: $(top_srcdir)/src/fty-asset.cc
 	mkdir -p "$(builddir)/$(@D)"
-	"$(srcdir)/mkman" "fty_asset" "$(builddir)/fty-asset.txt" "$(srcdir)/.."
+	"$(srcdir)/mkman" "fty-asset" "$(builddir)/fty-asset.txt" "$(srcdir)/.."
 
 GENERATED_DOCS += fty-asset-cli.txt fty-asset-cli.doc
-fty-asset-cli.txt: $(top_srcdir)/src/fty_asset_cli.cc
+fty-asset-cli.txt: $(top_srcdir)/src/fty-asset-cli.cc
 	mkdir -p "$(builddir)/$(@D)"
-	"$(srcdir)/mkman" "fty_asset_cli" "$(builddir)/fty-asset-cli.txt" "$(srcdir)/.."
+	"$(srcdir)/mkman" "fty-asset-cli" "$(builddir)/fty-asset-cli.txt" "$(srcdir)/.."
 
 
 clean-local:
