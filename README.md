@@ -120,16 +120,18 @@ where
 The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
-* TOPOLOGY\_POWER\_TO/'asset-iname'/OK/<powerchains>
+* TOPOLOGY\_POWER\_TO/'asset-iname'/OK/\<powerchains\>
 * TOPOLOGY\_POWER\_TO/'asset-iname'/ERROR/reason
 
 where
 * '/' indicates a multipart frame message
 * 'asset-iname' MUST be the same as in request
-* 'reason' is string detailing reason for error. Possible values are:
+* 'reason' is a string detailing reason for error. Possible values are:
+
      INTERNAL\_ERROR
 * subject of the message MUST be TOPOLOGY
-* <powerchains> is a frame (JSON format) as:
+* \<powerchains\> is a frame (JSON format) as:
+```bash
 {
     "asset-id": "<asset-iname>",
     "powerchains": [
@@ -146,9 +148,10 @@ where
         }
     ]
 }
-with
-** 'D1',...,'Dn' the assets in the upstream powerchain topology of 'asset-iname'
-** 'D1-id'...,'Dn-id' the corresponding socket identifiers (outlet)
+```
+    with
+    * 'D1',...,'Dn' the assets in the upstream powerchain topology of 'asset-iname'
+    * 'D1-id'...,'Dn-id' the corresponding socket identifiers (src-id outlet)
 
 Example bmsg request:
 ```bash
