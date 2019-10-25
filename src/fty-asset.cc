@@ -27,7 +27,7 @@
 */
 
 #include "fty_asset_classes.h"
-#define DEFAULT_LOG_CONFIG "/etc/fty/ftylog.h"
+#define DEFAULT_LOG_CONFIG "/etc/fty/ftylog.cfg"
 
 static int
 s_autoupdate_timer (zloop_t *loop, int timer_id, void *output)

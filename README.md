@@ -105,6 +105,80 @@ where
      ASSET\_NOT\_FOUND / INTERNAL\_ERROR
 * subject of the message MUST be TOPOLOGY
 
+#### Upstream topology of the nearest energy chain of a powered asset
+
+The USER peer sends the following messages using MAILBOX SEND to
+FTY-ASSET-AGENT ("asset-agent") peer:
+
+* TOPOLOGY\_POWER\_TO/'asset-iname'
+
+where
+* '/' indicates a multipart string message
+* 'asset-iname' MUST be the asset iname
+* subject of the message MUST be TOPOLOGY
+
+The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
+peer using MAILBOX SEND.
+
+* TOPOLOGY\_POWER\_TO/'asset-iname'/OK/\<powerchains\>
+* TOPOLOGY\_POWER\_TO/'asset-iname'/ERROR/reason
+
+where
+* '/' indicates a multipart frame message
+* 'asset-iname' MUST be the same as in request
+* 'reason' is a string detailing reason for error. Possible values are:
+
+     INTERNAL\_ERROR
+* subject of the message MUST be TOPOLOGY
+* \<powerchains\> is a frame (JSON format) as:
+```bash
+{
+    "asset-id": "<asset-iname>",
+    "powerchains": [
+        {
+            "src-id": "<D1>",
+            "src-socket": "<D1-id>",
+            "dst-id": "<asset-iname>"
+        },
+        ...,
+        {
+            "src-id": "<Dn>",
+            "src-socket": "<Dn-id>",
+            "dst-id": "<asset-iname>"
+        }
+    ]
+}
+```
+    with
+    * 'D1',...,'Dn' the assets in the upstream powerchain topology of 'asset-iname'
+    * 'D1-id'...,'Dn-id' the corresponding socket identifiers (src-id outlet)
+
+Example bmsg request:
+```bash
+bmsg request asset-agent TOPOLOGY TOPOLOGY_POWER_TO server-17
+```
+with response:
+```bash
+TOPOLOGY_POWER_TO
+server-17
+OK
+{
+	"asset-id": "server-17",
+	"powerchains": [
+		{
+			"src-id": "epdu-13",
+			"src-socket": "7",
+			"dst-id": "server-17"
+		},
+		{
+			"src-id": "epdu-10",
+			"src-socket": "1",
+			"dst-id": "server-17"
+		}
+	]
+}
+```
+
 #### Republishing assets
 
 The USER peer sends the following messages using MAILBOX SEND to
