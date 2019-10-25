@@ -38,6 +38,7 @@ Build-Depends: debhelper (>= 9),
     libfty-common-db-dev,
     libssl-dev,
     libfty-common-mlm-dev,
+    libfty-asset-activator-dev,
     systemd,
     dh-systemd,
     asciidoc-base | asciidoc, xmlto,
@@ -69,6 +70,7 @@ Depends:
     libfty-common-db-dev,
     libssl-dev,
     libfty-common-mlm-dev,
+    libfty-asset-activator-dev,
     libfty-asset1 (= ${binary:Version})
 Description: fty-asset development tools
  This package contains development files for fty-asset:

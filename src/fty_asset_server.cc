@@ -1211,13 +1211,17 @@ fty_asset_server_test (bool verbose)
     {
         log_debug ("fty-asset-server-test:Test #2");
         const char* subject = "ASSET_MANIPULATION";
+        zhash_t *aux = zhash_new();
+        zhash_insert (aux, "type", (void *)"datacenter");
+        zhash_insert (aux, "subtype", (void *)"N_A");
         zmsg_t *msg = fty_proto_encode_asset (
-                NULL,
+                aux,
                 asset_name,
                 FTY_PROTO_ASSET_OP_CREATE,
                 NULL);
         zmsg_pushstrf (msg, "%s", "READWRITE");
         int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        zhash_destroy (&aux);
         assert (rv == 0);
         zmsg_t *reply = mlm_client_recv (ui);
         if (!fty_proto_is (reply)) {
@@ -1435,14 +1439,18 @@ fty_asset_server_test (bool verbose)
         log_debug ("fty-asset-server-test:Test #12");
         // try to create asset when configurability is enabled
         const char* subject = "ASSET_MANIPULATION";
+        zhash_t *aux = zhash_new();
+        zhash_insert (aux, "type", (void *)"datacenter");
+        zhash_insert (aux, "subtype", (void *)"N_A");
         zmsg_t *msg = fty_proto_encode_asset (
-                NULL,
+                aux,
                 asset_name,
                 FTY_PROTO_ASSET_OP_CREATE,
                 NULL);
         zmsg_pushstrf (msg, "%s", "READWRITE");
         int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
         zclock_sleep (200);
+        zhash_destroy (&aux);
         assert (rv == 0);
         char *str = NULL;
         zmsg_t *reply = mlm_client_recv (ui);
@@ -1472,14 +1480,18 @@ fty_asset_server_test (bool verbose)
         mlm_client_send (ui, "configurability.global@rackcontroller-0", &smsg);
         zclock_sleep (200);
         // try to create asset when configurability is disabled
+        aux = zhash_new();
+        zhash_insert (aux, "type", (void *)"datacenter");
+        zhash_insert (aux, "subtype", (void *)"N_A");
         msg = fty_proto_encode_asset (
-                NULL,
+                aux,
                 asset_name,
                 FTY_PROTO_ASSET_OP_CREATE,
                 NULL);
         zmsg_pushstrf (msg, "%s", "READWRITE");
         rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
         zclock_sleep (200);
+        zhash_destroy (&aux);
         assert (rv == 0);
         reply = mlm_client_recv (ui);
         assert (streq (mlm_client_subject (ui), subject));
@@ -1498,8 +1510,7 @@ fty_asset_server_test (bool verbose)
         mlm_client_send (ui, "power_nodes.max_active@rackcontroller-0", &smsg);
         zclock_sleep (300);
         // send power devices
-        zhash_t *aux = zhash_new ();
-        zhash_autofree (aux);
+        aux = zhash_new ();
         zhash_insert (aux, "type", (void *) "device");
         zhash_insert (aux, "subtype", (void *) "epdu");
         zhash_insert (aux, "status", (void *) "active");
@@ -1604,7 +1615,8 @@ fty_asset_server_test (bool verbose)
         }
         zmsg_destroy (&reply) ; // throw away stream message
 
-        aux = zhash_new ();
+        // to be replaced by integration tests
+        /*aux = zhash_new ();
         zhash_autofree (aux);
         zhash_insert (aux, "type", (void *) "device");
         zhash_insert (aux, "subtype", (void *) "epdu");
@@ -1629,7 +1641,6 @@ fty_asset_server_test (bool verbose)
         assert (streq (str, "Licensing limitation hit - maximum amount of active power devices allowed in license reached."));
         zstr_free (&str);
         zmsg_destroy (&reply);
-        /* // to be replaced by integration tests
         // request republish to check what assets are published and if all are present as expected
         zpoller_t *poller = zpoller_new (mlm_client_msgpipe(ui), NULL);
         assert (poller);
