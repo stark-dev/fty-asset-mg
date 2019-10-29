@@ -272,15 +272,17 @@ static void
     zmsg_addstr (msg, assetName.c_str());
 
     // form a message according the contract for the case "OK" and for the case "ERROR"
-    if ( rv == -1 ) {
+    if (rv == -1) {
         log_error ("%s:\tTOPOLOGY_POWER: Cannot select power sources", cfg->name);
         zmsg_addstr (msg, "ERROR");
         zmsg_addstr (msg, "INTERNAL_ERROR");
-    } else if ( rv == -2 ) {
+    }
+    else if (rv == -2) {
         log_debug ("%s:\tTOPOLOGY_POWER: Asset was not found", cfg->name);
         zmsg_addstr (msg, "ERROR");
         zmsg_addstr (msg, "ASSET_NOT_FOUND");
-    } else {
+    }
+    else {
         zmsg_addstr (msg, "OK");
         log_debug ("%s:\tPower topology for '%s':", cfg->name, assetName.c_str());
         for (const auto &powerDeviceName : powerDevices ) {
@@ -342,7 +344,7 @@ static void
     }
 
     r = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &msg);
-    if ( r != 0 ) {
+    if (r != 0) {
         log_error ("%s:\tTOPOLOGY_POWER_TO: cannot send response message", cfg->name);
     }
 
@@ -366,24 +368,23 @@ static void
 
     char* command = zmsg_popstr (msg);
     if (!command) {
-        log_error ("%s:\tUndefined command for subject=TOPOLOGY", cfg->name);
+        log_error ("%s:\tUndefined command arg for subject=TOPOLOGY", cfg->name);
         return;
     }
 
+    char* asset_name = zmsg_popstr (msg);
+
     if (streq (command, "TOPOLOGY_POWER")) {
-        char* asset_name = zmsg_popstr (msg);
         s_processTopology (cfg, asset_name);
-        zstr_free (&asset_name);
     }
     else if (streq (command, "TOPOLOGY_POWER_TO")) {
-        char* asset_name = zmsg_popstr (msg);
         s_processTopologyPowerTo (cfg, asset_name);
-        zstr_free (&asset_name);
     }
     else {
         log_error ("%s:\tUnknown command for subject=TOPOLOGY '%s'", cfg->name, command);
     }
 
+    zstr_free (&asset_name);
     zstr_free (&command);
 }
 
