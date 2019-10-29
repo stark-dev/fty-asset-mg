@@ -256,10 +256,13 @@ fty_asset_server_new (void)
 static void
     s_processTopology(
         fty_asset_server_t *cfg,
-        const std::string &assetName)
+        const char *asset_name)
 {
+    log_debug ("%s:\tTOPOLOGY_POWER asset_name: %s", cfg->name, asset_name);
+
     // result of power topology - list of power device names
     std::vector<std::string> powerDevices{};
+    std::string assetName(asset_name ? asset_name : "asset_undefined");
 
     // select power devices
     int rv = select_devices_total_power(assetName, powerDevices, cfg->test);
@@ -303,29 +306,13 @@ static void
 static void
     s_processTopologyPowerTo(
         fty_asset_server_t *cfg,
-        const std::string &assetName)
+        const char * asset_name)
 {
-    log_debug ("%s:\tTOPOLOGY_POWER_TO assetName: %s", cfg->name, assetName.c_str());
+    log_debug ("%s:\tTOPOLOGY_POWER_TO asset_name: %s", cfg->name, asset_name);
 
-    cxxtools::SerializationInfo si;
-    int r = topology_power_to (assetName, si);
-
-    std::string siFrame; // msg frame on success
-    if (r == 0) { // serialize to json
-        try {
-            std::ostringstream output;
-            cxxtools::JsonSerializer s;
-            s.beautify(true);
-            s.begin(output);
-            s.serialize(si);
-            s.finish();
-            siFrame = output.str();
-        }
-        catch (...) {
-            log_error("%s:\tJson serialization failed", cfg->name);
-            r = -42;
-        }
-    }
+    std::string assetName(asset_name ? asset_name : "asset_undefined");
+    std::string result; // JSON payload
+    int r = topology_power_to (assetName, result);
 
     // message to be sent as reply
     zmsg_t *msg = zmsg_new ();
@@ -340,7 +327,7 @@ static void
     }
     else {
         zmsg_addstr (msg, "OK");
-        zmsg_addstr (msg, siFrame.c_str());
+        zmsg_addstr (msg, result.c_str()); // JSON in one frame
     }
 
     r = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &msg);
@@ -352,10 +339,51 @@ static void
 }
 
 // ============================================================
+// TOPOLOGY_POWERCHAINS command processing
+// ============================================================
+static void
+    s_processTopologyPowerchains(
+        fty_asset_server_t *cfg,
+        const char * command_, // "to"/"for"/"filter_dc"/"filter_group"
+        const char * asset_name)
+{
+    log_debug ("%s:\tTOPOLOGY_POWERCHAINS command: %s, asset_name: %s", cfg->name, command_, asset_name);
+
+    std::string command(command_ ? command_ : "command_undefined");
+    std::string assetName(asset_name ? asset_name : "asset_undefined");
+    std::string result; // JSON payload
+    int r = topology_power_process (command, assetName, result);
+
+    // message to be sent as reply
+    zmsg_t *msg = zmsg_new ();
+    // these 2 parts are the same for OK and ERROR messages
+    zmsg_addstr (msg, "TOPOLOGY_POWERCHAINS");
+    zmsg_addstr (msg, assetName.c_str());
+
+    if (r != 0) {
+        log_error ("%s:\tTOPOLOGY_POWERCHAINS r: %d", cfg->name, r);
+        zmsg_addstr (msg, "ERROR");
+        zmsg_addstr (msg, "INTERNAL_ERROR");
+    }
+    else {
+        zmsg_addstr (msg, "OK");
+        zmsg_addstr (msg, result.c_str()); // JSON in one frame
+    }
+
+    r = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &msg);
+    if (r != 0) {
+        log_error ("%s:\tTOPOLOGY_POWERCHAINS: cannot send response message", cfg->name);
+    }
+
+    zmsg_destroy(&msg);
+}
+
+// ============================================================
 //         Functionality for TOPOLOGY processing
 // ============================================================
 // bmsg request asset-agent TOPOLOGY TOPOLOGY_POWER <assetID>
 // bmsg request asset-agent TOPOLOGY TOPOLOGY_POWER_TO <assetID>
+// bmsg request asset-agent TOPOLOGY TOPOLOGY_POWERCHAINS <command> <assetID>
 // ============================================================
 
 static void
@@ -372,19 +400,27 @@ static void
         return;
     }
 
-    char* asset_name = zmsg_popstr (msg);
-
     if (streq (command, "TOPOLOGY_POWER")) {
+        char* asset_name = zmsg_popstr (msg);
         s_processTopology (cfg, asset_name);
+        zstr_free (&asset_name);
     }
     else if (streq (command, "TOPOLOGY_POWER_TO")) {
+        char* asset_name = zmsg_popstr (msg);
         s_processTopologyPowerTo (cfg, asset_name);
+        zstr_free (&asset_name);
+    }
+    else if (streq (command, "TOPOLOGY_POWERCHAINS")) {
+        char* command = zmsg_popstr (msg);
+        char* asset_name = zmsg_popstr (msg);
+        s_processTopologyPowerchains (cfg, command, asset_name);
+        zstr_free (&asset_name);
+        zstr_free (&command);
     }
     else {
         log_error ("%s:\tUnknown command for subject=TOPOLOGY '%s'", cfg->name, command);
     }
 
-    zstr_free (&asset_name);
     zstr_free (&command);
 }
 

@@ -27,13 +27,23 @@ extern "C" {
 #endif
 
 //  @interface
-//  Create a new topology_power_processor
-FTY_ASSET_PRIVATE topology_power_processor_t *
-    topology_power_processor_new (void);
 
-//  Destroy the topology_power_processor
-FTY_ASSET_PRIVATE void
-    topology_power_processor_destroy (topology_power_processor_t **self_p);
+// Retrieve the powerchains which powers a requested target asset
+// Implementation of REST /api/v1/topology/power?[from/to/filter_dc/filter_group] (see RFC11)
+// COMMAND is in {"from", "to", "filter_dc", "filter_group"} tokens set
+// ASSETNAME is the subject of the command
+// On success, RESULT is valid (JSON payload)
+// Returns 0 if success, else <0
+FTY_ASSET_PRIVATE int
+    topology_power_process (const std::string & command, const std::string & assetName, std::string & result, bool beautify = true);
+
+// Retrieve the closest powerchain which powers a requested target asset
+// implementation of REST /api/v1/topology/power?to (see RFC11) filtered on dst-id == assetName
+// ASSETNAME is the subject of the command
+// On success, RESULT is valid (JSON payload)
+// Returns 0 if success, else <0
+FTY_ASSET_PRIVATE int
+    topology_power_to (const std::string & assetName, std::string & result, bool beautify = true);
 
 //  Self test of this class
 FTY_ASSET_PRIVATE void
