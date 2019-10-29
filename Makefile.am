@@ -83,6 +83,7 @@ EXTRA_DIST += \
     src/topology_power/msg/common_msg.h \
     src/topology_power/topology_power.h \
     src/topology_power_to.h \
+    src/topology_power_processor.h \
     src/dbhelpers.h \
     src/total_power.h \
     src/dns.h \

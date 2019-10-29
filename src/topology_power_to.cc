@@ -28,6 +28,7 @@
 
 #include "fty_asset_classes.h"
 
+// Retrieve the closest powerchain which powers a requested target asset
 // implementation of REST /api/v1/topology/power?to (see RFC11)
 // filtered on dst-id == assetName
 // returns 0 if success, else <0

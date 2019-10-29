@@ -1,5 +1,5 @@
 /*  =========================================================================
-    topology_power_to - Retrieve the full or closest power chain which powers a requested target asset
+    topology_power_processor - Topology power requests processor
 
     Copyright (C) 2014 - 2018 Eaton
 
@@ -19,25 +19,25 @@
     =========================================================================
 */
 
-#ifndef TOPOLOGY_POWER_TO_H_INCLUDED
-#define TOPOLOGY_POWER_TO_H_INCLUDED
+#ifndef TOPOLOGY_POWER_PROCESSOR_H_INCLUDED
+#define TOPOLOGY_POWER_PROCESSOR_H_INCLUDED
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 //  @interface
+//  Create a new topology_power_processor
+FTY_ASSET_PRIVATE topology_power_processor_t *
+    topology_power_processor_new (void);
 
-// Retrieve the closest powerchain which powers a requested target asset
-// implementation of REST /api/v1/topology/power?to (see RFC11)
-// filtered on dst-id == assetName
-// returns 0 if success, else <0
-FTY_ASSET_PRIVATE int
-    topology_power_to (const std::string & assetname, cxxtools::SerializationInfo& siResult);
+//  Destroy the topology_power_processor
+FTY_ASSET_PRIVATE void
+    topology_power_processor_destroy (topology_power_processor_t **self_p);
 
 //  Self test of this class
 FTY_ASSET_PRIVATE void
-    topology_power_to_test (bool verbose);
+    topology_power_processor_test (bool verbose);
 
 //  @end
 

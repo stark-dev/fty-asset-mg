@@ -73,6 +73,10 @@ typedef struct _topology_power_topology_power_t topology_power_topology_power_t;
 typedef struct _topology_power_to_t topology_power_to_t;
 #define TOPOLOGY_POWER_TO_T_DEFINED
 #endif
+#ifndef TOPOLOGY_POWER_PROCESSOR_T_DEFINED
+typedef struct _topology_power_processor_t topology_power_processor_t;
+#define TOPOLOGY_POWER_PROCESSOR_T_DEFINED
+#endif
 #ifndef DBHELPERS_T_DEFINED
 typedef struct _dbhelpers_t dbhelpers_t;
 #define DBHELPERS_T_DEFINED
@@ -102,6 +106,7 @@ typedef struct _dns_t dns_t;
 #include "topology_power/msg/common_msg.h"
 #include "topology_power/topology_power.h"
 #include "topology_power_to.h"
+#include "topology_power_processor.h"
 #include "dbhelpers.h"
 #include "total_power.h"
 #include "dns.h"
