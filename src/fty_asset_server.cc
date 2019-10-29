@@ -359,19 +359,24 @@ static void
 static void
     s_handle_subject_topology(
         fty_asset_server_t *cfg,
-        zmsg_t *zmessage)
+        zmsg_t *msg)
 {
-    assert (zmessage);
+    assert (msg);
     assert (cfg);
-    char* command = zmsg_popstr (zmessage);
 
-    if ( streq (command, "TOPOLOGY_POWER") ) {
-        char* asset_name = zmsg_popstr (zmessage);
+    char* command = zmsg_popstr (msg);
+    if (!command) {
+        log_error ("%s:\tUndefined command for subject=TOPOLOGY", cfg->name);
+        return;
+    }
+
+    if (streq (command, "TOPOLOGY_POWER")) {
+        char* asset_name = zmsg_popstr (msg);
         s_processTopology (cfg, asset_name);
         zstr_free (&asset_name);
     }
-    else if ( streq (command, "TOPOLOGY_POWER_TO") ) {
-        char* asset_name = zmsg_popstr (zmessage);
+    else if (streq (command, "TOPOLOGY_POWER_TO")) {
+        char* asset_name = zmsg_popstr (msg);
         s_processTopologyPowerTo (cfg, asset_name);
         zstr_free (&asset_name);
     }
@@ -419,22 +424,19 @@ static void
     int rv = 0;
 
     // if there is no error msg prepared, call SQL
-    if (zmsg_size (msg) == 0)
+    if (zmsg_size (msg) == 0) {
         rv = select_assets_by_container (container_name, filters, assets, cfg->test);
+    }
 
-    if (rv == -1)
-    {
+    if (rv == -1) {
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "INTERNAL_ERROR");
     }
-    else
-    if (rv == -2)
-    {
+    else if (rv == -2) {
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "ASSET_NOT_FOUND");
     }
-    else
-    {
+    else {
         zmsg_addstr (reply, "OK");
         for (const auto& dev : assets)
             zmsg_addstr (reply, dev.c_str ());
@@ -445,6 +447,7 @@ static void
     if (rv == -1) {
         log_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
     }
+
     zmsg_destroy(&reply);
 }
 
@@ -470,13 +473,11 @@ static void
     select_ename_from_iname (iname, ename, cfg->test);
     zstr_free (&iname_str);
 
-    if (ename.empty ())
-    {
+    if (ename.empty ()) {
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "ASSET_NOT_FOUND");
     }
-    else
-    {
+    else {
         zmsg_addstr (reply, "OK");
         zmsg_addstr (reply, ename.c_str());
     }
@@ -520,6 +521,7 @@ static void
         zstr_free (&c_command);
         if (uuid)
             zstr_free (&uuid);
+        zmsg_destroy(&reply);
         return;
     }
     zstr_free (&c_command);
@@ -535,25 +537,21 @@ static void
     int rv = 0;
 
     // if there is no error msg prepared, call SQL
-    if (zmsg_size (msg) == 0){
+    if (zmsg_size (msg) == 0) {
         rv = select_assets_by_filter(filters, assets, cfg->test);
     }
 
-    if (rv == -1)
-    {
+    if (rv == -1) {
         zmsg_addstr (reply, uuid);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "INTERNAL_ERROR");
     }
-    else
-    if (rv == -2)
-    {
+    else if (rv == -2) {
         zmsg_addstr (reply, uuid);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "ASSET_NOT_FOUND");
     }
-    else
-    {
+    else {
         zmsg_addstr (reply, uuid);
         zmsg_addstr (reply, "OK");
         for (const auto& dev : assets)
@@ -723,7 +721,7 @@ static zmsg_t *
     subject = (type==NULL) ? "unknown" : type;
     subject.append (".");
     const char* subtype =(const char*)zhash_lookup (aux, "subtype");
-    subject.append ( (subtype==NULL)?"unknown":subtype );
+    subject.append ( (subtype==NULL) ? "unknown" : subtype );
     subject.append ("@");
     subject.append (asset_name);
     log_debug("notifying ASSETS %s %s ..",operation,subject.c_str());
@@ -748,7 +746,6 @@ static void
     auto msg = s_publish_create_or_update_asset_msg (cfg, asset_name, operation, subject, read_only);
     if (NULL == msg || 0 != mlm_client_send (cfg->stream_client, subject.c_str(), &msg)) {
         log_info ("%s:\tmlm_client_send not sending message for asset '%s'", cfg->name, asset_name.c_str());
-        return;
     }
 }
 
@@ -769,9 +766,9 @@ static void
         zmsg_addstr (msg, "ASSET_NOT_FOUND");
     }
     zmsg_pushstr(msg, uuid);
-    if (0 != mlm_client_sendto (cfg->mailbox_client, address, subject.c_str(), NULL, 5000, &msg)) {
+    int rv = mlm_client_sendto (cfg->mailbox_client, address, subject.c_str(), NULL, 5000, &msg);
+    if (rv != 0) {
         log_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
-        return;
     }
 }
 
@@ -780,6 +777,7 @@ static void
 {
     if (!cfg || !zmessage_p || !*zmessage_p) return;
     zmsg_t *zmessage = *zmessage_p;
+
     char* c_command = zmsg_popstr (zmessage);
     if (! streq (c_command, "GET")) {
         char* uuid = zmsg_popstr (zmessage);
@@ -790,6 +788,7 @@ static void
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_DETAIL", NULL, 5000, &reply);
+        zstr_free (&uuid);
         zstr_free (&c_command);
         zmsg_destroy (&reply);
         return;
@@ -808,43 +807,36 @@ static void
     s_handle_subject_asset_manipulation (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
 {
     if (!cfg || !zmessage_p || !*zmessage_p) return;
+    zmsg_t *zmessage = *zmessage_p;
     zmsg_t *reply = zmsg_new ();
 
-    zmsg_t *zmessage = *zmessage_p;
-    char *read_only_str = zmsg_popstr (zmessage);
+    char *read_only_s = zmsg_popstr (zmessage);
     bool read_only;
-    if (!read_only_str) {
+    if (read_only_s && streq (read_only_s, "READONLY")) {
+        read_only = true;
+    }
+    else if (read_only_s && streq (read_only_s, "READWRITE")) {
+        read_only = false;
+    }
+    else {
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
         mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+        zstr_free (&read_only_s);
         zmsg_destroy (&reply);
         return;
     }
-    else {
-        if (streq (read_only_str, "READONLY")) {
-            read_only = true;
-        }
-        else if (streq (read_only_str, "READWRITE")) {
-            read_only = false;
-        }
-        else {
-            zmsg_addstr (reply, "ERROR");
-            zmsg_addstr (reply, "BAD_COMMAND");
-            mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
-            zstr_free (&read_only_str);
-            zmsg_destroy (&reply);
-            return;
-        }
-    }
-    zstr_free (&read_only_str);
+    zstr_free (&read_only_s);
 
     if (!is_fty_proto (zmessage)) {
         log_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
+        zmsg_destroy (&reply);
         return;
     }
     fty_proto_t *fmsg = fty_proto_decode (zmessage_p);
     if (! fmsg) {
         log_error ("%s:\tASSET_MANIPULATION: failed to decode message", cfg->name);
+        zmsg_destroy (&reply);
         return;
     }
 
@@ -860,6 +852,7 @@ static void
                 zmsg_addstr (reply, "Licensing limitation hit - maximum amount of active power devices allowed in license reached.");
                 mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
                 fty_proto_destroy (&fmsg);
+                zmsg_destroy (&reply);
                 return;
             }
             if (LICENSING_GLOBAL_CONFIGURABILITY_DISABLED == dbreply.errsubtype) {
@@ -869,16 +862,17 @@ static void
                 zmsg_addstr (reply, "Licensing limitation hit - asset manipulation is prohibited.");
                 mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
                 fty_proto_destroy (&fmsg);
+                zmsg_destroy (&reply);
                 return;
             }
         }
-        else
-        if (! dbreply.status) {
+        else if (! dbreply.status) {
             log_error ("Failed to create asset!");
             fty_proto_print (fmsg);
             zmsg_addstr (reply, "ERROR");
             mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
             fty_proto_destroy (&fmsg);
+            zmsg_destroy (&reply);
             return;
         }
         zmsg_addstr (reply, "OK");
@@ -887,8 +881,10 @@ static void
         //publish on stream ASSETS
         s_send_create_or_update_asset (cfg, fty_proto_name (fmsg), operation, read_only);
         fty_proto_destroy (&fmsg);
+        zmsg_destroy (&reply);
         return;
     }
+
     // so far no operation implemented
     log_error ("%s:\tASSET_MANIPULATION: asset operation %s is not implemented", cfg->name, operation);
     zmsg_addstr (reply, "ERROR");
@@ -896,6 +892,7 @@ static void
     mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
 
     fty_proto_destroy (&fmsg);
+    zmsg_destroy (&reply);
 }
 
 static void
@@ -977,9 +974,10 @@ handle_incoming_limitations (fty_asset_server_t *cfg, fty_proto_t *metric)
                 // there was a change, so repeat all is mandatory
                 s_repeat_all (cfg);
             }
-        } else if (streq (fty_proto_type(metric), "configurability.global")) {
-        log_debug("Setting configurability/global to %s.", fty_proto_value (metric));
-        cfg->limitations.global_configurability = atoi (fty_proto_value (metric));
+        }
+        else if (streq (fty_proto_type(metric), "configurability.global")) {
+            log_debug("Setting configurability/global to %s.", fty_proto_value (metric));
+            cfg->limitations.global_configurability = atoi (fty_proto_value (metric));
         }
     }
 }
@@ -1008,7 +1006,7 @@ fty_asset_server (zsock_t *pipe, void *args)
         if ( !which ) {
             // cannot expire as waiting until infinity
             // so it is interrupted
-            break;
+            break; //while
         }
 
         if (which == pipe) {
@@ -1020,10 +1018,9 @@ fty_asset_server (zsock_t *pipe, void *args)
                 log_info ("%s:\tGot $TERM", cfg->name);
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
-                goto exit;
+                break; //while
             }
-            else
-            if (streq (cmd, "CONNECTSTREAM")) {
+            else if (streq (cmd, "CONNECTSTREAM")) {
                 char* endpoint = zmsg_popstr (msg);
                 char *stream_name = zsys_sprintf ("%s-stream", cfg->name);
                 int rv = mlm_client_connect (cfg->stream_client, endpoint, 1000, stream_name);
@@ -1034,8 +1031,7 @@ fty_asset_server (zsock_t *pipe, void *args)
                 zstr_free (&stream_name);
                 zsock_signal (pipe, 0);
             }
-            else
-            if (streq (cmd, "PRODUCER")) {
+            else if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
                 cfg->test = streq (stream, "ASSETS-TEST");
                 int rv = mlm_client_set_producer (cfg->stream_client, stream);
@@ -1045,8 +1041,7 @@ fty_asset_server (zsock_t *pipe, void *args)
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
             }
-            else
-            if (streq (cmd, "CONSUMER")) {
+            else if (streq (cmd, "CONSUMER")) {
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
                 int rv = mlm_client_set_consumer (cfg->stream_client, stream, pattern);
@@ -1057,8 +1052,7 @@ fty_asset_server (zsock_t *pipe, void *args)
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
             }
-            else
-            if (streq (cmd, "CONNECTMAILBOX")) {
+            else if (streq (cmd, "CONNECTMAILBOX")) {
                 char* endpoint = zmsg_popstr (msg);
                 int rv = mlm_client_connect (cfg->mailbox_client, endpoint, 1000, cfg->name);
                 if (rv == -1) {
@@ -1067,13 +1061,11 @@ fty_asset_server (zsock_t *pipe, void *args)
                 zstr_free (&endpoint);
                 zsock_signal (pipe, 0);
             }
-            else
-            if (streq (cmd, "REPEAT_ALL")) {
+            else if (streq (cmd, "REPEAT_ALL")) {
                 s_repeat_all (cfg);
                 log_debug ("%s:\tREPEAT_ALL end", cfg->name);
             }
-            else
-            {
+            else {
                 log_info ("%s:\tUnhandled command %s", cfg->name, cmd);
             }
             zstr_free (&cmd);
@@ -1085,32 +1077,27 @@ fty_asset_server (zsock_t *pipe, void *args)
         // and doesn't do anything if there are no messages
         else if (which == mlm_client_msgpipe (cfg->mailbox_client)) {
             zmsg_t *zmessage = mlm_client_recv (cfg->mailbox_client);
-            if ( zmessage == NULL ) {
+            if (zmessage == NULL) {
                 continue;
             }
             std::string subject = mlm_client_subject (cfg->mailbox_client);
-            if (subject == "TOPOLOGY")
+            if (subject == "TOPOLOGY") {
                 s_handle_subject_topology (cfg, zmessage);
-            else
-            if (subject == "ASSETS_IN_CONTAINER")
+            }
+            else if (subject == "ASSETS_IN_CONTAINER") {
                 s_handle_subject_assets_in_container (cfg, zmessage);
-            else
-            if (subject == "ASSETS")
+            }
+            else if (subject == "ASSETS") {
                 s_handle_subject_assets (cfg, zmessage);
-            else
-            if (subject == "ENAME_FROM_INAME") {
+            }
+            else if (subject == "ENAME_FROM_INAME") {
                 s_handle_subject_ename_from_iname(cfg, zmessage);
             }
-            else
-            if (subject == "REPUBLISH") {
-
+            else if (subject == "REPUBLISH") {
                 zmsg_print (zmessage);
                 log_trace ("REPUBLISH received from '%s'",mlm_client_sender (cfg->mailbox_client));
                 char *asset = zmsg_popstr (zmessage);
-                if (!asset)
-                    s_repeat_all (cfg);
-                else if (streq (asset, "$all")) {
-                    zstr_free (&asset);
+                if (!asset || streq (asset, "$all")) {
                     s_repeat_all (cfg);
                 }
                 else {
@@ -1122,43 +1109,41 @@ fty_asset_server (zsock_t *pipe, void *args)
                     }
                     s_repeat_all (cfg, assets_to_publish);
                 }
+                zstr_free (&asset);
             }
-            else
-            if (subject == "ASSET_MANIPULATION") {
+            else if (subject == "ASSET_MANIPULATION") {
                 s_handle_subject_asset_manipulation (cfg, &zmessage);
             }
-            else
-            if (subject == "ASSET_DETAIL") {
+            else if (subject == "ASSET_DETAIL") {
                 s_handle_subject_asset_detail (cfg, &zmessage);
             }
-            else
+            else {
                 log_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
+            }
             zmsg_destroy (&zmessage);
         }
         else if (which == mlm_client_msgpipe (cfg->stream_client)) {
             zmsg_t *zmessage = mlm_client_recv (cfg->stream_client);
-            if ( zmessage == NULL ) {
+            if (zmessage == NULL) {
                 continue;
             }
             if ( is_fty_proto (zmessage) ) {
                 fty_proto_t *bmsg = fty_proto_decode (&zmessage);
-                if ( fty_proto_id (bmsg) == FTY_PROTO_ASSET ) {
+                if (fty_proto_id (bmsg) == FTY_PROTO_ASSET) {
                     s_update_topology (cfg, bmsg);
-                } else if ( fty_proto_id (bmsg) == FTY_PROTO_METRIC ) {
+                }
+                else if (fty_proto_id (bmsg) == FTY_PROTO_METRIC) {
                     handle_incoming_limitations (cfg, bmsg);
                 }
                 fty_proto_destroy (&bmsg);
             }
-            else {
-                // DO NOTHING for now
-                zmsg_destroy (&zmessage);
-            }
+            zmsg_destroy (&zmessage);
         }
         else {
             // DO NOTHING for now
         }
     }
-exit:
+
     log_info ("%s:\tended", cfg->name);
     //TODO:  save info to persistence before I die
     zpoller_destroy (&poller);
