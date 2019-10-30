@@ -38,8 +38,8 @@ FTY_ASSET_PRIVATE int
     topology_power_process (const std::string & command, const std::string & assetName, std::string & result, bool beautify = true);
 
 // Retrieve the closest powerchain which powers a requested target asset
-// implementation of REST /api/v1/topology/power?to (see RFC11) filtered on dst-id == assetName
-// ASSETNAME is the subject of the command
+// implementation of REST /api/v1/topology/power?to (see RFC11) **filtered** on dst-id == assetName
+// ASSETNAME is the target asset
 // On success, RESULT is valid (JSON payload)
 // Returns 0 if success, else <0
 FTY_ASSET_PRIVATE int
