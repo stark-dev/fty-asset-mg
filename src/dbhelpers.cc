@@ -533,34 +533,6 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
     }
     log_debug ("  element_name = '%s'", element_name.c_str ());
 
-    /*if (limitations->max_active_power_devices >= 0 && type_id == persist::asset_type::DEVICE && streq (status, "active")) {
-        std::string db_status = get_status_from_db (element_name.c_str (), test);
-        // limit applies only to assets that are attempted to be activated, but are disabled in database
-        // or to new assets, also may trigger in case of DB failure, but that's fine
-        if (db_status != "active") {
-            switch (subtype_id) {
-                default:
-                // no default, not to generate warning
-                    break;
-                case persist::asset_subtype::PDU:
-                case persist::asset_subtype::GENSET:
-                case persist::asset_subtype::EPDU:
-                case persist::asset_subtype::UPS:
-                case persist::asset_subtype::STS:
-                    // check if power devices exceeded allowed limit
-                    int pd_active = get_active_power_devices(test);
-                    if (pd_active + 1 > limitations->max_active_power_devices) {
-                        // raise error if limit reached
-                        ret.status     = -1;
-                        ret.errtype    = LICENSING_ERR;
-                        ret.errsubtype = LICENSING_POWER_DEVICES_COUNT_REACHED;
-                        return ret;
-                    }
-                    break;
-            }
-        }
-    }*/
-
     // ASSUMPTION: all datacenters are unlocated elements
     if (type_id == persist::asset_type::DATACENTER && parent_id != 0)
     {
@@ -605,17 +577,11 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
     std::unique_ptr<fty::FullAsset> assetSmartPtr = fty::getFullAssetFromFtyProto (fmsg);
     fty::FullAsset *assetPtr = assetSmartPtr.get();
 
-    cxxtools::SerializationInfo rootSi;
-    rootSi <<= *assetPtr;
-    std::ostringstream assetJsonStream;
-    cxxtools::JsonSerializer serializer (assetJsonStream);
-    serializer.serialize (rootSi).finish ();
-
     mlm::MlmSyncClient client (AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
     fty::AssetActivator activationAccessor (client);
     if (should_activate (operation, current_status, status))
     {
-        if (!activationAccessor.isActivable (assetJsonStream.str()))
+        if (!activationAccessor.isActivable (*assetPtr))
         {
             ret.status     = -1;
             ret.errtype    = LICENSING_ERR;
@@ -691,22 +657,18 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
             log_debug ("Insert went well, processing inventory.");
         process_insert_inventory (fty_proto_name (fmsg), fty_proto_ext (fmsg), read_only, false);
 
-        // if asset was created, name has changed and we must re-serialize
+        // if asset was created, name has changed and we must re-create the object
         if (create)
         {
             assetSmartPtr = fty::getFullAssetFromFtyProto (fmsg);
             assetPtr = assetSmartPtr.get();
-
-            rootSi <<= *assetPtr;
-            cxxtools::JsonSerializer serializer (assetJsonStream);
-            serializer.serialize (rootSi).finish ();
         }
 
         if (should_activate (operation, current_status, status))
         {
             try
             {
-                activationAccessor.activate (assetJsonStream.str());
+                activationAccessor.activate (*assetPtr);
             }
             catch (const std::exception &e)
             {
@@ -718,7 +680,7 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
         {
             try
             {
-                activationAccessor.deactivate (assetJsonStream.str());
+                activationAccessor.deactivate (*assetPtr);
             }
             catch (const std::exception &e)
             {
