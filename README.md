@@ -83,22 +83,24 @@ It is possible to request the fty-asset agent for:
 The USER peer sends the following messages using MAILBOX SEND to
 FTY-ASSET-AGENT ("asset-agent") peer:
 
-* TOPOLOGY\_POWER/'asset-iname'
+* POWER/'uuid'/'asset-iname'
 
 where
 * '/' indicates a multipart string message
 * 'asset-iname' MUST be the asset iname
+* 'uuid' is the correlation id of the message
 * subject of the message MUST be TOPOLOGY
 
 The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
-* TOPOLOGY\_POWER/'asset-iname'/OK/'D1'/.../'Dn'
-* TOPOLOGY\_POWER/'asset-iname'/ERROR/reason
+* 'uuid'/REPLY/POWER/'asset-iname'/OK/'D1'/.../'Dn'
+* 'uuid'/REPLY/POWER/'asset-iname'/ERROR/reason
 
 where
 * '/' indicates a multipart frame message
 * 'asset-iname' MUST be the same as in request
+* 'uuid' MUST be the same as in request
 * 'D1',...,'Dn' MUST be assets in the power topology of 'asset-iname'
 * 'reason' is string detailing reason for error. Possible values are:
 
@@ -110,27 +112,29 @@ where
 The USER peer sends the following messages using MAILBOX SEND to
 FTY-ASSET-AGENT ("asset-agent") peer:
 
-* TOPOLOGY\_POWER\_TO/'asset-iname'
+* POWER\_TO/'uuid'/'asset-iname'
 
 where
 * '/' indicates a multipart string message
 * 'asset-iname' MUST be the asset iname
+* 'uuid' is the correlation id of the message
 * subject of the message MUST be TOPOLOGY
 
 The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
-* TOPOLOGY\_POWER\_TO/'asset-iname'/OK/\<powerchains\>
-* TOPOLOGY\_POWER\_TO/'asset-iname'/ERROR/reason
+* 'uuid'/REPLY/POWER\_TO/'asset-iname'/OK/\<powerchains\>
+* 'uuid'/REPLY/POWER\_TO/'asset-iname'/ERROR/reason
 
 where
 * '/' indicates a multipart frame message
 * 'asset-iname' MUST be the same as in request
+* 'uuid' MUST be the same as in request
 * 'reason' is a string detailing reason for error. Possible values are:
 
-     INTERNAL\_ERROR
+     INTERNAL\_ERROR / MISSING\_PARAMETER
 * subject of the message MUST be TOPOLOGY
-* \<powerchains\> is a frame (JSON format) as:
+* \<powerchains\> is a unique frame (JSON format) as:
 ```bash
 {
     "asset-id": "<asset-iname>",
@@ -153,13 +157,15 @@ where
     * 'D1',...,'Dn' the assets in the upstream powerchain topology of 'asset-iname'
     * 'D1-id'...,'Dn-id' the corresponding socket identifiers (src-id outlet)
 
-Example bmsg request:
+Example of bmsg request:
 ```bash
-bmsg request asset-agent TOPOLOGY TOPOLOGY_POWER_TO server-17
+bmsg request asset-agent TOPOLOGY POWER_TO 1234 server-17
 ```
-with response:
+with response (unique frame for the JSON payload):
 ```bash
-TOPOLOGY_POWER_TO
+1234
+REPLY
+POWER_TO
 server-17
 OK
 {
