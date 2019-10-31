@@ -252,17 +252,17 @@ fty_asset_server_destroy (fty_asset_server_t **self_p)
 
 // =============================================================================
 // TOPOLOGY/POWER command processing
-// bmsg request asset-agent TOPOLOGY POWER <uuid> <assetID>
+// bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWER <assetID>
 // =============================================================================
 
 static void
     s_process_TopologyPower(
         fty_asset_server_t *cfg,
-        const char *uuid,
-        const char *asset_name)
+        const char *asset_name,
+        zmsg_t *reply)
 {
     assert(cfg);
-    assert(uuid);
+    assert(reply);
 
     log_debug ("%s:\tTOPOLOGY POWER asset_name: %s", cfg->name, asset_name);
 
@@ -271,56 +271,44 @@ static void
     std::string assetName(asset_name ? asset_name : "asset_undefined");
 
     // select power devices
-    int rv = select_devices_total_power(assetName, powerDevices, cfg->test);
+    int r = select_devices_total_power(assetName, powerDevices, cfg->test);
 
-    // message model always enforce reply
-    zmsg_t *msg = zmsg_new ();
-    zmsg_addstr (msg, uuid);
-    zmsg_addstr (msg, "REPLY");
-    zmsg_addstr (msg, "POWER");
-    zmsg_addstr (msg, assetName.c_str());
+    zmsg_addstr (reply, assetName.c_str());
 
     // form a message according the contract for the case "OK" and for the case "ERROR"
-    if (rv == -1) {
+    if (r == -1) {
         log_error ("%s:\tTOPOLOGY POWER: Cannot select power sources", cfg->name);
-        zmsg_addstr (msg, "ERROR");
-        zmsg_addstr (msg, "INTERNAL_ERROR");
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "INTERNAL_ERROR");
     }
-    else if (rv == -2) {
-        log_debug ("%s:\tTOPOLOGY POWER: Asset was not found", cfg->name);
-        zmsg_addstr (msg, "ERROR");
-        zmsg_addstr (msg, "ASSET_NOT_FOUND");
+    else if (r == -2) {
+        log_error ("%s:\tTOPOLOGY POWER: Asset was not found", cfg->name);
+        zmsg_addstr (reply, "ERROR");
+        zmsg_addstr (reply, "ASSET_NOT_FOUND");
     }
     else {
-        zmsg_addstr (msg, "OK");
+        zmsg_addstr (reply, "OK");
         log_debug ("%s:\tPower topology for '%s':", cfg->name, assetName.c_str());
         for (const auto &powerDeviceName : powerDevices ) {
             log_debug ("%s:\t\t%s", cfg->name, powerDeviceName.c_str());
-            zmsg_addstr (msg, powerDeviceName.c_str());
+            zmsg_addstr (reply, powerDeviceName.c_str());
         }
     }
-
-    rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &msg);
-    if (rv != 0) {
-        log_error ("%s:\tTOPOLOGY POWER: cannot send response message", cfg->name);
-    }
-
-    zmsg_destroy(&msg);
 }
 
 // =============================================================================
 // TOPOLOGY/POWER_TO command processing
-// bmsg request asset-agent TOPOLOGY POWER_TO <uuid> <assetID>
+// bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWER_TO <assetID>
 // =============================================================================
 
 static void
     s_process_TopologyPowerTo(
         fty_asset_server_t *cfg,
-        const char *uuid,
-        const char *asset_name)
+        const char *asset_name,
+        zmsg_t *reply)
 {
     assert(cfg);
-    assert(uuid);
+    assert(reply);
 
     log_debug ("%s:\tTOPOLOGY POWER_TO asset_name: %s", cfg->name, asset_name);
 
@@ -328,49 +316,37 @@ static void
     std::string result; // JSON payload
     int r = topology_power_to (assetName, result);
 
-    // message model always enforce reply
-    zmsg_t *msg = zmsg_new ();
-    zmsg_addstr (msg, uuid);
-    zmsg_addstr (msg, "REPLY");
-    zmsg_addstr (msg, "POWER_TO");
-    zmsg_addstr (msg, assetName.c_str());
+    zmsg_addstr (reply, assetName.c_str());
 
     if (r != 0) {
         log_error ("%s:\tTOPOLOGY POWER_TO r: %d", cfg->name, r);
-        zmsg_addstr (msg, "ERROR");
+        zmsg_addstr (reply, "ERROR");
         if (!asset_name)
-            zmsg_addstr (msg, "MISSING_PARAMETER");
+            zmsg_addstr (reply, "MISSING_PARAMETER");
         else
-            zmsg_addstr (msg, "INTERNAL_ERROR");
+            zmsg_addstr (reply, "INTERNAL_ERROR");
     }
     else {
-        zmsg_addstr (msg, "OK");
-        zmsg_addstr (msg, result.c_str()); // JSON in one frame
+        zmsg_addstr (reply, "OK");
+        zmsg_addstr (reply, result.c_str()); // JSON in one frame
     }
-
-    r = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &msg);
-    if (r != 0) {
-        log_error ("%s:\tTOPOLOGY POWER_TO: cannot send response message", cfg->name);
-    }
-
-    zmsg_destroy(&msg);
 }
 
 // =============================================================================
 // TOPOLOGY/POWERCHAINS command processing
-// bmsg request asset-agent TOPOLOGY POWERCHAINS <uuid> <select_cmd> <assetID>
+// bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWERCHAINS <select_cmd> <assetID>
 // <select_cmd> in {"to", "for", "filter_dc", "filter_group"}
 // =============================================================================
 
 static void
     s_process_TopologyPowerchains(
         fty_asset_server_t *cfg,
-        const char *uuid,
         const char *select_cmd,
-        const char *asset_name)
+        const char *asset_name,
+        zmsg_t *reply)
 {
     assert(cfg);
-    assert(uuid);
+    assert(reply);
 
     log_debug ("%s:\tTOPOLOGY POWERCHAINS select_cmd: %s, asset_name: %s", cfg->name, select_cmd, asset_name);
 
@@ -379,40 +355,28 @@ static void
     std::string result; // JSON payload
     int r = topology_power_process (command, assetName, result);
 
-    // message model always enforce reply
-    zmsg_t *msg = zmsg_new ();
-    zmsg_addstr (msg, uuid);
-    zmsg_addstr (msg, "REPLY");
-    zmsg_addstr (msg, "POWERCHAINS");
-    zmsg_addstr (msg, assetName.c_str());
+    zmsg_addstr (reply, assetName.c_str());
 
     if (r != 0) {
         log_error ("%s:\tTOPOLOGY POWERCHAINS r: %d", cfg->name, r);
-        zmsg_addstr (msg, "ERROR");
+        zmsg_addstr (reply, "ERROR");
         if (!(select_cmd && asset_name))
-            zmsg_addstr (msg, "MISSING_PARAMETER");
+            zmsg_addstr (reply, "MISSING_PARAMETER");
         else
-            zmsg_addstr (msg, "INTERNAL_ERROR");
+            zmsg_addstr (reply, "INTERNAL_ERROR");
     }
     else {
-        zmsg_addstr (msg, "OK");
-        zmsg_addstr (msg, result.c_str()); // JSON in one frame
+        zmsg_addstr (reply, "OK");
+        zmsg_addstr (reply, result.c_str()); // JSON in one frame
     }
-
-    r = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &msg);
-    if (r != 0) {
-        log_error ("%s:\tTOPOLOGY POWERCHAINS: cannot send response message", cfg->name);
-    }
-
-    zmsg_destroy(&msg);
 }
 
 // =============================================================================
 //         Functionality for TOPOLOGY processing
 // =============================================================================
-// bmsg request asset-agent TOPOLOGY POWER <uuid> <assetID>
-// bmsg request asset-agent TOPOLOGY POWER_TO <uuid> <assetID>
-// bmsg request asset-agent TOPOLOGY POWERCHAINS <uuid> <select_cmd> <assetID>
+// bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWER <assetID>
+// bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWER_TO <assetID>
+// bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWERCHAINS <select_cmd> <assetID>
 // =============================================================================
 
 static void
@@ -423,48 +387,67 @@ static void
     assert (msg);
     assert (cfg);
 
-    char *command = zmsg_popstr (msg);
+    char *message_type = zmsg_popstr (msg);
     char *uuid = zmsg_popstr (msg);
+    char *command = zmsg_popstr (msg);
 
-    if (!command) {
-        log_error ("%s:\tUndefined command argument for subject=TOPOLOGY", cfg->name);
+    log_debug("%s:\tmessage_type: %s, uuid: %s, command: %s", cfg->name, message_type, uuid, command);
+
+    if (!message_type) {
+        log_error ("%s:\tExpected message_type for subject=TOPOLOGY", cfg->name);
     }
     else if (!uuid) {
-        log_error ("%s:\tUndefined uuid argument for subject=TOPOLOGY, command=%s", cfg->name, command);
+        log_error ("%s:\tExpected uuid for subject=TOPOLOGY", cfg->name);
     }
-    else if (streq (command, "POWER")) {
-        char *asset_name = zmsg_popstr (msg);
-        s_process_TopologyPower (cfg, uuid, asset_name);
-        zstr_free (&asset_name);
-    }
-    else if (streq (command, "POWER_TO")) {
-        char *asset_name = zmsg_popstr (msg);
-        s_process_TopologyPowerTo (cfg, uuid, asset_name);
-        zstr_free (&asset_name);
-    }
-    else if (streq (command, "POWERCHAINS")) {
-        char *select_cmd = zmsg_popstr (msg);
-        char *asset_name = zmsg_popstr (msg);
-        s_process_TopologyPowerchains (cfg, uuid, select_cmd, asset_name);
-        zstr_free (&asset_name);
-        zstr_free (&select_cmd);
+    else if (!command) {
+        log_error ("%s:\tExpected command for subject=TOPOLOGY", cfg->name);
     }
     else {
-        log_error ("%s:\tUnknown command for subject=TOPOLOGY '%s'", cfg->name, command);
-
         // message model always enforce reply
-        zmsg_t *msg = zmsg_new ();
-        zmsg_addstr (msg, uuid);
-        zmsg_addstr (msg, "REPLY");
-        zmsg_addstr (msg, command);
-        zmsg_addstr (msg, "ERROR"); // status
-        zmsg_addstr (msg, "COMMAND_UNKNONW");
-        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &msg);
-        zmsg_destroy(&msg);
+        zmsg_t *reply = zmsg_new ();
+        zmsg_addstr (reply, uuid);
+        zmsg_addstr (reply, "REPLY");
+        zmsg_addstr (reply, command);
+
+        if (!streq(message_type, "REQUEST")) {
+            log_error ("%s:\tExpected REQUEST message_type for subject=TOPOLOGY (message_type: %s)", cfg->name, message_type);
+            zmsg_addstr (reply, "ERROR"); // status
+            zmsg_addstr (reply, "REQUEST_MSGTYPE_EXPECTED"); // reason
+        }
+        else if (streq (command, "POWER")) {
+            char *asset_name = zmsg_popstr (msg);
+            s_process_TopologyPower (cfg, asset_name, reply);
+            zstr_free (&asset_name);
+        }
+        else if (streq (command, "POWER_TO")) {
+            char *asset_name = zmsg_popstr (msg);
+            s_process_TopologyPowerTo (cfg, asset_name, reply);
+            zstr_free (&asset_name);
+        }
+        else if (streq (command, "POWERCHAINS")) {
+            char *select_cmd = zmsg_popstr (msg);
+            char *asset_name = zmsg_popstr (msg);
+            s_process_TopologyPowerchains (cfg, select_cmd, asset_name, reply);
+            zstr_free (&asset_name);
+            zstr_free (&select_cmd);
+        }
+        else {
+            log_error ("%s:\tUnexpected command for subject=TOPOLOGY (%s)", cfg->name, command);
+            zmsg_addstr (reply, "ERROR"); // status
+            zmsg_addstr (reply, "UNEXPECTED_COMMAND"); // reason
+        }
+
+        // send reply
+        int r = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &reply);
+        if (r != 0) {
+            log_error ("%s:\tTOPOLOGY %s: cannot send response message", command, cfg->name);
+        }
+        zmsg_destroy(&reply);
     }
 
-    zstr_free (&uuid);
     zstr_free (&command);
+    zstr_free (&uuid);
+    zstr_free (&message_type);
 }
 
 static void
@@ -1355,8 +1338,9 @@ fty_asset_server_test (bool verbose)
         const char *command = "POWER";
         const char *uuid = "123456";
         zmsg_t *msg = zmsg_new();
-        zmsg_addstr (msg, command);
+        zmsg_addstr (msg, "REQUEST");
         zmsg_addstr (msg, uuid);
+        zmsg_addstr (msg, command);
         zmsg_addstr (msg, asset_name);
         int rv = mlm_client_sendto (ui, asset_server_test_name, subject, NULL, 5000, &msg);
         assert (rv == 0);

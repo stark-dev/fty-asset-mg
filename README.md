@@ -83,7 +83,7 @@ It is possible to request the fty-asset agent for:
 The USER peer sends the following messages using MAILBOX SEND to
 FTY-ASSET-AGENT ("asset-agent") peer:
 
-* POWER/'uuid'/'asset-iname'
+* REQUEST/'uuid'/POWER/'asset-iname'
 
 where
 * '/' indicates a multipart string message
@@ -105,14 +105,18 @@ where
 * 'reason' is string detailing reason for error. Possible values are:
 
      ASSET\_NOT\_FOUND / INTERNAL\_ERROR
-* subject of the message MUST be TOPOLOGY
+
+Example of bmsg request:
+```bash
+bmsg request asset-agent TOPOLOGY REQUEST 1234 POWER server-17
+```
 
 #### Upstream topology of the nearest energy chain of a powered asset
 
 The USER peer sends the following messages using MAILBOX SEND to
 FTY-ASSET-AGENT ("asset-agent") peer:
 
-* POWER\_TO/'uuid'/'asset-iname'
+* REQUEST/'uuid'/POWER\_TO/'asset-iname'
 
 where
 * '/' indicates a multipart string message
@@ -133,7 +137,6 @@ where
 * 'reason' is a string detailing reason for error. Possible values are:
 
      INTERNAL\_ERROR / MISSING\_PARAMETER
-* subject of the message MUST be TOPOLOGY
 * \<powerchains\> is a unique frame (JSON format) as:
 ```bash
 {
@@ -159,7 +162,7 @@ where
 
 Example of bmsg request:
 ```bash
-bmsg request asset-agent TOPOLOGY POWER_TO 1234 server-17
+bmsg request asset-agent TOPOLOGY REQUEST 1234 POWER_TO server-17
 ```
 with response (unique frame for the JSON payload):
 ```bash
@@ -183,6 +186,42 @@ OK
 		}
 	]
 }
+```
+
+#### Powerchains topology of a powered asset
+
+The USER peer sends the following messages using MAILBOX SEND to
+FTY-ASSET-AGENT ("asset-agent") peer:
+
+* REQUEST/'uuid'/POWERCHAINS/'command'/'asset-iname'
+
+where
+* '/' indicates a multipart string message
+* 'command' MUST be 'from', 'to', 'filter_dc' or 'filter_group'
+* 'asset-iname' MUST be the asset iname
+* 'uuid' is the correlation id of the message
+* subject of the message MUST be TOPOLOGY
+
+The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
+peer using MAILBOX SEND.
+
+* 'uuid'/REPLY/POWERCHAINS/'asset-iname'/OK/\<powerchains\>
+* 'uuid'/REPLY/POWERCHAINS/'asset-iname'/ERROR/reason
+
+where
+* '/' indicates a multipart frame message
+* 'asset-iname' MUST be the same as in request
+* 'uuid' MUST be the same as in request
+* 'reason' is a string detailing reason for error. Possible values are:
+
+     INTERNAL\_ERROR / MISSING\_PARAMETER
+* \<powerchains\> is a unique frame (JSON format) as:
+
+    to be documented
+
+Example of bmsg request:
+```bash
+bmsg request asset-agent TOPOLOGY REQUEST 1234 POWERCHAINS to server-17
 ```
 
 #### Republishing assets
