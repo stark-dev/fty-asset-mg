@@ -575,13 +575,12 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
     }
 
     std::unique_ptr<fty::FullAsset> assetSmartPtr = fty::getFullAssetFromFtyProto (fmsg);
-    fty::FullAsset *assetPtr = assetSmartPtr.get();
 
     mlm::MlmSyncClient client (AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
     fty::AssetActivator activationAccessor (client);
     if (should_activate (operation, current_status, status))
     {
-        if (!activationAccessor.isActivable (*assetPtr))
+        if (!activationAccessor.isActivable (*assetSmartPtr))
         {
             ret.status     = -1;
             ret.errtype    = LICENSING_ERR;
@@ -661,14 +660,13 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
         if (create)
         {
             assetSmartPtr = fty::getFullAssetFromFtyProto (fmsg);
-            assetPtr = assetSmartPtr.get();
         }
 
         if (should_activate (operation, current_status, status))
         {
             try
             {
-                activationAccessor.activate (*assetPtr);
+                activationAccessor.activate (*assetSmartPtr);
             }
             catch (const std::exception &e)
             {
@@ -680,15 +678,12 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
         {
             try
             {
-                activationAccessor.deactivate (*assetPtr);
+                activationAccessor.deactivate (*assetSmartPtr);
             }
             catch (const std::exception &e)
             {
                 log_error ("Error during asset deactivation - %s", e.what());
             }
-
-            /*rv = activationAccessor.isActive (assetJsonStream.str());
-            log_info ("asset is active = %d", rv);*/
         }
 
         ret.status = 1;
@@ -698,7 +693,6 @@ create_or_update_asset (fty_proto_t *fmsg, bool read_only, bool test, LIMITATION
         ret.status     = 0;
         ret.errtype    = DB_ERR;
         ret.errsubtype = DB_ERROR_INTERNAL;
-        // bios_error_idx(ret.rowid, ret.msg, "internal-error", "Unspecified issue with database.");
         return ret;
     }
 }
