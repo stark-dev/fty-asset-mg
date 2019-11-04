@@ -350,7 +350,7 @@ static void
 
     log_debug ("%s:\tTOPOLOGY POWERCHAINS select_cmd: %s, asset_name: %s", cfg->name, select_cmd, asset_name);
 
-    std::string command(select_cmd ? select_cmd : "command_undefined");
+    std::string command(select_cmd ? select_cmd : "select_cmd_undefined");
     std::string assetName(asset_name ? asset_name : "asset_undefined");
     std::string result; // JSON payload
     int r = topology_power_process (command, assetName, result);
@@ -390,6 +390,7 @@ static void
     char *message_type = zmsg_popstr (msg);
     char *uuid = zmsg_popstr (msg);
     char *command = zmsg_popstr (msg);
+    zmsg_t *reply = zmsg_new ();
 
     log_debug("%s:\tmessage_type: %s, uuid: %s, command: %s", cfg->name, message_type, uuid, command);
 
@@ -402,9 +403,11 @@ static void
     else if (!command) {
         log_error ("%s:\tExpected command for subject=TOPOLOGY", cfg->name);
     }
+    else if (!reply) {
+        log_error ("%s:\tTOPOLOGY %s: reply allocation failed", cfg->name, command);
+    }
     else {
         // message model always enforce reply
-        zmsg_t *reply = zmsg_new ();
         zmsg_addstr (reply, uuid);
         zmsg_addstr (reply, "REPLY");
         zmsg_addstr (reply, command);
@@ -442,9 +445,9 @@ static void
         if (r != 0) {
             log_error ("%s:\tTOPOLOGY %s: cannot send response message", command, cfg->name);
         }
-        zmsg_destroy(&reply);
     }
 
+    zmsg_destroy (&reply);
     zstr_free (&command);
     zstr_free (&uuid);
     zstr_free (&message_type);
@@ -474,7 +477,7 @@ static void
 
     std::string container_name;
     char* c_container_name = zmsg_popstr (msg);
-    container_name = c_container_name;
+    container_name = c_container_name ? c_container_name : "";
     zstr_free (&c_container_name);
 
     std::set <std::string> filters;
@@ -483,10 +486,10 @@ static void
         filters.insert (filter);
         zstr_free (&filter);
     }
-    std::vector <std::string> assets;
-    int rv = 0;
 
     // if there is no error msg prepared, call SQL
+    std::vector <std::string> assets;
+    int rv = 0;
     if (zmsg_size (msg) == 0) {
         rv = select_assets_by_container (container_name, filters, assets, cfg->test);
     }
@@ -519,6 +522,9 @@ static void
         fty_asset_server_t *cfg,
         zmsg_t *msg)
 {
+    assert (msg);
+    assert (cfg);
+
     zmsg_t *reply = zmsg_new ();
     if (zmsg_size (msg) < 1) {
         log_error ("%s:\tENAME_FROM_INAME: incoming message have less than 1 frame", cfg->name);
@@ -530,11 +536,11 @@ static void
     }
 
     char *iname_str = zmsg_popstr (msg);
-    std::string iname (iname_str);
-    std::string ename;
-
-    select_ename_from_iname (iname, ename, cfg->test);
+    std::string iname (iname_str ? iname_str : "");
     zstr_free (&iname_str);
+
+    std::string ename;
+    select_ename_from_iname (iname, ename, cfg->test);
 
     if (ename.empty ()) {
         zmsg_addstr (reply, "ERROR");
