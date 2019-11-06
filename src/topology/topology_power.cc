@@ -32,7 +32,7 @@
 // copied from fty-rest src/web/src/topology_power.ecpp
 // C++ transformed
 // see also code in src/topology_power/
-// implementation of REST /api/v1/topology/power  (see RFC11)
+// implementation of REST /api/v1/topology/power (see RFC11)
 ////////////////////////////////////////////////////////////////////////
 
 /*!
@@ -362,5 +362,3 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
     zmsg_destroy (&return_msg);
     return 0; //ok
 }
-
-

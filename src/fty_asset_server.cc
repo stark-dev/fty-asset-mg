@@ -277,18 +277,23 @@ static void
 
     // form a message according the contract for the case "OK" and for the case "ERROR"
     if (r == -1) {
-        log_error ("%s:\tTOPOLOGY POWER: Cannot select power sources", cfg->name);
+        log_error ("%s:\tTOPOLOGY POWER: Cannot select power sources (%s)",
+            cfg->name, asset_name);
+
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "INTERNAL_ERROR");
     }
     else if (r == -2) {
-        log_error ("%s:\tTOPOLOGY POWER: Asset was not found", cfg->name);
+        log_error ("%s:\tTOPOLOGY POWER: Asset was not found (%s)",
+            cfg->name, asset_name);
+
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "ASSET_NOT_FOUND");
     }
     else {
+        log_debug ("%s:\tPower topology for '%s':", cfg->name, asset_name);
+
         zmsg_addstr (reply, "OK");
-        log_debug ("%s:\tPower topology for '%s':", cfg->name, assetName.c_str());
         for (const auto &powerDeviceName : powerDevices ) {
             log_debug ("%s:\t\t%s", cfg->name, powerDeviceName.c_str());
             zmsg_addstr (reply, powerDeviceName.c_str());
@@ -319,7 +324,9 @@ static void
     zmsg_addstr (reply, assetName.c_str());
 
     if (r != 0) {
-        log_error ("%s:\tTOPOLOGY POWER_TO r: %d", cfg->name, r);
+        log_error ("%s:\tTOPOLOGY POWER_TO r: %d (asset: %s)",
+            cfg->name, r, asset_name);
+
         zmsg_addstr (reply, "ERROR");
         if (!asset_name)
             zmsg_addstr (reply, "MISSING_PARAMETER");
@@ -335,7 +342,7 @@ static void
 // =============================================================================
 // TOPOLOGY/POWERCHAINS command processing
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWERCHAINS <select_cmd> <assetID>
-// <select_cmd> in {"to", "for", "filter_dc", "filter_group"}
+// <select_cmd> in {"to", "from", "filter_dc", "filter_group"}
 // =============================================================================
 
 static void
@@ -348,7 +355,8 @@ static void
     assert(cfg);
     assert(reply);
 
-    log_debug ("%s:\tTOPOLOGY POWERCHAINS select_cmd: %s, asset_name: %s", cfg->name, select_cmd, asset_name);
+    log_debug ("%s:\tTOPOLOGY POWERCHAINS select_cmd: %s, asset_name: %s",
+        cfg->name, select_cmd, asset_name);
 
     std::string command(select_cmd ? select_cmd : "select_cmd_undefined");
     std::string assetName(asset_name ? asset_name : "asset_undefined");
@@ -358,7 +366,54 @@ static void
     zmsg_addstr (reply, assetName.c_str());
 
     if (r != 0) {
-        log_error ("%s:\tTOPOLOGY POWERCHAINS r: %d", cfg->name, r);
+        log_error ("%s:\tTOPOLOGY POWERCHAINS r: %d (cmd: %s, asset: %s)",
+            cfg->name, r, select_cmd, asset_name);
+
+        zmsg_addstr (reply, "ERROR");
+        if (!(select_cmd && asset_name))
+            zmsg_addstr (reply, "MISSING_PARAMETER");
+        else
+            zmsg_addstr (reply, "INTERNAL_ERROR");
+    }
+    else {
+        zmsg_addstr (reply, "OK");
+        zmsg_addstr (reply, result.c_str()); // JSON in one frame
+    }
+}
+
+// =============================================================================
+// TOPOLOGY/LOCATION command processing
+// bmsg request asset-agent TOPOLOGY REQUEST <uuid> LOCATION <select_cmd> <assetID> <options>
+// <select_cmd> in {"to", "from"}
+// see topology_location_process() for allowed options
+// =============================================================================
+
+static void
+    s_process_TopologyLocation(
+        fty_asset_server_t *cfg,
+        const char *select_cmd,
+        const char *asset_name,
+        const char *cmd_options,
+        zmsg_t *reply)
+{
+    assert(cfg);
+    assert(reply);
+
+    log_debug ("%s:\tTOPOLOGY LOCATION select_cmd: %s, asset_name: %s (options: %s)",
+        cfg->name, select_cmd, asset_name, cmd_options);
+
+    std::string command(select_cmd ? select_cmd : "select_cmd_undefined");
+    std::string assetName(asset_name ? asset_name : "asset_undefined");
+    std::string options(cmd_options ? cmd_options : "");
+    std::string result; // JSON payload
+    int r = topology_location_process (command, assetName, options, result);
+
+    zmsg_addstr (reply, assetName.c_str());
+
+    if (r != 0) {
+        log_error ("%s:\tTOPOLOGY LOCATION r: %d (cmd: %s, asset: %s, options: %s)",
+            cfg->name, r, select_cmd, asset_name, cmd_options);
+
         zmsg_addstr (reply, "ERROR");
         if (!(select_cmd && asset_name))
             zmsg_addstr (reply, "MISSING_PARAMETER");
@@ -377,6 +432,7 @@ static void
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWER <assetID>
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWER_TO <assetID>
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWERCHAINS <select_cmd> <assetID>
+// bmsg request asset-agent TOPOLOGY REQUEST <uuid> LOCATION <select_cmd> <assetID> <options>
 // =============================================================================
 
 static void
@@ -431,6 +487,15 @@ static void
             char *select_cmd = zmsg_popstr (msg);
             char *asset_name = zmsg_popstr (msg);
             s_process_TopologyPowerchains (cfg, select_cmd, asset_name, reply);
+            zstr_free (&asset_name);
+            zstr_free (&select_cmd);
+        }
+        else if (streq (command, "LOCATION")) {
+            char *select_cmd = zmsg_popstr (msg);
+            char *asset_name = zmsg_popstr (msg);
+            char *options = zmsg_popstr (msg);
+            s_process_TopologyLocation (cfg, select_cmd, asset_name, options, reply);
+            zstr_free (&options);
             zstr_free (&asset_name);
             zstr_free (&select_cmd);
         }
