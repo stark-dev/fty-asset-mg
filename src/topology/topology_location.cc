@@ -130,7 +130,7 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
                 log_error("parameter-conflict, 'feed_by' can be specified only with 'filter=devices'");
                 return -4;
             }
-            if ( from == "none") {
+            if (from == "none") {
                 //std::string err =  TRANSLATE_ME("With variable 'feed_by' variable 'from' can not be 'none'");
                 //http_die("parameter-conflict", err.c_str ());
                 log_error("parameter-conflict, with 'feed_by', variable 'from' can not be 'none'");
@@ -219,7 +219,6 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
 static
 int s_topology_location_from (std::map<std::string, std::string> & param, std::string & json)
 {
-    log_debug("in");
     json = "";
 
     // ##################################################
@@ -312,32 +311,33 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
         if ( from.empty() ) {
             // pass control to next file in the chain
             log_error("DECLINED");
-            return REQUEST_DECLINED;
+            return REQUEST_DECLINED; // normally never happens
         }
 
         // From now on, we are sure, that we are qoing to respond on "location_from" request
 
         // 6. Check if 'from' has valid asset id
-        //http_errors_t errors;
-        //if ( from != "none" &&
-        //        !check_element_identifier ("from", from, checked_from, errors) ) {
-        //    //http_die_error (errors);
-        //    log_error ("'from' asset id is not valid (%s)", from.c_str());
-        //    return -8;
-        //}
+        if (from != "none") {
+            //http_errors_t errors;
+            //if (!check_element_identifier ("from", from, checked_from, errors)) {
+            //    //http_die_error (errors);
+            //    log_error ("'from' asset id is not valid (%s)", from.c_str());
+            //    return -8;
+            //}
 
-        int64_t checked_id = DBAssets::name_to_asset_id (from);
-        if (checked_id == -1) {
-            //std::string expected = TRANSLATE_ME("existing asset name");
-            //http_die ("request-param-bad", "id", asset_id.c_str (), expected.c_str ());
-            log_error("request-param-bad 'from' don't exist (%s)", from.c_str());
-            return -8;
-        }
-        if (checked_id == -2) {
-            //std::string err =  TRANSLATE_ME("Connecting to database failed.");
-            //http_die ("internal-error", err.c_str ());
-            log_error("db-connection-failed");
-            return -8;
+            int64_t checked_id = DBAssets::name_to_asset_id (from);
+            if (checked_id == -1) {
+                //std::string expected = TRANSLATE_ME("existing asset name");
+                //http_die ("request-param-bad", "id", asset_id.c_str (), expected.c_str ());
+                log_error("request-param-bad 'from' don't exist (%s)", from.c_str());
+                return -8;
+            }
+            if (checked_id == -2) {
+                //std::string err =  TRANSLATE_ME("Connecting to database failed.");
+                //http_die ("internal-error", err.c_str ());
+                log_error("db-connection-failed");
+                return -8;
+            }
         }
 
         if ( !feed_by.empty() ) {
@@ -399,7 +399,6 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
     _scoped_zmsg_t *return_msg = process_assettopology (DBConn::url.c_str(), &input_msg, checked_feed_by);
     if (return_msg == NULL) {
         log_error ("Function process_assettopology() returned a null pointer");
-        //LOG_END;
         //http_die("internal-error", "");
         return -20;
     }
@@ -411,14 +410,12 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
                 zmsg_destroy (&return_msg);
             }
             log_error ("common_msg_decode() failed");
-            //LOG_END;
             //http_die("internal-error", "");
             return -21;
         }
 
         if (common_msg_id (common_msg) == COMMON_MSG_FAIL) {
             log_error ("common_msg is COMMON_MSG_FAIL");
-            //LOG_END;
             switch(common_msg_errorno(common_msg)) {
                 case(DB_ERROR_NOTFOUND):
                     //http_die("element-not-found", std::to_string(checked_from).c_str());
@@ -433,7 +430,6 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
         }
         else {
             log_error ("Unexpected common_msg received. ID = %" PRIu32 , common_msg_id (common_msg));
-            //LOG_END;
             //http_die("internal-error", "");
             return -24;
         }
@@ -445,26 +441,22 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
                 zmsg_destroy (&return_msg);
             }
             log_error ("asset_msg_decode() failed");
-            //LOG_END;
             //http_die("internal-error", "");
             return -25;
         }
         if (asset_msg_id (asset_msg) != ASSET_MSG_RETURN_LOCATION_FROM) {
             log_error ("Unexpected asset_msg received. ID = %" PRIu32 , asset_msg_id (asset_msg));
-            //LOG_END;
             //http_die("internal-error", "");
             return -26;
         }
         if (asset_location_r(&asset_msg, json) != 0) { //HTTP_OK
             log_error ("unexpected error, during the reply parsing");
-            //LOG_END;
             //http_die("internal-error", "");
             return -27;
         }
     }
     else {
         log_error ("Unknown protocol");
-        //LOG_END;
         //http_die("internal-error", "");
         return -28;
     }
@@ -486,7 +478,6 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
 static
 int s_topology_location_to (std::map<std::string, std::string> & param, std::string & json)
 {
-    log_debug("in");
     json = "";
 
     // ##################################################
@@ -563,26 +554,22 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
     _scoped_asset_msg_t *input_msg = asset_msg_new (ASSET_MSG_GET_LOCATION_TO);
     assert (input_msg);
     asset_msg_set_element_id (input_msg, checked_to_num);
-
     _scoped_zmsg_t *return_msg = process_assettopology (DBConn::url.c_str(), &input_msg);
+    asset_msg_destroy(&input_msg);
+
     if (return_msg == NULL) {
         log_error ("Function process_assettopology() returned a null pointer");
-        //LOG_END;
         //http_die("internal-error", "");
         log_error("internal-error");
         return -8;
     }
 
-    assert (input_msg == NULL); // This is not testing czmq. It tests whether our code correctly nullifies a reference
-
     if (is_common_msg (return_msg)) {
         _scoped_common_msg_t *common_msg = common_msg_decode (&return_msg);
+        zmsg_destroy (&return_msg);
+
         if (common_msg == NULL) {
-            if (return_msg != NULL) {
-                zmsg_destroy (&return_msg);
-            }
             log_error ("common_msg_decode() failed");
-            //LOG_END;
             //http_die("internal-error", "");
             log_error("internal-error");
             return -9;
@@ -590,135 +577,122 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
 
         if (common_msg_id (common_msg) == COMMON_MSG_FAIL) {
             log_error ("common_msg is COMMON_MSG_FAIL");
-            //LOG_END;
             switch(common_msg_errorno(common_msg)) {
                 case(DB_ERROR_NOTFOUND):
                     //http_die("element-not-found", checked_to.c_str());
                     log_error("element-not-found (%s)", checked_to.c_str());
+                    common_msg_destroy(&common_msg);
                     return -10;
                 case(DB_ERROR_BADINPUT):
-                default:
-                    //http_die("internal-error", "");
-                    log_error("internal-error");
-                    return -11;
+                default:;
             }
+            //http_die("internal-error", "");
+            log_error("internal-error");
+            common_msg_destroy(&common_msg);
+            return -11;
         }
         else {
             log_error ("Unexpected common_msg received. ID = %" PRIu32 , common_msg_id (common_msg));
-            //LOG_END;
             //http_die("internal-error", "");
-            return -11;
+            common_msg_destroy(&common_msg);
+            return -12;
         }
     }
     else if (is_asset_msg (return_msg)) {
         _scoped_asset_msg_t *asset_msg = asset_msg_decode (&return_msg);
+        zmsg_destroy (&return_msg);
+
         if (asset_msg == NULL) {
-            if (return_msg != NULL) {
-                zmsg_destroy (&return_msg);
-            }
             log_error ("asset_msg_decode() failed");
-            //LOG_END;
             //http_die("internal-error", "");
-            return -12;
+            return -13;
         }
 
-        // <checked_to_num, type, contains, name, type_name>
-        std::stack<std::tuple <int, int, std::string, std::string, std::string>> stack;
-        std::string contains;
+        if (asset_msg_id (asset_msg) == ASSET_MSG_RETURN_LOCATION_TO)
+        {
+            // <checked_to_num, type, contains, name, type_name>
+            std::stack<std::tuple <int, int, std::string, std::string, std::string>> stack;
+            std::string contains; // empty
 
-        if (asset_msg_id (asset_msg) == ASSET_MSG_RETURN_LOCATION_TO) {
-            bool go = true;
-            do {
-                checked_to_num = asset_msg_element_id (asset_msg);
+            while (1) {
+                int64_t checked_to_num = asset_msg_element_id (asset_msg);
                 int type_id = asset_msg_type (asset_msg);
                 std::string name = asset_msg_name (asset_msg);
                 std::string type_name = asset_msg_type_name (asset_msg);
+
                 stack.push (make_tuple(checked_to_num, type_id, contains, name, type_name));
+
                 // I deliberately didn't want to use asset manager (unknown / ""; suffix s)
                 // TODO use special function
                 switch (type_id) {
                     case persist::asset_type::DATACENTER:
-                    {
                         contains = "datacenters";
                         break;
-                    }
                     case persist::asset_type::ROOM:
-                    {
                         contains = "rooms";
                         break;
-                    }
                     case persist::asset_type::ROW:
-                    {
                         contains = "rows";
                         break;
-                    }
                     case persist::asset_type::RACK:
-                    {
                         contains = "racks";
                         break;
-                    }
                     case persist::asset_type::GROUP:
-                    {
                         contains = "groups";
                         break;
-                    }
                     case persist::asset_type::DEVICE:
-                    {
                         contains = "devices";
                         break;
-                    }
-                    default:
-                    {
+                    default: {
                         log_error ("Unexpected asset type received in the response");
-                        //LOG_END;
                         //http_die("internal-error", "");
-                        return -13;
-                    }
-                }
-
-                if (zmsg_size (asset_msg_msg (asset_msg)) != 0) {
-                    _scoped_zmsg_t *inner = asset_msg_get_msg (asset_msg);
-                    asset_msg_destroy (&asset_msg);
-                    asset_msg = asset_msg_decode (&inner);
-
-                    if (asset_msg == NULL) {
-                        if (inner != NULL) {
-                            zmsg_destroy (&inner);
-                        }
-                        log_error ("asset_msg_decode() failed");
-                        //LOG_END;
-                        //http_die("internal-error", "");
+                        asset_msg_destroy (&asset_msg);
                         return -14;
                     }
-
-                    go = true;
-                } else {
-                    asset_msg_destroy (&asset_msg);
-                    go = false;
                 }
-            } while (go == true);
 
-            // Now go from top -> down
-            int counter = 0;
+                if (zmsg_size (asset_msg_msg (asset_msg)) == 0) {
+                    break; // while
+                }
+
+                // next
+                _scoped_zmsg_t *inner = asset_msg_get_msg (asset_msg);
+                asset_msg_destroy (&asset_msg);
+                asset_msg = asset_msg_decode (&inner);
+                zmsg_destroy (&inner);
+
+                if (asset_msg == NULL) {
+                    log_error ("asset_msg_decode() failed");
+                    //http_die("internal-error", "");
+                    return -15;
+                }
+            }
+            asset_msg_destroy (&asset_msg); // useless
+
+            // Now go from top -> down, build json payload
+
+            int counter = 0; // for 'contains'
             int indent = 0;
-            std::string json = "{\n";
             std::string ext_name;
-            while ( !stack.empty() ) {
+
+            json = "{\n";
+
+            while (!stack.empty()) {
                 // <checked_to_num, type, contains, name, type_name>
                 std::tuple<int, int, std::string, std::string, std::string> row = stack.top();
                 stack.pop();
+
                 std::pair <std::string,std::string> asset_names = DBAssets::id_to_name_ext_name (std::get<0>(row));
                 if (asset_names.first.empty () && asset_names.second.empty ()) {
                     //std::string err =  TRANSLATE_ME("Database failure");
                     //http_die ("internal-error", err.c_str ());
                     log_error("Database failure");
-                    return -15;
+                    return -16;
                 }
                 ext_name = asset_names.second;
 
                 indent++;
                 if (!std::get<2>(row).empty()) {
-                    counter++;
                     for (int i = 0; i < indent; i++) {
                         json.append ("\t");
                     }
@@ -742,10 +716,13 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
                     for (int i = 0; i < indent; i++) {
                         json.append ("\t");
                     }
+
+                    counter++;
                     json.append("\"contains\" : { \"")
                         .append(std::get<2>(row))
                         .append("\" : [{\n");
-                } else {
+                }
+                else {
                     for (int i = 0; i < indent; i++) {
                         json.append ("\t");
                     }
@@ -767,8 +744,9 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
                         .append(utils::strip (std::get<4>(row)))
                         .append("\"\n");
                 }
-
             }
+
+            // close contains objects
             for (int i = counter; i > 0; i--) {
                 indent--;
                 for (int j = 0; j < indent; j++) {
@@ -776,21 +754,24 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
                 }
                 json.append ("}]}\n");
             }
+
             json.append ("}");
         }
         else {
             log_error ("Unexpected asset_msg received. ID = %" PRIu32 , asset_msg_id (asset_msg));
-            //LOG_END;
             //http_die("internal-error", "");
-            return -16;
+            asset_msg_destroy (&asset_msg);
+            return -17;
         }
+        asset_msg_destroy (&asset_msg);
     }
     else {
+        zmsg_destroy (&return_msg);
         log_error ("Unknown protocol");
-        //LOG_END;
         //http_die("internal-error", "");
-        return -17;
+        return -18;
     }
+    zmsg_destroy (&return_msg);
 
     return 0; // ok
 }
@@ -806,20 +787,28 @@ int topology_location (std::map<std::string, std::string> & param, std::string &
 {
     json = "";
 
-    int r = -100; // unexpected param
-
     if (!param["from"].empty()) {
-        r = s_topology_location_from2(param, json);
+        int r = s_topology_location_from2(param, json);
         if (r == REQUEST_DECLINED) {
+            log_trace("s_topology_location_from2() has declined, call s_topology_location_from()");
             r = s_topology_location_from(param, json);
         }
-    }
-    else if (!param["to"].empty()) {
-        r = s_topology_location_to(param, json);
-    }
-    else {
-        log_error("unexpected parameter, 'from'/'to' must be defined");
+        if (r != 0) {
+            log_error("topology_location_from failed, r: %d", r);
+            return -1;
+        }
+        return 0; // ok
     }
 
-    return r;
+    if (!param["to"].empty()) {
+        int r = s_topology_location_to(param, json);
+        if (r != 0) {
+            log_error("topology_location_to failed, r: %d", r);
+            return -2;
+        }
+        return 0; // ok
+    }
+
+    log_error("unexpected parameter, 'from'/'to' must be defined");
+    return -3; // unexpected param
 }
