@@ -103,6 +103,7 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
         else if (!recursive.empty() && recursive != "false") {
             //http_die("request-param-bad", "recursive", recursive.c_str(), "'true'/'false'");
             log_error("request-param-bad, recursive must be 'true'/'false' (%s)", recursive.c_str());
+            param["error"] = TRANSLATE_ME("Recursive argument must be 'true'/'false'");
             return -2;
         }
 
@@ -118,6 +119,7 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
             else {
                 //http_die("request-param-bad","filter", filter.c_str(), "'rooms'/'rows'/'racks'/'groups'/'devices'");
                 log_error("request-param-bad, filter must be 'rooms'/'rows'/'racks'/'devices'/'groups' (%s)", filter.c_str());
+                param["error"] = TRANSLATE_ME("'filter' argument must be 'rooms'/'rows'/'racks'/'devices'/'groups'");
                 return -3;
             }
         }
@@ -128,6 +130,7 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
                 //std::string err =  TRANSLATE_ME("Variable 'feed_by' can be specified only with 'filter=devices'");
                 //http_die("parameter-conflict", err.c_str ());
                 log_error("parameter-conflict, 'feed_by' can be specified only with 'filter=devices'");
+                param["error"] = TRANSLATE_ME("'feed_by' argument can be specified only with 'filter=devices'");
                 return -4;
             }
             if (from == "none") {
@@ -140,6 +143,7 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
                 //std::string expected = TRANSLATE_ME("must be a power device.");
                 //http_die("request-param-bad", "feed_by", feed_by.c_str (), expected.c_str ());
                 log_error("request-param-bad, 'feed_by' must be a power device");
+                param["error"] = TRANSLATE_ME("'feed_by' argument must be a power device");
                 return -6;
             }
 
@@ -149,6 +153,7 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
         if (from.empty ()) {
             //http_die("request-param-bad", "from");
             log_error("request-param-bad, 'from' is not defined");
+            param["error"] = TRANSLATE_ME("'from' argument is not defined");
             return -7;
         }
 
@@ -164,7 +169,8 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
         if (fed_by.empty ()) {
             //std::string expected = TRANSLATE_ME("must be a device.");
             //http_die("request-param-bad", "feed_by", checked_feed_by.c_str(), expected.c_str ());
-            log_error("request-param-bad, 'feed_by' muust be a device");
+            log_error("request-param-bad, 'feed_by' must be a device");
+            param["error"] = TRANSLATE_ME("'feed_by' must be a device");
             return -8;
         }
     }
@@ -175,6 +181,7 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
         //std::string expected = TRANSLATE_ME("valid asset name.");
         //http_die("request-param-bad", "from", checked_from.c_str(), expected.c_str ());
         log_error("request-param-bad, 'from' is not a valid asset name");
+        param["error"] = TRANSLATE_ME("'from' is not a valid asset name (%s)", checked_from.c_str());
         return -9;
     }
 
@@ -243,6 +250,7 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
             //std::string err =  TRANSLATE_ME("Only one parameter can be specified at once: 'from' or 'to'");
             //http_die("parameter-conflict", err.c_str ());
             log_error("parameter-conflict, Only one parameter can be specified at once: 'from' or 'to'");
+            param["error"] = TRANSLATE_ME("Only one argument can be specified at once: 'from' or 'to'");
             return -1;
         }
 
@@ -250,6 +258,7 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
         if (from.empty() && to.empty()) {
             //http_die("request-param-required", "from/to");
             log_error("request-param-required 'from'/'to' is empty");
+            param["error"] = TRANSLATE_ME("'from' and 'to' arguments are empty");
             return -2;
         }
 
@@ -261,6 +270,7 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
         else if (!recursive.empty() && recursive != "false") {
             //http_die("request-param-bad", "recursive", recursive.c_str(), "'true'/'false'");
             log_error("request-param-bad 'recursive' must be 'true'/'false'");
+            param["error"] = TRANSLATE_ME("'recursive' argument must be 'true'/'false'");
             return -3;
         }
 
@@ -288,27 +298,30 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
             // Note: datacenter is not a valid filter parameter according to rfc-11 4.1.13
             //http_die("request-param-bad", "filter", filter.c_str(), "'rooms'/'rows'/'racks'/'groups'/'devices'");
             log_error("request-param-bad, 'filter' must be 'rooms'/'rows'/'racks'/'groups'/'devices'", filter.c_str());
+            param["error"] = TRANSLATE_ME("'filter' argument must be 'rooms'/'rows'/'racks'/'groups'/'devices'");
             return -4;
         }
 
         // 5. Check if 'feed_by' is allowed
-        if ( !feed_by.empty() ) {
+        if (!feed_by.empty()) {
             if ( checked_filter != persist::asset_type::DEVICE ) {
                 //std::string err =  TRANSLATE_ME("With variable 'feed_by' can be specified only 'filter=devices'");
                 //http_die("parameter-conflict", err.c_str ());
-                log_error("parameter-conflict, variable 'feed_by' can be specified only if 'filter=devices'");
+                log_error("parameter-conflict, 'feed_by' parameter can be specified only if 'filter=devices'");
+                param["error"] = TRANSLATE_ME("'feed_by' argument can be specified only if 'filter=devices'");
                 return -5;
             }
-            if ( from == "none" ) {
+            if (from == "none") {
                 //std::string err =  TRANSLATE_ME("With variable 'feed_by' variable 'from' can not be 'none'");
                 //http_die("parameter-conflict", err.c_str ());
-                log_error("parameter-conflict, With variable 'feed_by', variable 'from' can not be 'none'");
+                log_error("parameter-conflict, With parameter 'feed_by', parameter 'from' can not be 'none'");
+                param["error"] = TRANSLATE_ME("'from' argument can't be 'none' if 'feed_by' argument is set");
                 return -6;
             }
         }
 
         // 6. if it is not 'from' request, process it as 'to' request in another ecpp file
-        if ( from.empty() ) {
+        if (from.empty()) {
             // pass control to next file in the chain
             log_error("DECLINED");
             return REQUEST_DECLINED; // normally never happens
@@ -330,12 +343,14 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
                 //std::string expected = TRANSLATE_ME("existing asset name");
                 //http_die ("request-param-bad", "id", asset_id.c_str (), expected.c_str ());
                 log_error("request-param-bad 'from' don't exist (%s)", from.c_str());
+                param["error"] = TRANSLATE_ME("Asset not found (%s)", from.c_str ());
                 return -8;
             }
             if (checked_id == -2) {
                 //std::string err =  TRANSLATE_ME("Connecting to database failed.");
                 //http_die ("internal-error", err.c_str ());
                 log_error("db-connection-failed");
+                param["error"] = TRANSLATE_ME("Connection to database failed");
                 return -8;
             }
         }
@@ -352,35 +367,40 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
                 //std::string expected = TRANSLATE_ME("existing asset name");
                 //http_die ("request-param-bad", "id", asset_id.c_str (), expected.c_str ());
                 log_error("request-param-bad 'feed_by' don't exist (%s)", feed_by.c_str());
+                param["error"] = TRANSLATE_ME("Asset not found (%s)", feed_by.c_str ());
                 return -9;
             }
             if (checked_id == -2) {
                 //std::string err =  TRANSLATE_ME("Connecting to database failed.");
                 //http_die ("internal-error", err.c_str ());
                 log_error("db-connection-failed");
+                param["error"] = TRANSLATE_ME("Connection to database failed");
                 return -9;
             }
 
             asset_manager asset_mgr;
             auto tmp = asset_mgr.get_item1 (checked_feed_by);
-            if ( tmp.status == 0 ) {
-                switch ( tmp.errsubtype ) {
+            if (tmp.status == 0) {
+                switch (tmp.errsubtype) {
                     case DB_ERROR_NOTFOUND:
                         //http_die("element-not-found", std::to_string(checked_feed_by).c_str());
                         log_error("element-not-found 'feed_by' (%s)", feed_by.c_str());
+                        param["error"] = TRANSLATE_ME("Asset not found (%s)", feed_by.c_str ());
                         return -10;
                     case DB_ERROR_BADINPUT:
                     case DB_ERROR_INTERNAL:
                     default:
                         //http_die("internal-error", tmp.msg.c_str());
                         log_error("internal-error %s", tmp.msg.c_str());
-                        return -11;
+                        param["error"] = TRANSLATE_ME("Internal error");
                 }
+                return -11;
             }
             if ( tmp.item.basic.type_id != persist::asset_type::DEVICE ) {
                 //std::string expected = TRANSLATE_ME("be a device");
                 //http_die("request-param-bad", "feed_by", feed_by.c_str(), expected.c_str ());
                 log_error("request-param-bad, 'feed_by' must be a device (%s)", feed_by.c_str());
+                param["error"] = TRANSLATE_ME("'feed_by' argument must decribe a device (%s)", feed_by.c_str ());
                 return -12;
             }
         }
@@ -400,17 +420,17 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
     if (return_msg == NULL) {
         log_error ("Function process_assettopology() returned a null pointer");
         //http_die("internal-error", "");
+        param["error"] = TRANSLATE_ME("Internal error");
         return -20;
     }
 
     if (is_common_msg (return_msg)) {
         _scoped_common_msg_t *common_msg = common_msg_decode (&return_msg);
+        zmsg_destroy (&return_msg);
         if (common_msg == NULL) {
-            if (return_msg != NULL) {
-                zmsg_destroy (&return_msg);
-            }
             log_error ("common_msg_decode() failed");
             //http_die("internal-error", "");
+            param["error"] = TRANSLATE_ME("Internal error");
             return -21;
         }
 
@@ -420,46 +440,53 @@ int s_topology_location_from (std::map<std::string, std::string> & param, std::s
                 case(DB_ERROR_NOTFOUND):
                     //http_die("element-not-found", std::to_string(checked_from).c_str());
                     log_error("element-not-found %s", std::to_string(checked_from).c_str());
+                    param["error"] = TRANSLATE_ME("Asset not found (%s)", param["from"].c_str());
                     return -22;
                 case(DB_ERROR_BADINPUT): // this should never be returned
                 default:
                     //http_die("internal-error", "");
                     log_error("internal-error");
-                    return -23;
+                    param["error"] = TRANSLATE_ME("Internal error");
             }
+            return -23;
         }
         else {
             log_error ("Unexpected common_msg received. ID = %" PRIu32 , common_msg_id (common_msg));
             //http_die("internal-error", "");
+            param["error"] = TRANSLATE_ME("Internal error");
             return -24;
         }
     }
     else if (is_asset_msg (return_msg)) {
         _scoped_asset_msg_t *asset_msg = asset_msg_decode (&return_msg);
+        zmsg_destroy (&return_msg);
         if (asset_msg == NULL) {
-            if (return_msg != NULL) {
-                zmsg_destroy (&return_msg);
-            }
             log_error ("asset_msg_decode() failed");
             //http_die("internal-error", "");
+            param["error"] = TRANSLATE_ME("Internal error");
             return -25;
         }
         if (asset_msg_id (asset_msg) != ASSET_MSG_RETURN_LOCATION_FROM) {
             log_error ("Unexpected asset_msg received. ID = %" PRIu32 , asset_msg_id (asset_msg));
             //http_die("internal-error", "");
+            param["error"] = TRANSLATE_ME("Internal error");
             return -26;
         }
-        if (asset_location_r(&asset_msg, json) != 0) { //HTTP_OK
+        if (asset_location_r(&asset_msg, json) != 0) {
             log_error ("unexpected error, during the reply parsing");
             //http_die("internal-error", "");
+            param["error"] = TRANSLATE_ME("Internal error");
             return -27;
         }
     }
     else {
+        zmsg_destroy (&return_msg);
         log_error ("Unknown protocol");
         //http_die("internal-error", "");
+        param["error"] = TRANSLATE_ME("Internal error");
         return -28;
     }
+    zmsg_destroy (&return_msg);
 
     return 0; // ok
 }
@@ -493,40 +520,45 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
         std::string feed_by = param["feed_by"];
         std::string recursive = param["recursive"];
 
-        if ( to.empty() ) {
+        if (to.empty()) {
             // At least one parametr should be specified
             //http_die("request-param-required", "from/to");
             log_error("request-param-required, 'to' not defined");
+            param["error"] = TRANSLATE_ME("'to' argument is not defined");
             return -1;
         }
 
         // 1. 'recursive' cannot be specified with 'to'
-        if ( !recursive.empty() ) {
+        if (!recursive.empty()) {
             //std::string err =  TRANSLATE_ME("Parameter 'recursive' can not be specified with parameter 'to'.");
             //http_die("parameter-conflict", err.c_str ());
             log_error("parameter-conflict, 'recursive' can not be specified with parameter 'to'");
+            param["error"] = TRANSLATE_ME("'recursive' argument can not be specified with argument 'to'");
             return -2;
         }
 
         // 2. 'filter' cannot be specified with 'to'
-        if ( !filter.empty() ) {
+        if (!filter.empty()) {
             //std::string err =  TRANSLATE_ME("Parameter 'filter' can not be specified with parameter 'to'.");
             //http_die("parameter-conflict", err.c_str ());
             log_error("parameter-conflict, 'filter' can not be specified with parameter 'to'");
+            param["error"] = TRANSLATE_ME("'filter' argument can not be specified with argument 'to'");
             return -3;
         }
 
         // 3. 'feed_by' cannot be specified with 'to'
-        if ( !feed_by.empty() ) {
+        if (!feed_by.empty()) {
             //std::string err =  TRANSLATE_ME("Parameter 'feed_by' can not be specified with parameter 'to'.");
             //http_die("parameter-conflict", err.c_str ());
             log_error("parameter-conflict, 'feed_by' can not be specified with parameter 'to'");
+            param["error"] = TRANSLATE_ME("'feed_by' argument can not be specified with argument 'to'");
             return -4;
         }
 
         if (!persist::is_ok_name (to.c_str ())) {
             //http_die ("request-param-required", to.c_str() ,"to");
             log_error ("request-param-required, 'to' is not defined (%s)", to.c_str());
+            param["error"] = TRANSLATE_ME("Asset not defined (%s)", to.c_str());
             return -5;
         }
 
@@ -539,12 +571,14 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
         //std::string expected = TRANSLATE_ME("existing asset name");
         //http_die ("request-param-bad", "to", checked_to.c_str (), expected.c_str ());
         log_error ("request-param-bad, 'to' is not a valid asset id (%s)", checked_to.c_str());
+        param["error"] = TRANSLATE_ME("Asset not found (%s)", param["to"].c_str());
         return -6;
     }
     if (checked_to_num == -2) {
         //std::string err =  TRANSLATE_ME("Connecting to database failed.");
         //http_die ("internal-error", err.c_str ());
         log_error ("internal-error, connection to database failed");
+        param["error"] = TRANSLATE_ME("Connection to database failed");
         return -7;
     }
 
@@ -561,6 +595,7 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
         log_error ("Function process_assettopology() returned a null pointer");
         //http_die("internal-error", "");
         log_error("internal-error");
+        param["error"] = TRANSLATE_ME("Internal error");
         return -8;
     }
 
@@ -572,6 +607,7 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
             log_error ("common_msg_decode() failed");
             //http_die("internal-error", "");
             log_error("internal-error");
+            param["error"] = TRANSLATE_ME("Internal error");
             return -9;
         }
 
@@ -581,6 +617,7 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
                 case(DB_ERROR_NOTFOUND):
                     //http_die("element-not-found", checked_to.c_str());
                     log_error("element-not-found (%s)", checked_to.c_str());
+                    param["error"] = TRANSLATE_ME("Asset not found (%s)", checked_to.c_str());
                     common_msg_destroy(&common_msg);
                     return -10;
                 case(DB_ERROR_BADINPUT):
@@ -589,12 +626,14 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
             //http_die("internal-error", "");
             log_error("internal-error");
             common_msg_destroy(&common_msg);
+            param["error"] = TRANSLATE_ME("Internal error");
             return -11;
         }
         else {
             log_error ("Unexpected common_msg received. ID = %" PRIu32 , common_msg_id (common_msg));
             //http_die("internal-error", "");
             common_msg_destroy(&common_msg);
+            param["error"] = TRANSLATE_ME("Internal error");
             return -12;
         }
     }
@@ -605,6 +644,7 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
         if (asset_msg == NULL) {
             log_error ("asset_msg_decode() failed");
             //http_die("internal-error", "");
+            param["error"] = TRANSLATE_ME("Internal error");
             return -13;
         }
 
@@ -647,6 +687,7 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
                         log_error ("Unexpected asset type received in the response");
                         //http_die("internal-error", "");
                         asset_msg_destroy (&asset_msg);
+                        param["error"] = TRANSLATE_ME("Internal error");
                         return -14;
                     }
                 }
@@ -664,6 +705,7 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
                 if (asset_msg == NULL) {
                     log_error ("asset_msg_decode() failed");
                     //http_die("internal-error", "");
+                    param["error"] = TRANSLATE_ME("Internal error");
                     return -15;
                 }
             }
@@ -687,6 +729,7 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
                     //std::string err =  TRANSLATE_ME("Database failure");
                     //http_die ("internal-error", err.c_str ());
                     log_error("Database failure");
+                    param["error"] = TRANSLATE_ME("Database access failed");
                     return -16;
                 }
                 ext_name = asset_names.second;
@@ -761,6 +804,7 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
             log_error ("Unexpected asset_msg received. ID = %" PRIu32 , asset_msg_id (asset_msg));
             //http_die("internal-error", "");
             asset_msg_destroy (&asset_msg);
+            param["error"] = TRANSLATE_ME("Internal error");
             return -17;
         }
         asset_msg_destroy (&asset_msg);
@@ -769,6 +813,7 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
         zmsg_destroy (&return_msg);
         log_error ("Unknown protocol");
         //http_die("internal-error", "");
+        param["error"] = TRANSLATE_ME("Internal error");
         return -18;
     }
     zmsg_destroy (&return_msg);
@@ -790,13 +835,18 @@ int topology_location (std::map<std::string, std::string> & param, std::string &
     if (!param["from"].empty()) {
         int r = s_topology_location_from2(param, json);
         if (r == REQUEST_DECLINED) {
-            log_trace("s_topology_location_from2() has declined, call s_topology_location_from()");
+            log_trace("s_topology_location_from2() has declined, redirect to s_topology_location_from()");
             r = s_topology_location_from(param, json);
+            if (r != 0) {
+                log_error("topology_location_from failed, r: %d", r);
+                return -1;
+            }
         }
-        if (r != 0) {
-            log_error("topology_location_from failed, r: %d", r);
-            return -1;
+        else if (r != 0) {
+            log_error("topology_location_from2 failed, r: %d", r);
+            return -2;
         }
+
         return 0; // ok
     }
 
@@ -804,11 +854,12 @@ int topology_location (std::map<std::string, std::string> & param, std::string &
         int r = s_topology_location_to(param, json);
         if (r != 0) {
             log_error("topology_location_to failed, r: %d", r);
-            return -2;
+            return -3;
         }
         return 0; // ok
     }
 
     log_error("unexpected parameter, 'from'/'to' must be defined");
+    param["error"] = TRANSLATE_ME("'from' or 'to' argument must be defined");
     return -3; // unexpected param
 }

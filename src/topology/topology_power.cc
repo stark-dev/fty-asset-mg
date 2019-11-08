@@ -76,65 +76,47 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
         std::string filter_dc = param["filter_dc"];
         std::string filter_group = param["filter_group"];
 
-        if ( from.empty() && to.empty() && filter_dc.empty() && filter_group.empty() ) {
+        // non-empty count
+        int ne_count = (from.empty()?0:1) + (to.empty()?0:1) + (filter_dc.empty()?0:1) + (filter_group.empty()?0:1);
+        if (ne_count != 1) {
             //http_die("request-param-required", "from/to/filter_dc/filter_group");
             log_error("request-param-required from/to/filter_dc/filter_group");
+            param["error"] = TRANSLATE_ME("'from', 'to', 'filter_dc' or 'filter_group' argument must be set exclusive");
             return -1;
         }
 
         if (!from.empty()) {
-            if (!to.empty() || !filter_dc.empty() || !filter_group.empty()) {
-                //std::string err =  TRANSLATE_ME("Only one parameter can be specified at once: 'from' or 'to' or 'filter_dc' or 'filter_group'");
-                //http_die("parameter-conflict", err.c_str ());
-                log_error("parameter-conflict");
-                return -2;
-            }
             request_type = ASSET_MSG_GET_POWER_FROM;
             asset_id = from;
             parameter_name = "from";
         }
-
-        if (!to.empty()) {
-            if ( !filter_dc.empty() || !filter_group.empty() || !from.empty() ) {
-                //std::string err =  TRANSLATE_ME("Only one parameter can be specified at once: 'from' or 'to' or 'filter_dc' or 'filter_group'");
-                //http_die("parameter-conflict", err.c_str ());
-                log_error("parameter-conflict");
-                return -3;
-            }
+        else if (!to.empty()) {
             request_type = ASSET_MSG_GET_POWER_TO;
             asset_id = to;
             parameter_name = "to";
         }
-
-        if (!filter_dc.empty()) {
-            if (!filter_group.empty() || !to.empty() || !from.empty()) {
-                //std::string err =  TRANSLATE_ME("Only one parameter can be specified at once: 'from' or 'to' or 'filter_dc' or 'filter_group'");
-                //http_die("parameter-conflict", err.c_str ());
-                log_error("parameter-conflict");
-                return -4;
-            }
+        else if (!filter_dc.empty()) {
             request_type = ASSET_MSG_GET_POWER_DATACENTER;
             asset_id = filter_dc;
             parameter_name = "filter_dc";
         }
-
-        if (!filter_group.empty()) {
-            if (!to.empty() || !from.empty() || !filter_dc.empty()) {
-                //std::string err =  TRANSLATE_ME("Only one parameter can be specified at once: 'from' or 'to' or 'filter_dc' or 'filter_group'");
-                //http_die("parameter-conflict", err.c_str ());
-                log_error("parameter-conflict");
-                return -5;
-            }
+        else if (!filter_group.empty()) {
             request_type = ASSET_MSG_GET_POWER_GROUP;
             asset_id = filter_group;
             parameter_name = "filter_group";
+        }
+        else {
+            log_error("case not handled");
+            param["error"] = TRANSLATE_ME("Internal error");
+            return -2;
         }
 
         if (!persist::is_ok_name (asset_id.c_str ()) ) {
             //std::string expected = TRANSLATE_ME("valid asset name");
             //http_die ("request-param-bad", "id", asset_id.c_str (), expected.c_str ());
             log_error("request-param-bad invalid asset name");
-            return -6;
+            param["error"] = TRANSLATE_ME("Asset name is not valid (%s)", asset_id.c_str ());
+            return -3;
         }
 
         checked_id = DBAssets::name_to_asset_id (asset_id);
@@ -143,13 +125,15 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
             //std::string expected = TRANSLATE_ME("existing asset name");
             //http_die ("request-param-bad", "id", asset_id.c_str (), expected.c_str ());
             log_error("request-param-bad");
-            return -7;
+            param["error"] = TRANSLATE_ME("Asset not found (%s)", asset_id.c_str ());
+            return -4;
         }
         if (checked_id == -2) {
             //std::string err =  TRANSLATE_ME("Connecting to database failed.");
             //http_die ("internal-error", err.c_str ());
             log_error("db-connection-failed");
-            return -8;
+            param["error"] = TRANSLATE_ME("Connection to database failed");
+            return -5;
         }
     }
     // Sanity check end
@@ -161,6 +145,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
         //std::string err =  TRANSLATE_ME("Cannot allocate memory");
         //http_die ("internal-error", err.c_str ());
         log_error("malloc-failed");
+        param["error"] = TRANSLATE_ME("Allocation failed");
         return -10;
     }
 
@@ -172,6 +157,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
         //log_error ("Function process_assettopology() returned a null pointer");
         //http_die("internal-error", "");
         log_error("process_assettopology-failed return null");
+        param["error"] = TRANSLATE_ME("Internal error");
         return -11;
     }
 
@@ -182,6 +168,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
             //log_error ("common_msg_decode() failed");
             //http_die("internal-error", "");
             log_error("common_msg_decode-failed");
+            param["error"] = TRANSLATE_ME("Internal error");
             return -20;
         }
 
@@ -189,21 +176,22 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
             log_error ("common_msg is COMMON_MSG_FAIL");
             uint32_t err = common_msg_errorno(common_msg);
             switch(err) {
-                case(DB_ERROR_BADINPUT):
-                {
+                case DB_ERROR_BADINPUT:
                     //std::string received = TRANSLATE_ME("id of the asset, that is not a device");
                     //std::string expected = TRANSLATE_ME("id of the asset, that is a device");
                     //http_die("request-param-bad", parameter_name.c_str(), received.c_str (), expected.c_str ());
                     log_error("request-param-bad parameter_name: %s", parameter_name.c_str());
+                    param["error"] = TRANSLATE_ME("Asset is not a device (%s)", asset_id.c_str());
                     break;
-                }
-                case(DB_ERROR_NOTFOUND):
+                case DB_ERROR_NOTFOUND:
                     //http_die("element-not-found", asset_id.c_str());
                     log_error("element-not-found %s", asset_id.c_str());
+                    param["error"] = TRANSLATE_ME("Asset not found (%s)", asset_id.c_str());
                     break;
                 default:
                     //http_die("internal-error", "");
                     log_error("internal-error err: %" PRIu32, err);
+                    param["error"] = TRANSLATE_ME("Internal error");
             }
             common_msg_destroy(&common_msg);
             return -21;
@@ -212,6 +200,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
             log_error ("Unexpected common_msg received. ID = %" PRIu32 , common_msg_id (common_msg));
             //http_die("internal-error", "");
             common_msg_destroy(&common_msg);
+            param["error"] = TRANSLATE_ME("Internal error");
             return -22;
         }
     }
@@ -223,6 +212,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
             //log_error ("asset_msg_decode() failed");
             //http_die("internal-error", "");
             log_error("common_msg_decode-failed");
+            param["error"] = TRANSLATE_ME("Internal error");
             return -30;
         }
 
@@ -232,6 +222,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
             asset_msg_destroy (&asset_msg);
 
             json = "{";
+
             if (devices) {
 #if CZMQ_VERSION_MAJOR == 3
                 byte *buffer = zframe_data (devices);
@@ -244,6 +235,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
                     zframe_destroy (&devices);
                     log_error ("zmsg_decode() failed");
                     //http_die("internal-error", "");
+                    param["error"] = TRANSLATE_ME("Internal error");
                     return -31;
                 }
                 zframe_destroy (&devices);
@@ -256,6 +248,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
                         zmsg_destroy (&zmsg);
                         log_error ("malformed internal structure of returned message");
                         //http_die("internal-error", "");
+                        param["error"] = TRANSLATE_ME("Internal error");
                         return -32;
                     }
                     _scoped_asset_msg_t *item = asset_msg_decode (&pop); // _scoped_zmsg_t is freed
@@ -265,19 +258,19 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
                         }
                         log_error ("asset_smg_decode() failed for internal messages");
                         //http_die("internal-error", "");
+                        param["error"] = TRANSLATE_ME("Internal error");
                         return -33;
                     }
 
-                    if (first == false) {
-                        json.append (", ");
-                    } else {
-                        first = false;
-                    }
+                    if (first) first = false;
+                    else json.append (", ");
+
                     std::pair<std::string,std::string> asset_names = DBAssets::id_to_name_ext_name (asset_msg_element_id (item));
                     if (asset_names.first.empty () && asset_names.second.empty ()) {
                         //std::string err =  TRANSLATE_ME("Database failure");
                         //http_die ("internal-error", err.c_str ());
                         log_error ("database-failure");
+                        param["error"] = TRANSLATE_ME("Database access failed");
                         return -34;
                     }
 
@@ -299,12 +292,10 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
 
                 const char *item = (const char*) zlist_first (powers);
                 bool first = true;
-                while (item != NULL) {
-                    if (first == false) {
-                        json.append (", ");
-                    } else {
-                        first = false;
-                    }
+                while (item) {
+                    if (first) first = false;
+                    else json.append (", ");
+
                     json.append ("{");
                     std::vector<std::string> tokens;
                     std::istringstream f(item);
@@ -318,6 +309,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
                         //std::string err =  TRANSLATE_ME("Database failure");
                         //http_die ("internal-error", err.c_str ());
                         log_error ("database-failure");
+                        param["error"] = TRANSLATE_ME("Database access failed");
                         return -35;
                     }
                     json.append("\"src-id\" : \"").append(src_names.first).append("\",");
@@ -330,6 +322,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
                         std::string err =  TRANSLATE_ME("Database failure");
                         //http_die ("internal-error", err.c_str ());
                         log_error ("database-failure");
+                        param["error"] = TRANSLATE_ME("Database access failed");
                         return -36;
                     }
                     json.append("\"dst-id\" : \"").append(dst_names.first).append("\"");
@@ -348,6 +341,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
             log_error ("Unexpected asset_msg received. ID = %" PRIu32 , asset_msg_id (asset_msg));
             //http_die("internal-error", "");
             asset_msg_destroy (&asset_msg);
+            param["error"] = TRANSLATE_ME("Internal error");
             return -37;
         }
     }
@@ -356,6 +350,7 @@ int topology_power (std::map<std::string, std::string> & param, std::string & js
         //LOG_END;
         //http_die("internal-error", "");
         zmsg_destroy (&return_msg);
+        param["error"] = TRANSLATE_ME("Internal error");
         return -38;
     }
 

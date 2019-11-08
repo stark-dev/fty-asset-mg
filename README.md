@@ -102,9 +102,7 @@ where
 * 'asset-iname' MUST be the same as in request
 * 'uuid' MUST be the same as in request
 * 'D1',...,'Dn' MUST be assets in the power topology of 'asset-iname'
-* 'reason' is string detailing reason for error. Possible values are:
-
-     ASSET\_NOT\_FOUND / INTERNAL\_ERROR
+* 'reason' is a standard message (JSON payload) describing the error
 
 Example of bmsg request:
 ```bash
@@ -134,10 +132,8 @@ where
 * '/' indicates a multipart frame message
 * 'asset-iname' MUST be the same as in request
 * 'uuid' MUST be the same as in request
-* 'reason' is a string detailing reason for error. Possible values are:
-
-     INTERNAL\_ERROR / MISSING\_PARAMETER
-* \<powerchains\> is a unique frame (JSON format) as:
+* 'reason' is a standard message (JSON payload) describing the error
+* \<powerchains\> is a unique frame (JSON payload) as:
 ```bash
 {
     "asset-id": "<asset-iname>",
@@ -212,10 +208,8 @@ where
 * '/' indicates a multipart frame message
 * 'asset-iname' MUST be the same as in request
 * 'uuid' MUST be the same as in request
-* 'reason' is a string detailing reason for error. Possible values are:
-
-     INTERNAL\_ERROR / MISSING\_PARAMETER
-* \<powerchains\> is a unique frame (JSON format) as:
+* 'reason' is a standard message (JSON payload) describing the error
+* \<powerchains\> is a unique frame (JSON payload) as:
 
     to be documented (see RFC11 /api/v1/topology/power)
 
@@ -255,10 +249,8 @@ where
 * '/' indicates a multipart frame message
 * 'asset-iname' MUST be the same as in request
 * 'uuid' MUST be the same as in request
-* 'reason' is a string detailing reason for error. Possible values are:
-
-     INTERNAL\_ERROR / MISSING\_PARAMETER
-* \<location\> is a unique frame (JSON format) as:
+* 'reason' is a standard message (JSON payload) describing the error
+* \<location\> is a unique frame (JSON payload) as:
 
     to be documented (see RFC11 /api/v1/topology/location)
 
@@ -291,10 +283,8 @@ where
 * '/' indicates a multipart frame message
 * 'asset-iname' MUST be the same as in request
 * 'uuid' MUST be the same as in request
-* 'reason' is a string detailing reason for error. Possible values are:
-
-     INTERNAL\_ERROR / MISSING\_PARAMETER
-* \<input_powerchain\> is a unique frame (JSON format) as:
+* 'reason' is a standard message (JSON payload) describing the error
+* \<input_powerchain\> is a unique frame (JSON payload) as:
 
     to be documented (see RFC11 /api/v1/topology/input_power_chain)
 

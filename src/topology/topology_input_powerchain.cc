@@ -136,7 +136,6 @@ s_fill_array_powerchains (
     Array_power_chain array_powerchains;
     for (const auto& chain : vector_powerchains)
     {
-
         array_powerchains.src_socket = std::get <3> (chain).c_str();
         array_powerchains.dst_socket = std::get <1> (chain).c_str();
 
@@ -173,6 +172,7 @@ int topology_input_powerchain (std::map<std::string, std::string> & param, std::
     if (dc_id.empty ()) {
         //http_die ("request-param-bad", dc_id.c_str ());
         log_error ("request-param-bad 'id' is empty");
+        param["error"] = TRANSLATE_ME("Asset not defined");
         return -1;
     }
 
@@ -180,11 +180,13 @@ int topology_input_powerchain (std::map<std::string, std::string> & param, std::
     if (dbid == -1) {
         //http_die ("element-not-found", "dc_id ", dc_id.c_str ());
         log_error ("element-not-found (dc_id: '%s')", dc_id.c_str ());
+        param["error"] = TRANSLATE_ME("Asset not found (%s)", dc_id.c_str ());
         return -2;
     }
     if (dbid == -2) {
         //http_die ("internal-error", "Connecting to database failed.");
         log_error ("internal-error, Connecting to database failed.");
+        param["error"] = TRANSLATE_ME("Connection to database failed");
         return -3;
     }
 
@@ -197,6 +199,7 @@ int topology_input_powerchain (std::map<std::string, std::string> & param, std::
     if (r == -1) {
         //http_die ("internal-error", "input_power_group_response");
         log_error ("internal-error, input_power_group_response r = %d", r);
+        param["error"] = TRANSLATE_ME("Get input power group failed");
         return -4;
     }
 
@@ -208,6 +211,7 @@ int topology_input_powerchain (std::map<std::string, std::string> & param, std::
     if (r != 0) {
         //http_die ("internal-error", "Database failure");
         log_error ("internal-error, Database failure (r: %d)", r);
+        param["error"] = TRANSLATE_ME("Database access failed");
         return -5;
     }
 
@@ -216,6 +220,7 @@ int topology_input_powerchain (std::map<std::string, std::string> & param, std::
     if (r != 0) {
         //http_die ("internal-error", "Database failure");
         log_error ("internal-error, Database failure (r: %d)", r);
+        param["error"] = TRANSLATE_ME("Database access failed");
         return -6;
     }
 
@@ -234,6 +239,7 @@ int topology_input_powerchain (std::map<std::string, std::string> & param, std::
     }
     catch (...) {
         log_error ("internal-error, json serialization failed (raise exception)");
+        param["error"] = TRANSLATE_ME("JSON serialization failed");
         return -7;
     }
 

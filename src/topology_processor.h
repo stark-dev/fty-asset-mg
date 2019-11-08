@@ -32,25 +32,28 @@ extern "C" {
 // Implementation of REST /api/v1/topology/power?[from/to/filter_dc/filter_group] (see RFC11)
 // COMMAND is in {"from", "to", "filter_dc", "filter_group"} tokens set
 // ASSETNAME is the subject of the command
+// ERRORMSG set on failure (reason)
 // On success, RESULT is valid (JSON payload)
 // Returns 0 if success, else <0
 
 FTY_ASSET_PRIVATE int
-    topology_power_process (const std::string & command, const std::string & assetName, std::string & result, bool beautify = true);
+    topology_power_process (const std::string & command, const std::string & assetName, std::string & result, std::string & errorMsg, bool beautify = true);
 
 // Retrieve the closest powerchain which powers a requested target asset
 // implementation of REST /api/v1/topology/power?to (see RFC11) **filtered** on dst-id == assetName
 // ASSETNAME is the target asset
+// ERRORMSG set on failure (reason)
 // On success, RESULT is valid (JSON payload)
 // Returns 0 if success, else <0
 
 FTY_ASSET_PRIVATE int
-    topology_power_to (const std::string & assetName, std::string & result, bool beautify = true);
+    topology_power_to (const std::string & assetName, std::string & result, std::string & errorMsg, bool beautify = true);
 
 // Retrieve location topology for a requested target asset
 // Implementation of REST /api/v1/topology/location?[from/to] (see RFC11)
 // COMMAND is in {"to", "from"} tokens set
 // ASSETNAME is the subject of the command (can be "none" if command is "from")
+// ERRORMSG set on failure (reason)
 // OPTIONS:
 //    if 'to'  : must be empty (no option allowed)
 //    if 'from': json payload as { "recursive": <true|false>, "filter": <element_kind>, "feed_by": <asset_id> }
@@ -61,16 +64,17 @@ FTY_ASSET_PRIVATE int
 // Returns 0 if success, else <0
 
 FTY_ASSET_PRIVATE int
-    topology_location_process (const std::string & command, const std::string & assetName, const std::string & options, std::string & result, bool beautify = true);
+    topology_location_process (const std::string & command, const std::string & assetName, const std::string & options, std::string & result, std::string & errorMsg, bool beautify = true);
 
 // Retrieve input power chain topology for a requested target asset
 // Implementation of REST /api/v1/topology/input_power_chain (see RFC11)
 // ASSETNAME is an assetID (normaly a datacenter)
+// ERRORMSG set on failure (reason)
 // On success, RESULT is valid (JSON payload)
 // Returns 0 if success, else <0
 
 FTY_ASSET_PRIVATE int
-    topology_input_powerchain_process (const std::string & assetName, std::string & result, bool beautify = true);
+    topology_input_powerchain_process (const std::string & assetName, std::string & result, std::string & errorMsg, bool beautify = true);
 
 //  Self test of this class
 

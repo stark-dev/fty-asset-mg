@@ -39,10 +39,11 @@ static int si_member_value (const cxxtools::SerializationInfo & si, const std::s
 // Implementation of REST /api/v1/topology/power?[from/to/filter_dc/filter_group] (see RFC11)
 // COMMAND is in {"from", "to", "filter_dc", "filter_group"} tokens set
 // ASSETNAME is the subject of the command
+// ERRORMSG set on failure (reason)
 // On success, RESULT is valid (JSON payload)
 // Returns 0 if success, else <0
 
-int topology_power_process (const std::string & command, const std::string & assetName, std::string & result, bool beautify)
+int topology_power_process (const std::string & command, const std::string & assetName, std::string & result, std::string & errorMsg, bool beautify)
 {
     result = "";
 
@@ -51,6 +52,7 @@ int topology_power_process (const std::string & command, const std::string & ass
 
     int r = topology_power (param, result);
     if (r != 0) {
+        errorMsg = param["error"]; // reason
         log_error("topology_power() failed, r: %d, command: %s, assetName: %s",
             r, command.c_str(), assetName.c_str());
         return -1;
@@ -60,6 +62,7 @@ int topology_power_process (const std::string & command, const std::string & ass
     if (beautify) {
         r = json_string_beautify(result);
         if (r != 0) {
+            errorMsg = TRANSLATE_ME("JSON beautification failed"); // reason
             log_error("beautification failed, r: %d, result: \n%s", r, result.c_str());
             return -2;
         }
@@ -75,14 +78,15 @@ int topology_power_process (const std::string & command, const std::string & ass
 // Retrieve the closest powerchain which powers a requested target asset
 // implementation of REST /api/v1/topology/power?to (see RFC11) **filtered** on dst-id == assetName
 // ASSETNAME is the target asset
+// ERRORMSG set on failure (reason)
 // On success, RESULT is valid (JSON payload)
 // Returns 0 if success, else <0
 
-int topology_power_to (const std::string & assetName, std::string & result, bool beautify)
+int topology_power_to (const std::string & assetName, std::string & result, std::string & errorMsg, bool beautify)
 {
     result = "";
 
-    int r = topology_power_process("to", assetName, result, beautify);
+    int r = topology_power_process("to", assetName, result, errorMsg, beautify);
     if (r != 0) {
         log_error("topology_power_process 'to' failed, r: %d", r);
         return -1;
@@ -92,6 +96,7 @@ int topology_power_to (const std::string & assetName, std::string & result, bool
     cxxtools::SerializationInfo si;
     r = string_to_si(result, si);
     if (r != 0) {
+        errorMsg = TRANSLATE_ME("JSON deserialization failed"); // reason
         log_error("json deserialize failed (exception reached), payload:\n%s", result.c_str());
         return -2;
     }
@@ -99,10 +104,12 @@ int topology_power_to (const std::string & assetName, std::string & result, bool
     // check si structure
     cxxtools::SerializationInfo *si_powerchains = si.findMember("powerchains");
     if (si_powerchains == 0) {
+        errorMsg = TRANSLATE_ME("Internal error"); // reason
         log_error("powerchains member not defined, payload:\n%s", result.c_str());
         return -3;
     }
     if (si_powerchains->category() != cxxtools::SerializationInfo::Category::Array) {
+        errorMsg = TRANSLATE_ME("Internal error"); // reason
         log_error("powerchains member category != Array, payload:\n%s", result.c_str());
         return -4;
     }
@@ -115,6 +122,7 @@ int topology_power_to (const std::string & assetName, std::string & result, bool
     siResult.addMember("powerchains").setCategory(cxxtools::SerializationInfo::Array);
     cxxtools::SerializationInfo *siResulPowerchains = siResult.findMember("powerchains");
     if (siResulPowerchains == 0) {
+        errorMsg = TRANSLATE_ME("Internal error"); // reason
         log_error("powerchains member creation failed");
         return -5;
     }
@@ -149,6 +157,7 @@ int topology_power_to (const std::string & assetName, std::string & result, bool
     // dump siResult to result
     r = si_to_string(siResult, result, beautify);
     if (r != 0) {
+        errorMsg = TRANSLATE_ME("JSON serialization failed"); // reason
         log_error("serialization to JSON has failed");
         return -6;
     }
@@ -164,6 +173,7 @@ int topology_power_to (const std::string & assetName, std::string & result, bool
 // Implementation of REST /api/v1/topology/location?[from/to] (see RFC11)
 // COMMAND is in {"to", "from"} tokens set
 // ASSETNAME is the subject of the command (can be "none" if command is "from")
+// ERRORMSG set on failure (reason)
 // OPTIONS:
 //    if 'to'  : must be empty (no option allowed)
 //    if 'from': json payload as { "recursive": <true|false>, "filter": <element_kind>, "feed_by": <asset_id> }
@@ -173,7 +183,7 @@ int topology_power_to (const std::string & assetName, std::string & result, bool
 // On success, RESULT is valid (JSON payload)
 // Returns 0 if success, else <0
 
-int topology_location_process (const std::string & command, const std::string & assetName, const std::string & options, std::string & result, bool beautify)
+int topology_location_process (const std::string & command, const std::string & assetName, const std::string & options, std::string & result, std::string & errorMsg, bool beautify)
 {
     result = "";
 
@@ -185,6 +195,7 @@ int topology_location_process (const std::string & command, const std::string & 
     // filter/check command, set options
     if (command == "to") {
         if (!options.empty()) {
+            errorMsg = TRANSLATE_ME("'option' argument is not allowed with 'to' command"); // reason
             log_error("unexpected options for command 'to' (options: %s)", options.c_str());
             return -1;
         }
@@ -200,6 +211,7 @@ int topology_location_process (const std::string & command, const std::string & 
             cxxtools::SerializationInfo si;
             r = string_to_si(options, si);
             if (r != 0) {
+                errorMsg = TRANSLATE_ME("'option' argument describe an invalid JSON payload"); // reason
                 log_error("options malformed, r: %d, options: %s", r, options.c_str());
                 return -1;
             }
@@ -211,6 +223,7 @@ int topology_location_process (const std::string & command, const std::string & 
         }
     }
     else {
+        errorMsg = TRANSLATE_ME("Unexpected '%s' command (shall be 'to'/'from')", command.c_str()); // reason
         log_error("unexpected '%s' command  (shall be 'to'/'from')", command.c_str());
         return -1;
     }
@@ -223,6 +236,7 @@ int topology_location_process (const std::string & command, const std::string & 
     // request
     r = topology_location (param, result);
     if (r != 0) {
+        errorMsg = param["error"]; // reason
         log_error("topology_location() failed, r: %d, command: %s, assetName: %s",
             r, command.c_str(), assetName.c_str());
         return -2;
@@ -232,6 +246,7 @@ int topology_location_process (const std::string & command, const std::string & 
     if (beautify) {
         r = json_string_beautify(result);
         if (r != 0) {
+            errorMsg = TRANSLATE_ME("JSON beautification failed"); // reason
             log_error("beautification failed, r: %d, result: \n%s", r, result.c_str());
             return -3;
         }
@@ -247,10 +262,11 @@ int topology_location_process (const std::string & command, const std::string & 
 // Retrieve input power chain topology for a requested target asset
 // Implementation of REST /api/v1/topology/input_power_chain (see RFC11)
 // ASSETNAME is an assetID (datacenter)
+// ERRORMSG set on failure (reason)
 // On success, RESULT is valid (JSON payload)
 // Returns 0 if success, else <0
 
-int topology_input_powerchain_process (const std::string & assetName, std::string & result, bool beautify)
+int topology_input_powerchain_process (const std::string & assetName, std::string & result, std::string & errorMsg, bool beautify)
 {
     result = "";
 
@@ -265,6 +281,7 @@ int topology_input_powerchain_process (const std::string & assetName, std::strin
     // request
     int r = topology_input_powerchain (param, result);
     if (r != 0) {
+        errorMsg = param["error"]; // reason
         log_error("topology_input_powerchain() failed, r: %d, assetName: %s",
             r, assetName.c_str());
         return -1;
@@ -274,6 +291,7 @@ int topology_input_powerchain_process (const std::string & assetName, std::strin
     if (beautify) {
         r = json_string_beautify(result);
         if (r != 0) {
+            errorMsg = TRANSLATE_ME("JSON beautification failed"); // reason
             log_error("beautification failed, r: %d, result: \n%s", r, result.c_str());
             return -2;
         }

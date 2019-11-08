@@ -268,7 +268,7 @@ static void
 
     // result of power topology - list of power device names
     std::vector<std::string> powerDevices{};
-    std::string assetName(asset_name ? asset_name : "asset_undefined");
+    std::string assetName(asset_name ? asset_name : "");
 
     // select power devices
     int r = select_devices_total_power(assetName, powerDevices, cfg->test);
@@ -281,14 +281,16 @@ static void
             cfg->name, asset_name);
 
         zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "INTERNAL_ERROR");
+        //zmsg_addstr (reply, "INTERNAL_ERROR");
+        zmsg_addstr (reply, TRANSLATE_ME("Internal error").c_str());
     }
     else if (r == -2) {
         log_error ("%s:\tTOPOLOGY POWER: Asset was not found (%s)",
             cfg->name, asset_name);
 
         zmsg_addstr (reply, "ERROR");
-        zmsg_addstr (reply, "ASSET_NOT_FOUND");
+        //zmsg_addstr (reply, "ASSET_NOT_FOUND");
+        zmsg_addstr (reply, TRANSLATE_ME("Asset not found").c_str());
     }
     else {
         log_debug ("%s:\tPower topology for '%s':", cfg->name, asset_name);
@@ -317,9 +319,10 @@ static void
 
     log_debug ("%s:\tTOPOLOGY POWER_TO asset_name: %s", cfg->name, asset_name);
 
-    std::string assetName(asset_name ? asset_name : "asset_undefined");
+    std::string assetName(asset_name ? asset_name : "");
     std::string result; // JSON payload
-    int r = topology_power_to (assetName, result);
+    std::string errReason; // JSON payload (TRANSLATE_ME)
+    int r = topology_power_to (assetName, result, errReason);
 
     zmsg_addstr (reply, assetName.c_str());
 
@@ -327,11 +330,12 @@ static void
         log_error ("%s:\tTOPOLOGY POWER_TO r: %d (asset_name: %s)",
             cfg->name, r, asset_name);
 
+        if (errReason.empty()) {
+            if (!asset_name) errReason = TRANSLATE_ME("Missing argument");
+            else errReason = TRANSLATE_ME("Internal error");
+        }
         zmsg_addstr (reply, "ERROR");
-        if (!asset_name)
-            zmsg_addstr (reply, "MISSING_PARAMETER");
-        else
-            zmsg_addstr (reply, "INTERNAL_ERROR");
+        zmsg_addstr (reply, errReason.c_str());
     }
     else {
         zmsg_addstr (reply, "OK");
@@ -358,10 +362,11 @@ static void
     log_debug ("%s:\tTOPOLOGY POWERCHAINS select_cmd: %s, asset_name: %s",
         cfg->name, select_cmd, asset_name);
 
-    std::string command(select_cmd ? select_cmd : "select_cmd_undefined");
-    std::string assetName(asset_name ? asset_name : "asset_undefined");
+    std::string command(select_cmd ? select_cmd : "");
+    std::string assetName(asset_name ? asset_name : "");
     std::string result; // JSON payload
-    int r = topology_power_process (command, assetName, result);
+    std::string errReason; // JSON payload (TRANSLATE_ME)
+    int r = topology_power_process (command, assetName, result, errReason);
 
     zmsg_addstr (reply, assetName.c_str());
 
@@ -369,11 +374,12 @@ static void
         log_error ("%s:\tTOPOLOGY POWERCHAINS r: %d (cmd: %s, asset_name: %s)",
             cfg->name, r, select_cmd, asset_name);
 
+        if (errReason.empty()) {
+            if (!asset_name) errReason = TRANSLATE_ME("Missing argument");
+            else errReason = TRANSLATE_ME("Internal error");
+        }
         zmsg_addstr (reply, "ERROR");
-        if (!(select_cmd && asset_name))
-            zmsg_addstr (reply, "MISSING_PARAMETER");
-        else
-            zmsg_addstr (reply, "INTERNAL_ERROR");
+        zmsg_addstr (reply, errReason.c_str());
     }
     else {
         zmsg_addstr (reply, "OK");
@@ -402,11 +408,12 @@ static void
     log_debug ("%s:\tTOPOLOGY LOCATION select_cmd: %s, asset_name: %s (options: %s)",
         cfg->name, select_cmd, asset_name, cmd_options);
 
-    std::string command(select_cmd ? select_cmd : "select_cmd_undefined");
-    std::string assetName(asset_name ? asset_name : "asset_undefined");
+    std::string command(select_cmd ? select_cmd : "");
+    std::string assetName(asset_name ? asset_name : "");
     std::string options(cmd_options ? cmd_options : "");
     std::string result; // JSON payload
-    int r = topology_location_process (command, assetName, options, result);
+    std::string errReason; // JSON payload (TRANSLATE_ME)
+    int r = topology_location_process (command, assetName, options, result, errReason);
 
     zmsg_addstr (reply, assetName.c_str());
 
@@ -414,11 +421,12 @@ static void
         log_error ("%s:\tTOPOLOGY LOCATION r: %d (cmd: %s, asset_name: %s, options: %s)",
             cfg->name, r, select_cmd, asset_name, cmd_options);
 
+        if (errReason.empty()) {
+            if (!asset_name) errReason = TRANSLATE_ME("Missing argument");
+            else errReason = TRANSLATE_ME("Internal error");
+        }
         zmsg_addstr (reply, "ERROR");
-        if (!(select_cmd && asset_name))
-            zmsg_addstr (reply, "MISSING_PARAMETER");
-        else
-            zmsg_addstr (reply, "INTERNAL_ERROR");
+        zmsg_addstr (reply, errReason.c_str());
     }
     else {
         zmsg_addstr (reply, "OK");
@@ -444,9 +452,10 @@ static void
     log_debug ("%s:\tTOPOLOGY INPUT_POWERCHAIN asset_name: %s",
         cfg->name, asset_name);
 
-    std::string assetName(asset_name ? asset_name : "asset_undefined");
+    std::string assetName(asset_name ? asset_name : "");
     std::string result; // JSON payload
-    int r = topology_input_powerchain_process (assetName, result);
+    std::string errReason; // JSON payload (TRANSLATE_ME)
+    int r = topology_input_powerchain_process (assetName, result, errReason);
 
     zmsg_addstr (reply, assetName.c_str());
 
@@ -454,11 +463,12 @@ static void
         log_error ("%s:\tTOPOLOGY INPUT_POWERCHAIN r: %d (asset_name: %s)",
             cfg->name, r, asset_name);
 
+        if (errReason.empty()) {
+            if (!asset_name) errReason = TRANSLATE_ME("Missing argument");
+            else errReason = TRANSLATE_ME("Internal error");
+        }
         zmsg_addstr (reply, "ERROR");
-        if (!asset_name)
-            zmsg_addstr (reply, "MISSING_PARAMETER");
-        else
-            zmsg_addstr (reply, "INTERNAL_ERROR");
+        zmsg_addstr (reply, errReason.c_str());
     }
     else {
         zmsg_addstr (reply, "OK");
