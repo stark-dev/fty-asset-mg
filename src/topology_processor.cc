@@ -119,7 +119,7 @@ int topology_power_to (const std::string & assetName, std::string & result, bool
         return -5;
     }
 
-    // powerchains member is defined (array), loop on items...
+    // powerchains member is defined (array), loop on si_powerchains items...
     // filter on dst-id == assetName, check src-id & src-socket,
     // keep entries in siResulPowerchains
     cxxtools::SerializationInfo::Iterator it;
@@ -169,7 +169,7 @@ int topology_power_to (const std::string & assetName, std::string & result, bool
 //    if 'from': json payload as { "recursive": <true|false>, "filter": <element_kind>, "feed_by": <asset_id> }
 //               where <element_kind> is in {"rooms" , "rows", "racks", "devices", "groups"}
 //               if "feed_by" is specified, "filter" *must* be set to "devices", ASSETNAME *must* not be set to "none"
-//               defaults are {'recursive': false, "filter": "", "feed_by": "" }
+//               defaults are { "recursive": false, "filter": "", "feed_by": "" }
 // On success, RESULT is valid (JSON payload)
 // Returns 0 if success, else <0
 
@@ -238,6 +238,48 @@ int topology_location_process (const std::string & command, const std::string & 
     }
 
     log_debug("topology_location() success, assetName: %s, result:\n%s",
+        assetName.c_str(), result.c_str());
+
+    return 0; // ok
+}
+
+// --------------------------------------------------------------------------
+// Retrieve input power chain topology for a requested target asset
+// Implementation of REST /api/v1/topology/input_power_chain (see RFC11)
+// ASSETNAME is an assetID (datacenter)
+// On success, RESULT is valid (JSON payload)
+// Returns 0 if success, else <0
+
+int topology_input_powerchain_process (const std::string & assetName, std::string & result, bool beautify)
+{
+    result = "";
+
+    std::map<std::string, std::string> param;
+    param["id"] = assetName;
+
+    // trace param map
+    for (std::map<std::string, std::string>::iterator it = param.begin(); it != param.end(); ++it) {
+        log_trace("param['%s'] = '%s'", it->first.c_str(), it->second.c_str());
+    }
+
+    // request
+    int r = topology_input_powerchain (param, result);
+    if (r != 0) {
+        log_error("topology_input_powerchain() failed, r: %d, assetName: %s",
+            r, assetName.c_str());
+        return -1;
+    }
+
+    // beautify result, optional
+    if (beautify) {
+        r = json_string_beautify(result);
+        if (r != 0) {
+            log_error("beautification failed, r: %d, result: \n%s", r, result.c_str());
+            return -2;
+        }
+    }
+
+    log_debug("topology_input_powerchain() success, assetName: %s, result:\n%s",
         assetName.c_str(), result.c_str());
 
     return 0; // ok

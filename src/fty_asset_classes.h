@@ -89,6 +89,10 @@ typedef struct _topology_topology_power_t topology_topology_power_t;
 typedef struct _topology_topology_location_t topology_topology_location_t;
 #define TOPOLOGY_TOPOLOGY_LOCATION_T_DEFINED
 #endif
+#ifndef TOPOLOGY_TOPOLOGY_INPUT_POWERCHAIN_T_DEFINED
+typedef struct _topology_topology_input_powerchain_t topology_topology_input_powerchain_t;
+#define TOPOLOGY_TOPOLOGY_INPUT_POWERCHAIN_T_DEFINED
+#endif
 #ifndef TOPOLOGY_PROCESSOR_T_DEFINED
 typedef struct _topology_processor_t topology_processor_t;
 #define TOPOLOGY_PROCESSOR_T_DEFINED
@@ -126,6 +130,7 @@ typedef struct _dns_t dns_t;
 #include "topology/msg/common_msg.h"
 #include "topology/topology_power.h"
 #include "topology/topology_location.h"
+#include "topology/topology_input_powerchain.h"
 #include "topology_processor.h"
 #include "dbhelpers.h"
 #include "total_power.h"

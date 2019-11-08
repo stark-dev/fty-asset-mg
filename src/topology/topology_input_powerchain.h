@@ -1,5 +1,5 @@
 /*  =========================================================================
-    topology_topology_location - class description
+    topology_topology_input_powerchain - class description
 
     Copyright (C) 2014 - 2018 Eaton
 
@@ -19,8 +19,8 @@
     =========================================================================
 */
 
-#ifndef TOPOLOGY_TOPOLOGY_LOCATION_H_INCLUDED
-#define TOPOLOGY_TOPOLOGY_LOCATION_H_INCLUDED
+#ifndef TOPOLOGY_TOPOLOGY_INPUT_POWERCHAIN_H_INCLUDED
+#define TOPOLOGY_TOPOLOGY_INPUT_POWERCHAIN_H_INCLUDED
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,15 +28,15 @@ extern "C" {
 
 //  @interface
 
-//  topology_location main entry
-//  PARAM map keys in from/to with recursive/filter/feed_by specific arguments
-//  attempt: from/to: assetID, recursive in 'true'/'false', filter asset, feed_by device
-//  source: fty-rest /api/v1/topology/location REST api
-//      src/web/tntnet.xml, src/web/src/topology_location_from[2].ecpp, src/web/src/topology_location_to.ecpp
+
+//  topology_input_powerchain main entry
+//  PARAM map keys in 'id'
+//  source: fty-rest /api/v1/topology/input_power_chain REST api
+//      src/web/tntnet.xml, src/web/src/input_power_chain.ecpp
 //  returns 0 if success (json payload is valid), else <0
 
 FTY_ASSET_PRIVATE int
-    topology_location (std::map<std::string, std::string> & param, std::string & json);
+    topology_input_powerchain (std::map<std::string, std::string> & param, std::string & json);
 
 //  @end
 

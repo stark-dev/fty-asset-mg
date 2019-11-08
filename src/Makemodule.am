@@ -27,6 +27,7 @@ src_libfty_asset_la_SOURCES = \
     src/topology/msg/common_msg.cc \
     src/topology/topology_power.cc \
     src/topology/topology_location.cc \
+    src/topology/topology_input_powerchain.cc \
     src/topology_processor.cc \
     src/dbhelpers.cc \
     src/total_power.cc \

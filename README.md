@@ -158,7 +158,7 @@ where
 ```
     with
     * 'D1',...,'Dn' the assets in the upstream powerchain topology of 'asset-iname'
-    * 'D1-id'...,'Dn-id' the corresponding socket identifiers (src-id outlet)
+    * 'D1-id',...,'Dn-id' the corresponding socket identifiers (src-id outlet)
 
 Example of bmsg request:
 ```bash
@@ -217,11 +217,91 @@ where
      INTERNAL\_ERROR / MISSING\_PARAMETER
 * \<powerchains\> is a unique frame (JSON format) as:
 
-    to be documented
+    to be documented (see RFC11 /api/v1/topology/power)
 
 Example of bmsg request:
 ```bash
 bmsg request asset-agent TOPOLOGY REQUEST 1234 POWERCHAINS to server-17
+```
+
+#### Topology location
+
+The USER peer sends the following messages using MAILBOX SEND to
+FTY-ASSET-AGENT ("asset-agent") peer:
+
+* REQUEST/'uuid'/LOCATION/'command'/'asset-iname'/'options'
+
+where
+* '/' indicates a multipart string message
+* 'command' MUST be 'from', 'to'
+* 'asset-iname' MUST be the asset iname
+* 'options' MUST be empty if command is 'to'
+* 'options' MIST be a valid JSON paylaod if command is 'from', with members as:
+
+    \"recursive\" is a boolean
+    \"feed_by\" is a string describing a valid device asset
+    \"filter\" is a string in {\"rooms\", \"rows\", \"racks\", \"groups\", \"devices\", \"\"}
+    defaults are { \"recursive\": false, \"filter\": \"\", \"feed_by\": \"\" }
+* 'uuid' is the correlation id of the message
+* subject of the message MUST be TOPOLOGY
+
+The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
+peer using MAILBOX SEND.
+
+* 'uuid'/REPLY/POWERCHAINS/'asset-iname'/OK/\<location\>
+* 'uuid'/REPLY/POWERCHAINS/'asset-iname'/ERROR/reason
+
+where
+* '/' indicates a multipart frame message
+* 'asset-iname' MUST be the same as in request
+* 'uuid' MUST be the same as in request
+* 'reason' is a string detailing reason for error. Possible values are:
+
+     INTERNAL\_ERROR / MISSING\_PARAMETER
+* \<location\> is a unique frame (JSON format) as:
+
+    to be documented (see RFC11 /api/v1/topology/location)
+
+Example of bmsg request:
+```bash
+bmsg request asset-agent TOPOLOGY REQUEST 1234 LOCATION to server-17
+bmsg request asset-agent TOPOLOGY REQUEST 1234 LOCATION from room-9 '{ "filter": "devices" }'
+```
+
+#### Topology, input power chain
+
+The USER peer sends the following messages using MAILBOX SEND to
+FTY-ASSET-AGENT ("asset-agent") peer:
+
+* REQUEST/'uuid'/INPUT_POWERCHAIN/'asset-iname'
+
+where
+* '/' indicates a multipart string message
+* 'asset-iname' MUST be the asset iname of a datacenter
+* 'uuid' is the correlation id of the message
+* subject of the message MUST be TOPOLOGY
+
+The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
+peer using MAILBOX SEND.
+
+* 'uuid'/REPLY/INPUT_POWERCHAIN/'asset-iname'/OK/\<input_powerchain\>
+* 'uuid'/REPLY/INPUT_POWERCHAIN/'asset-iname'/ERROR/reason
+
+where
+* '/' indicates a multipart frame message
+* 'asset-iname' MUST be the same as in request
+* 'uuid' MUST be the same as in request
+* 'reason' is a string detailing reason for error. Possible values are:
+
+     INTERNAL\_ERROR / MISSING\_PARAMETER
+* \<input_powerchain\> is a unique frame (JSON format) as:
+
+    to be documented (see RFC11 /api/v1/topology/input_power_chain)
+
+Example of bmsg request:
+```bash
+bmsg request asset-agent TOPOLOGY REQUEST 1234 LOCATION to server-17
+bmsg request asset-agent TOPOLOGY REQUEST 1234 LOCATION from room-9 '{ "filter": "devices" }'
 ```
 
 #### Republishing assets

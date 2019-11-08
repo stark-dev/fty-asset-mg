@@ -324,7 +324,7 @@ static void
     zmsg_addstr (reply, assetName.c_str());
 
     if (r != 0) {
-        log_error ("%s:\tTOPOLOGY POWER_TO r: %d (asset: %s)",
+        log_error ("%s:\tTOPOLOGY POWER_TO r: %d (asset_name: %s)",
             cfg->name, r, asset_name);
 
         zmsg_addstr (reply, "ERROR");
@@ -366,7 +366,7 @@ static void
     zmsg_addstr (reply, assetName.c_str());
 
     if (r != 0) {
-        log_error ("%s:\tTOPOLOGY POWERCHAINS r: %d (cmd: %s, asset: %s)",
+        log_error ("%s:\tTOPOLOGY POWERCHAINS r: %d (cmd: %s, asset_name: %s)",
             cfg->name, r, select_cmd, asset_name);
 
         zmsg_addstr (reply, "ERROR");
@@ -411,11 +411,51 @@ static void
     zmsg_addstr (reply, assetName.c_str());
 
     if (r != 0) {
-        log_error ("%s:\tTOPOLOGY LOCATION r: %d (cmd: %s, asset: %s, options: %s)",
+        log_error ("%s:\tTOPOLOGY LOCATION r: %d (cmd: %s, asset_name: %s, options: %s)",
             cfg->name, r, select_cmd, asset_name, cmd_options);
 
         zmsg_addstr (reply, "ERROR");
         if (!(select_cmd && asset_name))
+            zmsg_addstr (reply, "MISSING_PARAMETER");
+        else
+            zmsg_addstr (reply, "INTERNAL_ERROR");
+    }
+    else {
+        zmsg_addstr (reply, "OK");
+        zmsg_addstr (reply, result.c_str()); // JSON in one frame
+    }
+}
+
+// =============================================================================
+// TOPOLOGY/INPUT_POWERCHAIN command processing
+// bmsg request asset-agent TOPOLOGY REQUEST <uuid> INPUT_POWERCHAIN <assetID>
+// <assetID> shall be a datacenter
+// =============================================================================
+
+static void
+    s_process_TopologyInputPowerchain (
+        fty_asset_server_t *cfg,
+        const char *asset_name,
+        zmsg_t *reply)
+{
+    assert(cfg);
+    assert(reply);
+
+    log_debug ("%s:\tTOPOLOGY INPUT_POWERCHAIN asset_name: %s",
+        cfg->name, asset_name);
+
+    std::string assetName(asset_name ? asset_name : "asset_undefined");
+    std::string result; // JSON payload
+    int r = topology_input_powerchain_process (assetName, result);
+
+    zmsg_addstr (reply, assetName.c_str());
+
+    if (r != 0) {
+        log_error ("%s:\tTOPOLOGY INPUT_POWERCHAIN r: %d (asset_name: %s)",
+            cfg->name, r, asset_name);
+
+        zmsg_addstr (reply, "ERROR");
+        if (!asset_name)
             zmsg_addstr (reply, "MISSING_PARAMETER");
         else
             zmsg_addstr (reply, "INTERNAL_ERROR");
@@ -433,6 +473,7 @@ static void
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWER_TO <assetID>
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWERCHAINS <select_cmd> <assetID>
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> LOCATION <select_cmd> <assetID> <options>
+// bmsg request asset-agent TOPOLOGY REQUEST <uuid> INPUT_POWERCHAIN <assetID>
 // =============================================================================
 
 static void
@@ -498,6 +539,11 @@ static void
             zstr_free (&options);
             zstr_free (&asset_name);
             zstr_free (&select_cmd);
+        }
+        else if (streq (command, "INPUT_POWERCHAIN")) {
+            char *asset_name = zmsg_popstr (msg);
+            s_process_TopologyInputPowerchain (cfg, asset_name, reply);
+            zstr_free (&asset_name);
         }
         else {
             log_error ("%s:\tUnexpected command for subject=TOPOLOGY (%s)", cfg->name, command);

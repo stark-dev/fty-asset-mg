@@ -416,6 +416,7 @@
     <class name = "topology/msg/common_msg" private = "1" selftest = "0" />
     <class name = "topology/topology_power" private = "1" selftest = "0" />
     <class name = "topology/topology_location" private = "1" selftest = "0" />
+    <class name = "topology/topology_input_powerchain" private = "1" selftest = "0" />
 
     <!-- topology requests processor (power, location) -->
     <class name = "topology_processor" private = "1" state = "stable">Topology requests processor</class>

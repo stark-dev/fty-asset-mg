@@ -87,6 +87,7 @@ EXTRA_DIST += \
     src/topology/msg/common_msg.h \
     src/topology/topology_power.h \
     src/topology/topology_location.h \
+    src/topology/topology_input_powerchain.h \
     src/topology_processor.h \
     src/dbhelpers.h \
     src/total_power.h \

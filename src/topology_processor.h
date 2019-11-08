@@ -56,12 +56,21 @@ FTY_ASSET_PRIVATE int
 //    if 'from': json payload as { "recursive": <true|false>, "filter": <element_kind>, "feed_by": <asset_id> }
 //               where <element_kind> is in {"rooms" , "rows", "racks", "devices", "groups"}
 //               if "feed_by" is specified, "filter" *must* be set to "devices", ASSETNAME *must* not be set to "none"
-//               defaults are {'recursive': false, "filter": "", "feed_by": "" }
+//               defaults are {"recursive": false, "filter": "", "feed_by": "" }
 // On success, RESULT is valid (JSON payload)
 // Returns 0 if success, else <0
 
 FTY_ASSET_PRIVATE int
     topology_location_process (const std::string & command, const std::string & assetName, const std::string & options, std::string & result, bool beautify = true);
+
+// Retrieve input power chain topology for a requested target asset
+// Implementation of REST /api/v1/topology/input_power_chain (see RFC11)
+// ASSETNAME is an assetID (normaly a datacenter)
+// On success, RESULT is valid (JSON payload)
+// Returns 0 if success, else <0
+
+FTY_ASSET_PRIVATE int
+    topology_input_powerchain_process (const std::string & assetName, std::string & result, bool beautify = true);
 
 //  Self test of this class
 

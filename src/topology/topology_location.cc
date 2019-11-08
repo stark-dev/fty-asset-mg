@@ -780,7 +780,7 @@ int s_topology_location_to (std::map<std::string, std::string> & param, std::str
 //  PARAM map keys in from/to with recursive/filter/feed_by specific arguments
 //  attempt: from/to: assetID, recursive in 'true'/'false', filter asset, feed_by device
 //  source: fty-rest /api/v1/topology/location REST api
-//      src/web/tntnet.xml, src/web/src/topology_location_[from|from2].ecpp, src/web/src/topology_location_to.ecp
+//      src/web/tntnet.xml, src/web/src/topology_location_[from|from2].ecpp, src/web/src/topology_location_to.ecpp
 //  returns 0 if success (json payload is valid), else <0
 
 int topology_location (std::map<std::string, std::string> & param, std::string & json)
