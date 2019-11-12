@@ -251,7 +251,7 @@ fty_asset_server_destroy (fty_asset_server_t **self_p)
 }
 
 // =============================================================================
-// TOPOLOGY/POWER command processing
+// TOPOLOGY/POWER command processing (completed reply)
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWER <assetID>
 // =============================================================================
 
@@ -304,7 +304,7 @@ static void
 }
 
 // =============================================================================
-// TOPOLOGY/POWER_TO command processing
+// TOPOLOGY/POWER_TO command processing (completed reply)
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWER_TO <assetID>
 // =============================================================================
 
@@ -344,7 +344,7 @@ static void
 }
 
 // =============================================================================
-// TOPOLOGY/POWERCHAINS command processing
+// TOPOLOGY/POWERCHAINS command processing (completed reply)
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWERCHAINS <select_cmd> <assetID>
 // <select_cmd> in {"to", "from", "filter_dc", "filter_group"}
 // =============================================================================
@@ -388,7 +388,7 @@ static void
 }
 
 // =============================================================================
-// TOPOLOGY/LOCATION command processing
+// TOPOLOGY/LOCATION command processing (completed reply)
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> LOCATION <select_cmd> <assetID> <options>
 // <select_cmd> in {"to", "from"}
 // see topology_location_process() for allowed options
@@ -435,7 +435,7 @@ static void
 }
 
 // =============================================================================
-// TOPOLOGY/INPUT_POWERCHAIN command processing
+// TOPOLOGY/INPUT_POWERCHAIN command processing (completed reply)
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> INPUT_POWERCHAIN <assetID>
 // <assetID> shall be a datacenter
 // =============================================================================
@@ -522,7 +522,8 @@ static void
         if (!streq(message_type, "REQUEST")) {
             log_error ("%s:\tExpected REQUEST message_type for subject=TOPOLOGY (message_type: %s)", cfg->name, message_type);
             zmsg_addstr (reply, "ERROR"); // status
-            zmsg_addstr (reply, "REQUEST_MSGTYPE_EXPECTED"); // reason
+            // reason, JSON payload (TRANSLATE_ME)
+            zmsg_addstr (reply, TRANSLATE_ME("REQUEST_MSGTYPE_EXPECTED (msg type: %s)", message_type).c_str());
         }
         else if (streq (command, "POWER")) {
             char *asset_name = zmsg_popstr (msg);
@@ -544,7 +545,7 @@ static void
         else if (streq (command, "LOCATION")) {
             char *select_cmd = zmsg_popstr (msg);
             char *asset_name = zmsg_popstr (msg);
-            char *options = zmsg_popstr (msg);
+            char *options = zmsg_popstr (msg); // can be NULL
             s_process_TopologyLocation (cfg, select_cmd, asset_name, options, reply);
             zstr_free (&options);
             zstr_free (&asset_name);
@@ -558,7 +559,8 @@ static void
         else {
             log_error ("%s:\tUnexpected command for subject=TOPOLOGY (%s)", cfg->name, command);
             zmsg_addstr (reply, "ERROR"); // status
-            zmsg_addstr (reply, "UNEXPECTED_COMMAND"); // reason
+            // reason, JSON payload (TRANSLATE_ME)
+            zmsg_addstr (reply, TRANSLATE_ME("UNEXPECTED_COMMAND (command: %s)", command).c_str());
         }
 
         // send reply
