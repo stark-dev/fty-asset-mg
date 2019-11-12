@@ -36,7 +36,6 @@
  * \brief Not yet documented file
  */
 
-#include <fty_common_rest.h>
 #include <list>
 #include <fty_common_db_asset.h>
 #include <fty_common.h>

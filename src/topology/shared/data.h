@@ -32,25 +32,20 @@
 
 #include <string>
 #include <map>
-#include <fty_common_db_asset.h>
+#include <fty_common_db_defs.h>
 
 //  @interface
 
 class asset_manager {
     public:
         // new functionality
-        db_reply <db_web_element_t>  get_item1(uint32_t id);
-        db_reply <std::map <uint32_t, std::string> > get_items1(
-            const std::string &typeName,
-            const std::string &subtypeName);
+        db_reply <db_web_element_t> get_item1(uint32_t id);
+        db_reply <std::map <uint32_t, std::string> > get_items1(const std::string &typeName, const std::string &subtypeName);
 
         // to support old style
         db_reply <db_web_element_t>  get_item1(const std::string &id, const std::string &type);
 
-        db_reply_t
-            delete_item(
-                uint32_t id,
-                db_a_elmnt_t &element_info);
+        db_reply_t delete_item(uint32_t id, db_a_elmnt_t &element_info);
 };
 
 //  @end

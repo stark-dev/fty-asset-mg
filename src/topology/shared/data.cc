@@ -32,7 +32,6 @@
 
 #include <algorithm>
 #include <fty_common_db_dbpath.h>
-#include <fty_common_rest.h>
 #include <fty_common.h>
 #include <fty_common_macros.h>
 
@@ -176,7 +175,7 @@ db_reply <db_web_element_t>
         ret.errtype       = DB_ERR;
         ret.errsubtype    = DB_ERROR_INTERNAL;
         ret.msg           = JSONIFY(e.what());
-        LOG_END_ABNORMAL(e);
+        //LOG_END_ABNORMAL(e);
         return ret;
     }
 }
@@ -186,7 +185,7 @@ db_reply <std::map <uint32_t, std::string> >
         const std::string &typeName,
         const std::string &subtypeName)
 {
-    LOG_START;
+    //LOG_START;
     log_debug ("subtypename = '%s', typename = '%s'", subtypeName.c_str(),
                     typeName.c_str());
     a_elmnt_stp_id_t subtype_id = 0;
@@ -201,7 +200,7 @@ db_reply <std::map <uint32_t, std::string> >
         log_error ("%s", ret.msg.c_str());
         // TODO need to have some more precise list of types, so we don't have to change anything here,
         // if something was changed
-        bios_error_idx(ret.rowid, ret.msg, "request-param-bad", "type", typeName.c_str(), "datacenters,rooms,ros,racks,devices");
+        //bios_error_idx(ret.rowid, ret.msg, "request-param-bad", "type", typeName.c_str(), "datacenters,rooms,ros,racks,devices");
         return ret;
     }
     if ( ( typeName == "device" ) && ( !subtypeName.empty() ) )
@@ -215,7 +214,7 @@ db_reply <std::map <uint32_t, std::string> >
             log_error ("%s", ret.msg.c_str());
             // TODO need to have some more precise list of types, so we don't have to change anything here,
             // if something was changed
-            bios_error_idx(ret.rowid, ret.msg, "request-param-bad", "subtype", subtypeName.c_str(), "ups, epdu, pdu, genset, sts, server, feed");
+            //bios_error_idx(ret.rowid, ret.msg, "request-param-bad", "subtype", subtypeName.c_str(), "ups, epdu, pdu, genset, sts, server, feed");
             return ret;
         }
     }
@@ -224,18 +223,18 @@ db_reply <std::map <uint32_t, std::string> >
     try{
         tntdb::Connection conn = tntdb::connect(DBConn::url);
         ret = DBAssets::select_short_elements(conn, type_id, subtype_id);
-        if ( ret.status == 0 )
-            bios_error_idx(ret.rowid, ret.msg, "internal-error", "");
-        LOG_END;
+        //if ( ret.status == 0 )
+        //   bios_error_idx(ret.rowid, ret.msg, "internal-error", "");
+        //LOG_END;
         return ret;
     }
     catch (const std::exception &e) {
-        LOG_END_ABNORMAL(e);
+        //LOG_END_ABNORMAL(e);
         ret.status        = 0;
         ret.errtype       = DB_ERR;
         ret.errsubtype    = DB_ERROR_INTERNAL;
         ret.msg           = e.what();
-        bios_error_idx(ret.rowid, ret.msg, "internal-error", "");
+        //bios_error_idx(ret.rowid, ret.msg, "internal-error", "");
         return ret;
     }
 }
@@ -277,7 +276,7 @@ db_reply_t
             log_debug("Prevented deleting RC-0");
             ret.status = 1;
             ret.affected_rows = 0;
-            LOG_END;
+            //LOG_END;
             return ret;
         }
 
@@ -288,7 +287,7 @@ db_reply_t
             ret.errsubtype    = DB_ERROR_DELETEFAIL;
             ret.msg           = TRANSLATE_ME("a logical_asset (sensor) refers to it");
             log_warning ("%s", ret.msg.c_str());
-            LOG_END;
+            //LOG_END;
             return ret;
         }
 
@@ -320,7 +319,7 @@ db_reply_t
                 log_warning ("%s", ret.msg.c_str());
             }
         }
-        LOG_END;
+        //LOG_END;
         return ret;
     }
     catch (const std::exception &e) {
@@ -328,7 +327,7 @@ db_reply_t
         ret.errtype       = DB_ERR;
         ret.errsubtype    = DB_ERROR_INTERNAL;
         ret.msg           = e.what();
-        LOG_END_ABNORMAL(e);
+        //LOG_END_ABNORMAL(e);
         return ret;
     }
 }
