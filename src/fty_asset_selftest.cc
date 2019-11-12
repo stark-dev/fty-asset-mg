@@ -42,7 +42,7 @@ all_tests [] = {
 #ifdef FTY_ASSET_BUILD_DRAFT_API
 // Tests for stable/draft private classes:
 // Now built only with --enable-drafts, so even stable builds are hidden behind the flag
-    { "topology_power_to", NULL, true, false, "topology_power_to_test" },
+    { "topology_processor", NULL, true, false, "topology_processor_test" },
     { "dbhelpers", NULL, true, false, "dbhelpers_test" },
     { "total_power", NULL, true, false, "total_power_test" },
     { "dns", NULL, true, false, "dns_test" },

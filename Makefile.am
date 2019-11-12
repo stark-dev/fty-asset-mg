@@ -73,21 +73,27 @@ EXTRA_DIST += \
 endif
 
 EXTRA_DIST += \
-    src/topology_power/persist/dbhelpers2.h \
-    src/topology_power/persist/assetcrud.h \
-    src/topology_power/persist/assettopology.h \
-    src/topology_power/persist/monitor.h \
-    src/topology_power/persist/persist_error.h \
-    src/topology_power/shared/utilspp.h \
-    src/topology_power/msg/asset_msg.h \
-    src/topology_power/msg/common_msg.h \
-    src/topology_power/topology_power.h \
-    src/topology_power_to.h \
+    src/topology/db/topology2.h \
+    src/topology/persist/dbhelpers2.h \
+    src/topology/persist/assetcrud.h \
+    src/topology/persist/assettopology.h \
+    src/topology/persist/monitor.h \
+    src/topology/persist/persist_error.h \
+    src/topology/shared/asset_general.h \
+    src/topology/shared/data.h \
+    src/topology/shared/utilspp.h \
+    src/topology/shared/location_helpers.h \
+    src/topology/msg/asset_msg.h \
+    src/topology/msg/common_msg.h \
+    src/topology/topology_power.h \
+    src/topology/topology_location.h \
+    src/topology/topology_input_powerchain.h \
+    src/topology_processor.h \
     src/dbhelpers.h \
     src/total_power.h \
     src/dns.h \
-    src/topology_power/dbtypes.h \
-    src/topology_power/cleanup.h \
+    src/topology/dbtypes.h \
+    src/topology/cleanup.h \
     README.md \
     src/fty_asset_classes.h
 
