@@ -43,7 +43,6 @@
 #include <string>
 #include <exception>
 #include <czmq.h>
-#include <fty_common_rest_helpers.h>
 #include <fty_common_db_dbpath.h>
 #include <fty_common.h>
 #include <fty_common_macros.h>
