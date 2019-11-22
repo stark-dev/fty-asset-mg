@@ -54,16 +54,13 @@ BuildRequires:  gcc-c++
 BuildRequires:  libsodium-devel
 BuildRequires:  zeromq-devel
 BuildRequires:  czmq-devel >= 3.0.2
+BuildRequires:  tntdb-devel
 BuildRequires:  malamute-devel >= 1.0.0
 BuildRequires:  file-devel
-BuildRequires:  log4cplus-devel
 BuildRequires:  fty-common-logging-devel
 BuildRequires:  fty-proto-devel >= 1.0.0
 BuildRequires:  cxxtools-devel
-BuildRequires:  tntdb-devel
-BuildRequires:  fty-common-devel
 BuildRequires:  fty-common-db-devel
-BuildRequires:  openssl-devel
 BuildRequires:  fty-common-mlm-devel
 BuildRequires:  fty-asset-activator-devel
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -93,16 +90,13 @@ Requires:       libfty_asset1 = %{version}
 Requires:       libsodium-devel
 Requires:       zeromq-devel
 Requires:       czmq-devel >= 3.0.2
+Requires:       tntdb-devel
 Requires:       malamute-devel >= 1.0.0
 Requires:       file-devel
-Requires:       log4cplus-devel
 Requires:       fty-common-logging-devel
 Requires:       fty-proto-devel >= 1.0.0
 Requires:       cxxtools-devel
-Requires:       tntdb-devel
-Requires:       fty-common-devel
 Requires:       fty-common-db-devel
-Requires:       openssl-devel
 Requires:       fty-common-mlm-devel
 Requires:       fty-asset-activator-devel
 
