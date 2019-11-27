@@ -655,7 +655,30 @@ AS_IF([test x"${search_libmagic}" = xyes], [
         found_pkgconfig="libmagic"
     ],
     [
-        AC_MSG_WARN([Attribute 'test' is not set on zproject dependency 'magic' - please ensure it is set])
+        AC_MSG_NOTICE([Package libmagic not found; falling back to defined compilability tests])
+
+        magic_synthetic_cflags=""
+        magic_synthetic_libs="-lmagic"
+
+        if test -n "${with_libmagic}" && test x"${with_libmagic}" != xyes && test x"${with_libmagic}" != xno; then
+            if test -r "${with_libmagic}/include/magic.h"; then
+                magic_synthetic_cflags="-I${with_libmagic}/include"
+                magic_synthetic_libs="-L${with_libmagic}/lib -lmagic"
+            else
+            AC_MSG_ERROR([Header file ${with_libmagic}/include/magic.h was not found. Please check libmagic prefix])
+            fi
+        else
+            AC_CHECK_HEADER([magic.h], [],
+            AC_MSG_ERROR([Header file magic.h was not found in default search paths])
+                )
+        fi
+
+        AC_CHECK_LIB([magic], [magic_close],
+            [
+                was_magic_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -lmagic"
+            ],
+            [AC_MSG_ERROR([cannot link with -lmagic, install libmagic])])
     ])
 
 dnl END of PKG_CHECK_MODULES and/or direct tests for libmagic
