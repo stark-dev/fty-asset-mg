@@ -15,19 +15,19 @@ AM_CPPFLAGS = \
     ${libsodium_CFLAGS} \
     ${libzmq_CFLAGS} \
     ${czmq_CFLAGS} \
+    ${cxxtools_CFLAGS} \
     ${tntdb_CFLAGS} \
     ${malamute_CFLAGS} \
     ${magic_CFLAGS} \
     ${fty_common_logging_CFLAGS} \
     ${fty_proto_CFLAGS} \
-    ${cxxtools_CFLAGS} \
     ${fty_common_db_CFLAGS} \
     ${fty_common_mlm_CFLAGS} \
     ${fty_asset_activator_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${tntdb_LIBS} ${malamute_LIBS} ${magic_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${fty_common_db_LIBS} ${fty_common_mlm_LIBS} ${fty_asset_activator_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${malamute_LIBS} ${magic_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${fty_common_db_LIBS} ${fty_common_mlm_LIBS} ${fty_asset_activator_LIBS}
 
 SUBDIRS = doc
 SUBDIRS += include
@@ -51,12 +51,12 @@ EXTRA_DIST += \
     Findlibsodium.cmake \
     Findlibzmq.cmake \
     Findczmq.cmake \
+    Findcxxtools.cmake \
     Findtntdb.cmake \
     Findmalamute.cmake \
     Findmagic.cmake \
     Findfty_common_logging.cmake \
     Findfty_proto.cmake \
-    Findcxxtools.cmake \
     Findfty_common_db.cmake \
     Findfty_common_mlm.cmake \
     Findfty_asset_activator.cmake \

@@ -64,12 +64,12 @@ pkg_deps_prereqs_source: &pkg_deps_prereqs_source
     - libsodium-dev
     - libzmq3-dev
     - libczmq-dev
+    - cxxtools-dev
     - tntdb-dev
     - libmlm-dev
     - libmagic-dev
     - libfty-common-logging-dev
     - libfty-proto-dev
-    - cxxtools-dev
     - libfty-common-db-dev
     - libfty-common-mlm-dev
     - libfty-asset-activator-dev

@@ -36,7 +36,6 @@
 #include <magic.h>
 #include <fty_log.h>
 #include <ftyproto.h>
-#include <cxxtools/allocator.h>
 #include <fty_common_db.h>
 #include <fty_common_mlm.h>
 #include <fty_asset_activator.h>
