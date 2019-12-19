@@ -230,7 +230,7 @@ where
 * 'command' MUST be 'from', 'to'
 * 'asset-iname' MUST be the asset iname
 * 'options' MUST be empty if command is 'to'
-* 'options' MIST be a valid JSON paylaod if command is 'from', with members as:
+* 'options' MUST be a valid JSON paylaod if command is 'from', with members as:
 
     \"recursive\" is a boolean
     \"feed_by\" is a string describing a valid device asset
@@ -242,8 +242,8 @@ where
 The FTY-ASSET-AGENT peer MUST respond with one of the messages back to USER
 peer using MAILBOX SEND.
 
-* 'uuid'/REPLY/POWERCHAINS/'asset-iname'/OK/\<location\>
-* 'uuid'/REPLY/POWERCHAINS/'asset-iname'/ERROR/reason
+* 'uuid'/REPLY/LOCATION/'asset-iname'/OK/\<location\>
+* 'uuid'/REPLY/LOCATION/'asset-iname'/ERROR/reason
 
 where
 * '/' indicates a multipart frame message
