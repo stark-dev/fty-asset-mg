@@ -290,8 +290,7 @@ where
 
 Example of bmsg request:
 ```bash
-bmsg request asset-agent TOPOLOGY REQUEST 1234 LOCATION to server-17
-bmsg request asset-agent TOPOLOGY REQUEST 1234 LOCATION from room-9 '{ "filter": "devices" }'
+bmsg request asset-agent TOPOLOGY REQUEST 1234 INPUT_POWERCHAIN server-17
 ```
 
 #### Republishing assets
