@@ -15,21 +15,19 @@ AM_CPPFLAGS = \
     ${libsodium_CFLAGS} \
     ${libzmq_CFLAGS} \
     ${czmq_CFLAGS} \
-    ${malamute_CFLAGS} \
-    ${magic_CFLAGS} \
-    ${log4cplus_CFLAGS} \
-    ${fty_common_logging_CFLAGS} \
-    ${fty_proto_CFLAGS} \
     ${cxxtools_CFLAGS} \
     ${tntdb_CFLAGS} \
-    ${fty_common_CFLAGS} \
+    ${malamute_CFLAGS} \
+    ${magic_CFLAGS} \
+    ${fty_common_logging_CFLAGS} \
+    ${fty_proto_CFLAGS} \
     ${fty_common_db_CFLAGS} \
-    ${openssl_CFLAGS} \
     ${fty_common_mlm_CFLAGS} \
+    ${fty_asset_activator_CFLAGS} \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${malamute_LIBS} ${magic_LIBS} ${log4cplus_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${fty_common_LIBS} ${fty_common_db_LIBS} ${openssl_LIBS} ${fty_common_mlm_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${malamute_LIBS} ${magic_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${fty_common_db_LIBS} ${fty_common_mlm_LIBS} ${fty_asset_activator_LIBS}
 
 SUBDIRS = doc
 SUBDIRS += include
@@ -53,17 +51,15 @@ EXTRA_DIST += \
     Findlibsodium.cmake \
     Findlibzmq.cmake \
     Findczmq.cmake \
-    Findmalamute.cmake \
-    Findmagic.cmake \
-    Findlog4cplus.cmake \
-    Findfty_common_logging.cmake \
-    Findfty_proto.cmake \
     Findcxxtools.cmake \
     Findtntdb.cmake \
-    Findfty_common.cmake \
+    Findmalamute.cmake \
+    Findmagic.cmake \
+    Findfty_common_logging.cmake \
+    Findfty_proto.cmake \
     Findfty_common_db.cmake \
-    Findopenssl.cmake \
     Findfty_common_mlm.cmake \
+    Findfty_asset_activator.cmake \
     builds/cmake/Modules/ClangFormat.cmake \
     builds/cmake/clang-format-check.sh.in \
     builds/cmake/Config.cmake.in \
@@ -71,9 +67,27 @@ EXTRA_DIST += \
 endif
 
 EXTRA_DIST += \
+    src/topology/db/topology2.h \
+    src/topology/persist/dbhelpers2.h \
+    src/topology/persist/assetcrud.h \
+    src/topology/persist/assettopology.h \
+    src/topology/persist/monitor.h \
+    src/topology/persist/persist_error.h \
+    src/topology/shared/asset_general.h \
+    src/topology/shared/data.h \
+    src/topology/shared/utilspp.h \
+    src/topology/shared/location_helpers.h \
+    src/topology/msg/asset_msg.h \
+    src/topology/msg/common_msg.h \
+    src/topology/topology_power.h \
+    src/topology/topology_location.h \
+    src/topology/topology_input_powerchain.h \
+    src/topology_processor.h \
     src/dbhelpers.h \
     src/total_power.h \
     src/dns.h \
+    src/topology/dbtypes.h \
+    src/topology/cleanup.h \
     README.md \
     src/fty_asset_classes.h
 

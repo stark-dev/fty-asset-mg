@@ -38,6 +38,8 @@ void
 fty_asset_private_selftest (bool verbose, const char *subtest)
 {
 // Tests for stable private classes:
+    if (streq (subtest, "$ALL") || streq (subtest, "topology_processor_test"))
+        topology_processor_test (verbose);
     if (streq (subtest, "$ALL") || streq (subtest, "dbhelpers_test"))
         dbhelpers_test (verbose);
     if (streq (subtest, "$ALL") || streq (subtest, "total_power_test"))

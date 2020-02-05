@@ -30,9 +30,73 @@
 #include "platform.h"
 
 //  External API
-#include "../include/fty_asset.h"
+#include "../include/fty-asset.h"
 
 //  Opaque class structures to allow forward references
+#ifndef TOPOLOGY_DB_TOPOLOGY2_T_DEFINED
+typedef struct _topology_db_topology2_t topology_db_topology2_t;
+#define TOPOLOGY_DB_TOPOLOGY2_T_DEFINED
+#endif
+#ifndef TOPOLOGY_PERSIST_DBHELPERS2_T_DEFINED
+typedef struct _topology_persist_dbhelpers2_t topology_persist_dbhelpers2_t;
+#define TOPOLOGY_PERSIST_DBHELPERS2_T_DEFINED
+#endif
+#ifndef TOPOLOGY_PERSIST_ASSETCRUD_T_DEFINED
+typedef struct _topology_persist_assetcrud_t topology_persist_assetcrud_t;
+#define TOPOLOGY_PERSIST_ASSETCRUD_T_DEFINED
+#endif
+#ifndef TOPOLOGY_PERSIST_ASSETTOPOLOGY_T_DEFINED
+typedef struct _topology_persist_assettopology_t topology_persist_assettopology_t;
+#define TOPOLOGY_PERSIST_ASSETTOPOLOGY_T_DEFINED
+#endif
+#ifndef TOPOLOGY_PERSIST_MONITOR_T_DEFINED
+typedef struct _topology_persist_monitor_t topology_persist_monitor_t;
+#define TOPOLOGY_PERSIST_MONITOR_T_DEFINED
+#endif
+#ifndef TOPOLOGY_PERSIST_PERSIST_ERROR_T_DEFINED
+typedef struct _topology_persist_persist_error_t topology_persist_persist_error_t;
+#define TOPOLOGY_PERSIST_PERSIST_ERROR_T_DEFINED
+#endif
+#ifndef TOPOLOGY_SHARED_ASSET_GENERAL_T_DEFINED
+typedef struct _topology_shared_asset_general_t topology_shared_asset_general_t;
+#define TOPOLOGY_SHARED_ASSET_GENERAL_T_DEFINED
+#endif
+#ifndef TOPOLOGY_SHARED_DATA_T_DEFINED
+typedef struct _topology_shared_data_t topology_shared_data_t;
+#define TOPOLOGY_SHARED_DATA_T_DEFINED
+#endif
+#ifndef TOPOLOGY_SHARED_UTILSPP_T_DEFINED
+typedef struct _topology_shared_utilspp_t topology_shared_utilspp_t;
+#define TOPOLOGY_SHARED_UTILSPP_T_DEFINED
+#endif
+#ifndef TOPOLOGY_SHARED_LOCATION_HELPERS_T_DEFINED
+typedef struct _topology_shared_location_helpers_t topology_shared_location_helpers_t;
+#define TOPOLOGY_SHARED_LOCATION_HELPERS_T_DEFINED
+#endif
+#ifndef TOPOLOGY_MSG_ASSET_MSG_T_DEFINED
+typedef struct _topology_msg_asset_msg_t topology_msg_asset_msg_t;
+#define TOPOLOGY_MSG_ASSET_MSG_T_DEFINED
+#endif
+#ifndef TOPOLOGY_MSG_COMMON_MSG_T_DEFINED
+typedef struct _topology_msg_common_msg_t topology_msg_common_msg_t;
+#define TOPOLOGY_MSG_COMMON_MSG_T_DEFINED
+#endif
+#ifndef TOPOLOGY_TOPOLOGY_POWER_T_DEFINED
+typedef struct _topology_topology_power_t topology_topology_power_t;
+#define TOPOLOGY_TOPOLOGY_POWER_T_DEFINED
+#endif
+#ifndef TOPOLOGY_TOPOLOGY_LOCATION_T_DEFINED
+typedef struct _topology_topology_location_t topology_topology_location_t;
+#define TOPOLOGY_TOPOLOGY_LOCATION_T_DEFINED
+#endif
+#ifndef TOPOLOGY_TOPOLOGY_INPUT_POWERCHAIN_T_DEFINED
+typedef struct _topology_topology_input_powerchain_t topology_topology_input_powerchain_t;
+#define TOPOLOGY_TOPOLOGY_INPUT_POWERCHAIN_T_DEFINED
+#endif
+#ifndef TOPOLOGY_PROCESSOR_T_DEFINED
+typedef struct _topology_processor_t topology_processor_t;
+#define TOPOLOGY_PROCESSOR_T_DEFINED
+#endif
 #ifndef DBHELPERS_T_DEFINED
 typedef struct _dbhelpers_t dbhelpers_t;
 #define DBHELPERS_T_DEFINED
@@ -47,9 +111,27 @@ typedef struct _dns_t dns_t;
 #endif
 
 //  Extra headers
+#include "topology/dbtypes.h"
+#include "topology/cleanup.h"
 
 //  Internal API
 
+#include "topology/db/topology2.h"
+#include "topology/persist/dbhelpers2.h"
+#include "topology/persist/assetcrud.h"
+#include "topology/persist/assettopology.h"
+#include "topology/persist/monitor.h"
+#include "topology/persist/persist_error.h"
+#include "topology/shared/asset_general.h"
+#include "topology/shared/data.h"
+#include "topology/shared/utilspp.h"
+#include "topology/shared/location_helpers.h"
+#include "topology/msg/asset_msg.h"
+#include "topology/msg/common_msg.h"
+#include "topology/topology_power.h"
+#include "topology/topology_location.h"
+#include "topology/topology_input_powerchain.h"
+#include "topology_processor.h"
 #include "dbhelpers.h"
 #include "total_power.h"
 #include "dns.h"
