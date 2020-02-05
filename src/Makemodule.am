@@ -176,6 +176,161 @@ check-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_b
 	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v
 	$(MAKE) check-empty-selftest-rw
 
+check-topology_db_topology2: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_db_topology2
+	$(MAKE) check-empty-selftest-rw
+check-topology_db_topology2-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_db_topology2
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_persist_dbhelpers2: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_persist_dbhelpers2
+	$(MAKE) check-empty-selftest-rw
+check-topology_persist_dbhelpers2-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_persist_dbhelpers2
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_persist_assetcrud: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_persist_assetcrud
+	$(MAKE) check-empty-selftest-rw
+check-topology_persist_assetcrud-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_persist_assetcrud
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_persist_assettopology: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_persist_assettopology
+	$(MAKE) check-empty-selftest-rw
+check-topology_persist_assettopology-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_persist_assettopology
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_persist_monitor: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_persist_monitor
+	$(MAKE) check-empty-selftest-rw
+check-topology_persist_monitor-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_persist_monitor
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_persist_persist_error: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_persist_persist_error
+	$(MAKE) check-empty-selftest-rw
+check-topology_persist_persist_error-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_persist_persist_error
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_shared_asset_general: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_shared_asset_general
+	$(MAKE) check-empty-selftest-rw
+check-topology_shared_asset_general-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_shared_asset_general
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_shared_data: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_shared_data
+	$(MAKE) check-empty-selftest-rw
+check-topology_shared_data-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_shared_data
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_shared_utilspp: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_shared_utilspp
+	$(MAKE) check-empty-selftest-rw
+check-topology_shared_utilspp-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_shared_utilspp
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_shared_location_helpers: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_shared_location_helpers
+	$(MAKE) check-empty-selftest-rw
+check-topology_shared_location_helpers-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_shared_location_helpers
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_msg_asset_msg: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_msg_asset_msg
+	$(MAKE) check-empty-selftest-rw
+check-topology_msg_asset_msg-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_msg_asset_msg
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_msg_common_msg: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_msg_common_msg
+	$(MAKE) check-empty-selftest-rw
+check-topology_msg_common_msg-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_msg_common_msg
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_topology_power: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_topology_power
+	$(MAKE) check-empty-selftest-rw
+check-topology_topology_power-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_topology_power
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_topology_location: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_topology_location
+	$(MAKE) check-empty-selftest-rw
+check-topology_topology_location-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_topology_location
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_topology_input_powerchain: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_topology_input_powerchain
+	$(MAKE) check-empty-selftest-rw
+check-topology_topology_input_powerchain-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_topology_input_powerchain
+	$(MAKE) check-empty-selftest-rw
+
+check-topology_processor: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_processor
+	$(MAKE) check-empty-selftest-rw
+check-topology_processor-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t topology_processor
+	$(MAKE) check-empty-selftest-rw
+
+check-dbhelpers: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t dbhelpers
+	$(MAKE) check-empty-selftest-rw
+check-dbhelpers-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t dbhelpers
+	$(MAKE) check-empty-selftest-rw
+
+check-total_power: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t total_power
+	$(MAKE) check-empty-selftest-rw
+check-total_power-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t total_power
+	$(MAKE) check-empty-selftest-rw
+
+check-dns: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t dns
+	$(MAKE) check-empty-selftest-rw
+check-dns-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t dns
+	$(MAKE) check-empty-selftest-rw
+
+check-fty_asset_server: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t fty_asset_server
+	$(MAKE) check-empty-selftest-rw
+check-fty_asset_server-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t fty_asset_server
+	$(MAKE) check-empty-selftest-rw
+
+check-fty_asset_autoupdate: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t fty_asset_autoupdate
+	$(MAKE) check-empty-selftest-rw
+check-fty_asset_autoupdate-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t fty_asset_autoupdate
+	$(MAKE) check-empty-selftest-rw
+
+check-fty_asset_inventory: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t fty_asset_inventory
+	$(MAKE) check-empty-selftest-rw
+check-fty_asset_inventory-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t fty_asset_inventory
+	$(MAKE) check-empty-selftest-rw
+
+
 # Run the selftest binary under valgrind to check for memory leaks
 memcheck: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
@@ -193,6 +348,315 @@ memcheck-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(to
 		$(builddir)/src/fty_asset_selftest -v
 	$(MAKE) check-empty-selftest-rw
 
+memcheck-topology_db_topology2: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_db_topology2
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_db_topology2-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_db_topology2
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_persist_dbhelpers2: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_persist_dbhelpers2
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_persist_dbhelpers2-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_persist_dbhelpers2
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_persist_assetcrud: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_persist_assetcrud
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_persist_assetcrud-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_persist_assetcrud
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_persist_assettopology: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_persist_assettopology
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_persist_assettopology-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_persist_assettopology
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_persist_monitor: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_persist_monitor
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_persist_monitor-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_persist_monitor
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_persist_persist_error: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_persist_persist_error
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_persist_persist_error-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_persist_persist_error
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_shared_asset_general: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_shared_asset_general
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_shared_asset_general-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_shared_asset_general
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_shared_data: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_shared_data
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_shared_data-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_shared_data
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_shared_utilspp: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_shared_utilspp
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_shared_utilspp-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_shared_utilspp
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_shared_location_helpers: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_shared_location_helpers
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_shared_location_helpers-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_shared_location_helpers
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_msg_asset_msg: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_msg_asset_msg
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_msg_asset_msg-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_msg_asset_msg
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_msg_common_msg: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_msg_common_msg
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_msg_common_msg-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_msg_common_msg
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_topology_power: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_topology_power
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_topology_power-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_topology_power
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_topology_location: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_topology_location
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_topology_location-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_topology_location
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_topology_input_powerchain: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_topology_input_powerchain
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_topology_input_powerchain-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_topology_input_powerchain
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_processor: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_processor
+	$(MAKE) check-empty-selftest-rw
+memcheck-topology_processor-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_processor
+	$(MAKE) check-empty-selftest-rw
+memcheck-dbhelpers: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t dbhelpers
+	$(MAKE) check-empty-selftest-rw
+memcheck-dbhelpers-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t dbhelpers
+	$(MAKE) check-empty-selftest-rw
+memcheck-total_power: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t total_power
+	$(MAKE) check-empty-selftest-rw
+memcheck-total_power-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t total_power
+	$(MAKE) check-empty-selftest-rw
+memcheck-dns: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t dns
+	$(MAKE) check-empty-selftest-rw
+memcheck-dns-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t dns
+	$(MAKE) check-empty-selftest-rw
+memcheck-fty_asset_server: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t fty_asset_server
+	$(MAKE) check-empty-selftest-rw
+memcheck-fty_asset_server-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t fty_asset_server
+	$(MAKE) check-empty-selftest-rw
+memcheck-fty_asset_autoupdate: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t fty_asset_autoupdate
+	$(MAKE) check-empty-selftest-rw
+memcheck-fty_asset_autoupdate-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t fty_asset_autoupdate
+	$(MAKE) check-empty-selftest-rw
+memcheck-fty_asset_inventory: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t fty_asset_inventory
+	$(MAKE) check-empty-selftest-rw
+memcheck-fty_asset_inventory-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
+		--leak-check=full --show-reachable=yes --error-exitcode=1 \
+		--suppressions=$(srcdir)/src/.valgrind.supp \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t fty_asset_inventory
+	$(MAKE) check-empty-selftest-rw
+
 # Run the selftest binary under valgrind to check for performance leaks
 callcheck: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
@@ -206,6 +670,227 @@ callcheck-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(t
 		$(builddir)/src/fty_asset_selftest -v
 	$(MAKE) check-empty-selftest-rw
 
+callcheck-topology_db_topology2: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_db_topology2
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_db_topology2-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_db_topology2
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_persist_dbhelpers2: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_persist_dbhelpers2
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_persist_dbhelpers2-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_persist_dbhelpers2
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_persist_assetcrud: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_persist_assetcrud
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_persist_assetcrud-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_persist_assetcrud
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_persist_assettopology: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_persist_assettopology
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_persist_assettopology-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_persist_assettopology
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_persist_monitor: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_persist_monitor
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_persist_monitor-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_persist_monitor
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_persist_persist_error: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_persist_persist_error
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_persist_persist_error-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_persist_persist_error
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_shared_asset_general: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_shared_asset_general
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_shared_asset_general-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_shared_asset_general
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_shared_data: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_shared_data
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_shared_data-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_shared_data
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_shared_utilspp: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_shared_utilspp
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_shared_utilspp-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_shared_utilspp
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_shared_location_helpers: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_shared_location_helpers
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_shared_location_helpers-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_shared_location_helpers
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_msg_asset_msg: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_msg_asset_msg
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_msg_asset_msg-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_msg_asset_msg
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_msg_common_msg: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_msg_common_msg
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_msg_common_msg-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_msg_common_msg
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_topology_power: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_topology_power
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_topology_power-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_topology_power
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_topology_location: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_topology_location
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_topology_location-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_topology_location
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_topology_input_powerchain: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_topology_input_powerchain
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_topology_input_powerchain-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_topology_input_powerchain
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_processor: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t topology_processor
+	$(MAKE) check-empty-selftest-rw
+callcheck-topology_processor-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t topology_processor
+	$(MAKE) check-empty-selftest-rw
+callcheck-dbhelpers: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t dbhelpers
+	$(MAKE) check-empty-selftest-rw
+callcheck-dbhelpers-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t dbhelpers
+	$(MAKE) check-empty-selftest-rw
+callcheck-total_power: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t total_power
+	$(MAKE) check-empty-selftest-rw
+callcheck-total_power-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t total_power
+	$(MAKE) check-empty-selftest-rw
+callcheck-dns: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t dns
+	$(MAKE) check-empty-selftest-rw
+callcheck-dns-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t dns
+	$(MAKE) check-empty-selftest-rw
+callcheck-fty_asset_server: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t fty_asset_server
+	$(MAKE) check-empty-selftest-rw
+callcheck-fty_asset_server-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t fty_asset_server
+	$(MAKE) check-empty-selftest-rw
+callcheck-fty_asset_autoupdate: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t fty_asset_autoupdate
+	$(MAKE) check-empty-selftest-rw
+callcheck-fty_asset_autoupdate-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t fty_asset_autoupdate
+	$(MAKE) check-empty-selftest-rw
+callcheck-fty_asset_inventory: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -t fty_asset_inventory
+	$(MAKE) check-empty-selftest-rw
+callcheck-fty_asset_inventory-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
+		$(VALGRIND_OPTIONS) \
+		$(builddir)/src/fty_asset_selftest -v -t fty_asset_inventory
+	$(MAKE) check-empty-selftest-rw
+
 # Run the selftest binary under gdb for debugging
 debug: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute gdb -q \
@@ -214,7 +899,184 @@ debug: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)
 
 debug-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute gdb -q \
-		$(builddir)/src/fty_asset_selftest -v
+		--args $(builddir)/src/fty_asset_selftest -v
+	$(MAKE) check-empty-selftest-rw
+
+debug-topology_db_topology2: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_db_topology2
+	$(MAKE) check-empty-selftest-rw
+debug-topology_db_topology2-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_db_topology2
+	$(MAKE) check-empty-selftest-rw
+debug-topology_persist_dbhelpers2: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_persist_dbhelpers2
+	$(MAKE) check-empty-selftest-rw
+debug-topology_persist_dbhelpers2-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_persist_dbhelpers2
+	$(MAKE) check-empty-selftest-rw
+debug-topology_persist_assetcrud: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_persist_assetcrud
+	$(MAKE) check-empty-selftest-rw
+debug-topology_persist_assetcrud-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_persist_assetcrud
+	$(MAKE) check-empty-selftest-rw
+debug-topology_persist_assettopology: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_persist_assettopology
+	$(MAKE) check-empty-selftest-rw
+debug-topology_persist_assettopology-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_persist_assettopology
+	$(MAKE) check-empty-selftest-rw
+debug-topology_persist_monitor: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_persist_monitor
+	$(MAKE) check-empty-selftest-rw
+debug-topology_persist_monitor-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_persist_monitor
+	$(MAKE) check-empty-selftest-rw
+debug-topology_persist_persist_error: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_persist_persist_error
+	$(MAKE) check-empty-selftest-rw
+debug-topology_persist_persist_error-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_persist_persist_error
+	$(MAKE) check-empty-selftest-rw
+debug-topology_shared_asset_general: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_shared_asset_general
+	$(MAKE) check-empty-selftest-rw
+debug-topology_shared_asset_general-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_shared_asset_general
+	$(MAKE) check-empty-selftest-rw
+debug-topology_shared_data: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_shared_data
+	$(MAKE) check-empty-selftest-rw
+debug-topology_shared_data-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_shared_data
+	$(MAKE) check-empty-selftest-rw
+debug-topology_shared_utilspp: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_shared_utilspp
+	$(MAKE) check-empty-selftest-rw
+debug-topology_shared_utilspp-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_shared_utilspp
+	$(MAKE) check-empty-selftest-rw
+debug-topology_shared_location_helpers: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_shared_location_helpers
+	$(MAKE) check-empty-selftest-rw
+debug-topology_shared_location_helpers-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_shared_location_helpers
+	$(MAKE) check-empty-selftest-rw
+debug-topology_msg_asset_msg: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_msg_asset_msg
+	$(MAKE) check-empty-selftest-rw
+debug-topology_msg_asset_msg-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_msg_asset_msg
+	$(MAKE) check-empty-selftest-rw
+debug-topology_msg_common_msg: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_msg_common_msg
+	$(MAKE) check-empty-selftest-rw
+debug-topology_msg_common_msg-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_msg_common_msg
+	$(MAKE) check-empty-selftest-rw
+debug-topology_topology_power: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_topology_power
+	$(MAKE) check-empty-selftest-rw
+debug-topology_topology_power-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_topology_power
+	$(MAKE) check-empty-selftest-rw
+debug-topology_topology_location: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_topology_location
+	$(MAKE) check-empty-selftest-rw
+debug-topology_topology_location-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_topology_location
+	$(MAKE) check-empty-selftest-rw
+debug-topology_topology_input_powerchain: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_topology_input_powerchain
+	$(MAKE) check-empty-selftest-rw
+debug-topology_topology_input_powerchain-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_topology_input_powerchain
+	$(MAKE) check-empty-selftest-rw
+debug-topology_processor: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t topology_processor
+	$(MAKE) check-empty-selftest-rw
+debug-topology_processor-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t topology_processor
+	$(MAKE) check-empty-selftest-rw
+debug-dbhelpers: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t dbhelpers
+	$(MAKE) check-empty-selftest-rw
+debug-dbhelpers-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t dbhelpers
+	$(MAKE) check-empty-selftest-rw
+debug-total_power: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t total_power
+	$(MAKE) check-empty-selftest-rw
+debug-total_power-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t total_power
+	$(MAKE) check-empty-selftest-rw
+debug-dns: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t dns
+	$(MAKE) check-empty-selftest-rw
+debug-dns-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t dns
+	$(MAKE) check-empty-selftest-rw
+debug-fty_asset_server: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t fty_asset_server
+	$(MAKE) check-empty-selftest-rw
+debug-fty_asset_server-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t fty_asset_server
+	$(MAKE) check-empty-selftest-rw
+debug-fty_asset_autoupdate: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t fty_asset_autoupdate
+	$(MAKE) check-empty-selftest-rw
+debug-fty_asset_autoupdate-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t fty_asset_autoupdate
+	$(MAKE) check-empty-selftest-rw
+debug-fty_asset_inventory: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -t fty_asset_inventory
+	$(MAKE) check-empty-selftest-rw
+debug-fty_asset_inventory-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute gdb -q \
+		--args $(builddir)/src/fty_asset_selftest -v -t fty_asset_inventory
 	$(MAKE) check-empty-selftest-rw
 
 # Run the selftest binary with verbose switch for tracing
