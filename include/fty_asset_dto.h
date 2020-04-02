@@ -19,8 +19,7 @@
     =========================================================================
 */
 
-#ifndef FTY_ASSET_DTO_H_INCLUDED
-#define FTY_ASSET_DTO_H_INCLUDED
+#pragma once
 
 #include <map>
 #include <string>
@@ -33,10 +32,8 @@
 
 namespace fty
 {
-    using HashMap = std::map<std::string, std::string>;
-
     /// List of valid asset statuses
-    enum AssetStatus : uint8_t
+    enum class AssetStatus
     {
         Status_Unknown = 0,
         Status_Active,
@@ -44,6 +41,7 @@ namespace fty
     };
 
     // WARNING keep consistent with DB table v_bios_asset_element_type
+    static constexpr const char *TYPE_UNKNOWN                         = "unknown";         // 0
     static constexpr const char *TYPE_GROUP                           = "group";           // 1
     static constexpr const char *TYPE_DATACENTER                      = "datacenter";      // 2
     static constexpr const char *TYPE_ROOM                            = "room";            // 3
@@ -62,6 +60,7 @@ namespace fty
     static constexpr const char *TYPE_PLAN                            = "plan";            // 17
 
     // WARNING keep consistent with DB table t_bios_asset_device_type
+    static constexpr const char *SUB_UNKNOWN                          = "unknown";                          // 0
     static constexpr const char *SUB_UPS                              = "ups";                              //1
     static constexpr const char *SUB_GENSET                           = "genset";                           //2
     static constexpr const char *SUB_EPDU                             = "epdu";                             //3
@@ -140,21 +139,26 @@ namespace fty
         /// priority 1..5 (1 is most, 5 is least)
         uint8_t     m_priority;
         /// ext map storage (asset-specific values)
-        HashMap     m_ext;
+        std::map<std::string, std::string>     m_ext;
 
         public:
-        Asset();
-        ~Asset();
+        Asset() :
+            m_assetStatus(AssetStatus::Status_Unknown),
+            m_assetType(TYPE_UNKNOWN),
+            m_assetSubtype(SUB_UNKNOWN),
+            m_priority(5)
+        {};
+        ~Asset() {};
 
         // getters
-        const std::string getId() const { return m_id; };
-        const AssetStatus getAssetStatus() const { return m_assetStatus; };
-        const std::string getAssetType() const { return m_assetType; };
-        const std::string getAssetSubtype() const { return m_assetSubtype; };
-        const std::string getFriendlyName() const { return m_friendlyName; };
-        const std::string getParentId() const { return m_parentId; };
-        const uint8_t     getPriority() const { return m_priority; };
-        const HashMap     getExt() const { return m_ext; };
+        const std::string                           getId() const { return m_id; };
+        const AssetStatus                           getAssetStatus() const { return m_assetStatus; };
+        const std::string                           getAssetType() const { return m_assetType; };
+        const std::string                           getAssetSubtype() const { return m_assetSubtype; };
+        const std::string                           getFriendlyName() const { return m_friendlyName; };
+        const std::string                           getParentId() const { return m_parentId; };
+        const uint8_t                               getPriority() const { return m_priority; };
+        const std::map<std::string, std::string>    getExt() const { return m_ext; };
 
         // setters
         void setId(const std::string & id);
@@ -164,7 +168,7 @@ namespace fty
         void setFriendlyName(const std::string & friendlyName);
         void setParentId(const std::string & parendId);
         void setPriority(const uint8_t priority);
-        void setExt(const HashMap & ext);
+        void setExt(const std::map<std::string, std::string> & ext);
 
         // overload equality and inequality check
         bool operator== (const Asset &asset) const;
@@ -181,4 +185,3 @@ namespace fty
 //  Self test of this class
 void fty_asset_dto_test (bool verbose);
 
-#endif

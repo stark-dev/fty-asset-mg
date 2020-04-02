@@ -31,24 +31,23 @@
 #include <zhash.h>
 
 // for fty-proto conversion
-static fty::HashMap zhashToMap(zhash_t *hash)
+static std::map<std::string, std::string> zhashToMap(zhash_t *hash)
 {
-    fty::HashMap map;
-    char *item = (char *)zhash_first(hash);
-    while(item) {
-        const char * key = zhash_cursor(hash);
-        const char * val = (const char *)zhash_lookup(hash,key);
-        if( key && val ) map[key] = val;
-        item = (char *)zhash_next(hash);
+    std::map<std::string, std::string> map;
+
+    for (auto* item = zhash_first(hash); item; item = zhash_next(hash))
+    {
+        map.emplace(zhash_cursor(hash), static_cast<const char *>(item));
     }
+
     return map;
 }
 
 
-static zhash_t* mapToZhash(const fty::HashMap &map)
+static zhash_t* mapToZhash(const std::map<std::string, std::string> &map)
 {
     zhash_t *hash = zhash_new ();
-    for (auto &i :map) {
+    for (const auto & i :map) {
         zhash_insert (hash, i.first.c_str (), (void*) i.second.c_str());
     }
 
@@ -60,32 +59,17 @@ namespace fty
     // TODO implement in fty-common
     std::map<AssetStatus, std::string> AssetStatusToProto =
     {
-        {Status_Unknown, "unknown"},
-        {Status_Active, "active"},
-        {Status_Nonactive, "nonactive"}
+        {AssetStatus::Status_Unknown, "unknown"},
+        {AssetStatus::Status_Active, "active"},
+        {AssetStatus::Status_Nonactive, "nonactive"}
     };
 
     std::map<std::string, fty::AssetStatus> ProtoToAssetStatus = 
     {
-        {"unknown", Status_Unknown},
-        {"active", Status_Active},
-        {"nonactive", Status_Nonactive}
+        {"unknown", AssetStatus::Status_Unknown},
+        {"active", AssetStatus::Status_Active},
+        {"nonactive", AssetStatus::Status_Nonactive}
     };
-
-    Asset::Asset()
-    {
-        m_id = "";
-        m_assetStatus = Status_Unknown;
-        m_assetType = persist::TUNKNOWN;
-        m_assetSubtype = persist::SUNKNOWN;
-        m_friendlyName = "";
-        m_parentId = "";
-        m_priority = 5;
-    }
-
-    Asset::~Asset()
-    {
-    }
 
     // setters
     void Asset::setId(const std::string & id)
@@ -123,7 +107,7 @@ namespace fty
         m_priority = priority;
     }
 
-    void Asset::setExt(const HashMap & ext)
+    void Asset::setExt(const std::map<std::string, std::string> & ext)
     {
         m_ext = ext;
     }
@@ -163,14 +147,14 @@ namespace fty
             return false;
         }
 
-        for(auto p : m_ext)
+        for(const auto & p : m_ext)
         {
             auto search = asset.m_ext.find(p.first);
             if(search == asset.m_ext.end())
             {
                 return false;
             }
-            else if(asset.m_ext.at(p.first) != p.second)
+            else if(search->second != p.second)
             {
                 return false;
             }
@@ -189,7 +173,7 @@ namespace fty
     {
         // basic
         si.addMember("id") <<= asset.getId();
-        si.addMember("status") <<= asset.getAssetStatus();
+        si.addMember("status") <<= int(asset.getAssetStatus());
         si.addMember("type") <<= asset.getAssetType();
         si.addMember("sub_type") <<= asset.getAssetSubtype();
         si.addMember("name") <<= asset.getFriendlyName();
@@ -212,30 +196,39 @@ namespace fty
     {
         int tmpInt;
         std::string tmpString;
-        HashMap tmpMap;
-        // status
-        if (!si.findMember("status"))
+        std::map<std::string, std::string> tmpMap;
+
+        auto getByKey = [&](const std::string& key)
         {
-            throw std::runtime_error("Member status does not exist");
-        }
-        si.getMember("status") >>= tmpInt;
+            if(!si.findMember(key.c_str())) {
+                throw std::runtime_error("Member " + key + " does not exist");
+            }
+            return si.getMember(key.c_str());
+        };
+
+        // status
+        getByKey("status") >>= tmpInt;
         asset.setAssetStatus(AssetStatus(tmpInt));
 
         // type
-        if (!si.findMember("type"))
-        {
-            throw std::runtime_error("Member type does not exist");
-        }
-        si.getMember("type") >>= tmpString;
+        getByKey("type") >>= tmpString;
         asset.setAssetType(tmpString);
 
         // subtype
-        if (!si.findMember("sub_type"))
-        {
-            throw std::runtime_error("Member sub_type does not exist");
-        }
-        si.getMember("sub_type") >>= tmpString;
+        getByKey("sub_type") >>= tmpString;
         asset.setAssetSubtype(tmpString);
+
+        // external name
+        getByKey("name") >>= tmpString;
+        asset.setFriendlyName(tmpString);
+
+        // priority
+        getByKey("priority") >>= tmpInt;
+        asset.setPriority(static_cast<uint8_t>(tmpInt));
+
+        // parend id
+        getByKey("location") >>= tmpString;
+        asset.setParentId(tmpString);
 
         // id
         if (!si.findMember("id"))
@@ -256,36 +249,12 @@ namespace fty
         }
         asset.setId(tmpString);
 
-        // external name
-        if (!si.findMember("name"))
-        {
-            throw std::runtime_error("Member name does not exist");
-        }
-        si.getMember("name") >>= tmpString;
-        asset.setFriendlyName(tmpString);
-
-        // priority
-        if (!si.findMember("priority"))
-        {
-            throw std::runtime_error("Member priority does not exist");
-        }
-        si.getMember("priority") >>= tmpInt;
-        asset.setPriority(static_cast<uint8_t>(tmpInt));
-
-        // parend id
-        if (!si.findMember("location"))
-        {
-            throw std::runtime_error("Member location does not exist");
-        }
-        si.getMember("location") >>= tmpString;
-        asset.setParentId(tmpString);
-
         // ext map
         tmpMap.clear();
         if (si.findMember("ext"))
         {
             const cxxtools::SerializationInfo extSi = si.getMember("ext");
-            for (const auto element : extSi)
+            for (const auto & element : extSi)
             {
                 auto key = element.name();
                 // ext from UI behaves as an object of objects with empty 1st level keys
@@ -433,11 +402,11 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            HashMap ext;
+            std::map<std::string, std::string> ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Status_Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
@@ -474,11 +443,11 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            HashMap ext;
+            std::map<std::string, std::string> ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Status_Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
@@ -517,11 +486,11 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            HashMap ext;
+            std::map<std::string, std::string> ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Status_Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
@@ -559,11 +528,11 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            HashMap ext;
+            std::map<std::string, std::string> ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Status_Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
@@ -600,11 +569,11 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            HashMap ext;
+            std::map<std::string, std::string> ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Status_Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
@@ -645,11 +614,11 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            HashMap ext;
+            std::map<std::string, std::string> ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Status_Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
