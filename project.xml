@@ -58,6 +58,11 @@
         </use>
     </use>
 
+    <use project = "cxxtools"
+        header = "cxxtools/allocator.h"
+        test = "cxxtools::Utf8Codec::Utf8Codec"
+        repository = "https://github.com/42ity/cxxtools.git" />
+
     <use project = "tntdb"
         repository = "https://github.com/42ity/tntdb.git"
         test = "tntdb::Date::gmtime"

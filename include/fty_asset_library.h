@@ -31,6 +31,7 @@
 
 //  External dependencies
 #include <czmq.h>
+#include <cxxtools/allocator.h>
 #include <tntdb.h>
 #include <malamute.h>
 #include <magic.h>
