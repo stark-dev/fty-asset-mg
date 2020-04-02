@@ -52,6 +52,7 @@ all_tests [] = {
     { "fty_asset_server", fty_asset_server_test, true, true, NULL },
     { "fty_asset_autoupdate", fty_asset_autoupdate_test, true, true, NULL },
     { "fty_asset_inventory", fty_asset_inventory_test, true, true, NULL },
+    { "fty_asset_dto", fty_asset_dto_test, true, true, NULL },
     {NULL, NULL, 0, 0, NULL}          //  Sentinel
 };
 

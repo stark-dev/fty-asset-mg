@@ -131,6 +131,8 @@
     <class name = "fty_asset_autoupdate" state = "stable" >Asset server, that updates some of asset information on change like IP address in case of DHCP</class>
     <class name = "fty_asset_inventory" state = "stable" >Inventory server: process inventory ASSET messages and update extended attributes</class>
 
+    <class name = "fty_asset_dto" state = "stable" >Asset DTO: defines ASSET attributes for data exchange</class>
+
     <main name = "fty-asset" service = "1" >
         Agent managing assets
     </main>
