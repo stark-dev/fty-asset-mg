@@ -128,8 +128,11 @@ namespace fty
         public:
         using HashMap = std::map<std::string, std::string>;
 
+        // helpers
+        const std::string         internalName() const;
+
         // getters
-        const std::string       & getId() const;
+        const int                 getId() const;
         const AssetStatus         getAssetStatus() const;
         const std::string       & getAssetType() const;
         const std::string       & getAssetSubtype() const;
@@ -139,7 +142,7 @@ namespace fty
         const Asset::HashMap    & getExt() const;
 
         // setters
-        void setId(const std::string & id);
+        void setId(const int id);
         void setAssetStatus(const AssetStatus assetStatus);
         void setAssetType(const std::string & assetType);
         void setAssetSubtype(const std::string & assetSubtype);
@@ -153,8 +156,7 @@ namespace fty
         bool operator!= (const Asset &asset) const;
 
         private:
-        /// internal identification string (iname)
-        std::string    m_id;
+        int            m_id            = -1; // numeric id (iname = <subtype>-<id>)
         AssetStatus    m_assetStatus   = AssetStatus::Unknown;
         std::string    m_assetType     = TYPE_UNKNOWN;
         std::string    m_assetSubtype  = SUB_UNKNOWN;
