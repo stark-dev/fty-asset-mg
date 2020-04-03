@@ -155,35 +155,14 @@ namespace fty
 
     bool Asset::operator== (const Asset &asset) const
     {
-        if(m_id != asset.m_id)
-        {
-            return false;
-        }
-        if(m_assetStatus != asset.m_assetStatus)
-        {
-            return false;
-        }
-        if(m_assetType != asset.m_assetType)
-        {
-            return false;
-        }
-        if(m_assetSubtype != asset.m_assetSubtype)
-        {
-            return false;
-        }
-        if(m_friendlyName != asset.m_friendlyName)
-        {
-            return false;
-        }
-        if(m_parentId != asset.m_parentId)
-        {
-            return false;
-        }
-        if(m_parentId != asset.m_parentId)
-        {
-            return false;
-        }
-        if(m_priority != asset.m_priority)
+        if( m_id != asset.m_id ||
+            m_assetStatus != asset.m_assetStatus ||
+            m_assetType != asset.m_assetType ||
+            m_assetSubtype != asset.m_assetSubtype ||
+            m_friendlyName != asset.m_friendlyName ||
+            m_parentId != asset.m_parentId ||
+            m_parentId != asset.m_parentId ||
+            m_priority != asset.m_priority)
         {
             return false;
         }
@@ -239,36 +218,28 @@ namespace fty
         std::string tmpString;
         Asset::HashMap tmpMap;
 
-        auto getByKey = [&](const std::string& key)
-        {
-            if(!si.findMember(key.c_str())) {
-                throw std::runtime_error("Member " + key + " does not exist");
-            }
-            return si.getMember(key.c_str());
-        };
-
         // status
-        getByKey("status") >>= tmpInt;
+        si.getMember("status") >>= tmpInt;
         asset.setAssetStatus(AssetStatus(tmpInt));
 
         // type
-        getByKey("type") >>= tmpString;
+        si.getMember("type") >>= tmpString;
         asset.setAssetType(tmpString);
 
         // subtype
-        getByKey("sub_type") >>= tmpString;
+        si.getMember("sub_type") >>= tmpString;
         asset.setAssetSubtype(tmpString);
 
         // external name
-        getByKey("name") >>= tmpString;
+        si.getMember("name") >>= tmpString;
         asset.setFriendlyName(tmpString);
 
         // priority
-        getByKey("priority") >>= tmpInt;
+        si.getMember("priority") >>= tmpInt;
         asset.setPriority(static_cast<uint8_t>(tmpInt));
 
         // parend id
-        getByKey("location") >>= tmpString;
+        si.getMember("location") >>= tmpString;
         asset.setParentId(tmpString);
 
         // id

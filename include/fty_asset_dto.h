@@ -27,8 +27,8 @@
 #include <fty_common.h>
 #include <ftyproto.h>
 
-#include "cxxtools/serializationinfo.h"
-#include "cxxtools/jsondeserializer.h"
+#include <cxxtools/serializationinfo.h>
+#include <cxxtools/jsondeserializer.h>
 
 namespace fty
 {
