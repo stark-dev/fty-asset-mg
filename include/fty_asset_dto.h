@@ -40,7 +40,7 @@ namespace fty
         Nonactive
     };
 
-    // WARNING keep consistent with DB table v_bios_asset_element_type
+    // WARNING keep consistent with DB table t_bios_asset_element_type
     static constexpr const char *TYPE_UNKNOWN                         = "unknown";         // 0
     static constexpr const char *TYPE_GROUP                           = "group";           // 1
     static constexpr const char *TYPE_DATACENTER                      = "datacenter";      // 2
@@ -135,7 +135,7 @@ namespace fty
         const std::string       & getAssetSubtype() const;
         const std::string       & getFriendlyName() const;
         const std::string       & getParentId() const;
-        const uint8_t             getPriority() const;
+        const int                 getPriority() const;
         const Asset::HashMap    & getExt() const;
 
         // setters
@@ -145,7 +145,7 @@ namespace fty
         void setAssetSubtype(const std::string & assetSubtype);
         void setFriendlyName(const std::string & friendlyName);
         void setParentId(const std::string & parendId);
-        void setPriority(const uint8_t priority);
+        void setPriority(const int priority);
         void setExt(const Asset::HashMap & ext);
 
         // overload equality and inequality check
@@ -164,7 +164,7 @@ namespace fty
         /// direct parent iname
         std::string    m_parentId;
         /// priority 1..5 (1 is most, 5 is least)
-        uint8_t        m_priority      = 5;
+        int            m_priority      = 5;
         /// ext map storage (asset-specific values)
         Asset::HashMap m_ext;
     };

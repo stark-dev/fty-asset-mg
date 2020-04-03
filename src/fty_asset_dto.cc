@@ -102,7 +102,7 @@ namespace fty
         return m_parentId;
     }
 
-    const uint8_t Asset::getPriority() const
+    const int Asset::getPriority() const
     {
         return m_priority;
     }
@@ -143,7 +143,7 @@ namespace fty
         m_parentId = parendId;
     }
 
-    void Asset::setPriority(const uint8_t priority)
+    void Asset::setPriority(const int priority)
     {
         m_priority = priority;
     }
@@ -236,7 +236,7 @@ namespace fty
 
         // priority
         si.getMember("priority") >>= tmpInt;
-        asset.setPriority(static_cast<uint8_t>(tmpInt));
+        asset.setPriority(tmpInt);
 
         // parend id
         si.getMember("location") >>= tmpString;
@@ -336,7 +336,7 @@ namespace fty
         asset.setAssetSubtype(fty_proto_aux_string(proto, "subtype", ""));
         asset.setFriendlyName(fty_proto_name(proto));
         asset.setParentId(fty_proto_aux_string(proto, "parent", ""));
-        asset.setPriority(static_cast<uint8_t>(fty_proto_aux_number(proto, "priority", 5)));
+        asset.setPriority(fty_proto_aux_number(proto, "priority", 5));
 
         zhash_t *ext = fty_proto_ext(proto);
         asset.setExt(zhashToMap(ext));
