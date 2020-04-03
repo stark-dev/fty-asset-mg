@@ -35,9 +35,9 @@ namespace fty
     /// List of valid asset statuses
     enum class AssetStatus
     {
-        Status_Unknown = 0,
-        Status_Active,
-        Status_Nonactive
+        Unknown = 0,
+        Active,
+        Nonactive
     };
 
     // WARNING keep consistent with DB table v_bios_asset_element_type
@@ -143,7 +143,7 @@ namespace fty
 
         public:
         Asset() :
-            m_assetStatus(AssetStatus::Status_Unknown),
+            m_assetStatus(AssetStatus::Unknown),
             m_assetType(TYPE_UNKNOWN),
             m_assetSubtype(SUB_UNKNOWN),
             m_priority(5)

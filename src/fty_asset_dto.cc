@@ -59,16 +59,16 @@ namespace fty
     // TODO implement in fty-common
     std::map<AssetStatus, std::string> AssetStatusToProto =
     {
-        {AssetStatus::Status_Unknown, "unknown"},
-        {AssetStatus::Status_Active, "active"},
-        {AssetStatus::Status_Nonactive, "nonactive"}
+        {AssetStatus::Unknown, "unknown"},
+        {AssetStatus::Active, "active"},
+        {AssetStatus::Nonactive, "nonactive"}
     };
 
     std::map<std::string, fty::AssetStatus> ProtoToAssetStatus = 
     {
-        {"unknown", AssetStatus::Status_Unknown},
-        {"active", AssetStatus::Status_Active},
-        {"nonactive", AssetStatus::Status_Nonactive}
+        {"unknown", AssetStatus::Unknown},
+        {"active", AssetStatus::Active},
+        {"nonactive", AssetStatus::Nonactive}
     };
 
     // setters
@@ -406,7 +406,7 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(AssetStatus::Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
@@ -447,7 +447,7 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(AssetStatus::Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
@@ -490,7 +490,7 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(AssetStatus::Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
@@ -532,7 +532,7 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(AssetStatus::Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
@@ -573,7 +573,7 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(AssetStatus::Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
@@ -618,7 +618,7 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
-            asset.setAssetStatus(AssetStatus::Status_Nonactive);
+            asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
             asset.setFriendlyName("test-device");
