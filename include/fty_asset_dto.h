@@ -125,35 +125,18 @@ namespace fty
 
     class Asset
     {
-        private:
-        /// internal identification string (iname)
-        std::string m_id;
-        AssetStatus m_assetStatus   = AssetStatus::Unknown;
-        std::string m_assetType     = TYPE_UNKNOWN;
-        std::string m_assetSubtype  = SUB_UNKNOWN;
-
-        /// friendly name (hist. ename) provided by user
-        std::string m_friendlyName;
-        /// direct parent iname
-        std::string m_parentId;
-        /// priority 1..5 (1 is most, 5 is least)
-        uint8_t     m_priority      = 5;
-        /// ext map storage (asset-specific values)
-        std::map<std::string, std::string>     m_ext;
-
         public:
-        Asset() {};
-        ~Asset() {};
+        using HashMap = std::map<std::string, std::string>;
 
         // getters
-        const std::string                         & getId() const { return m_id; };
-        const AssetStatus                           getAssetStatus() const { return m_assetStatus; };
-        const std::string                         & getAssetType() const { return m_assetType; };
-        const std::string                         & getAssetSubtype() const { return m_assetSubtype; };
-        const std::string                         & getFriendlyName() const { return m_friendlyName; };
-        const std::string                         & getParentId() const { return m_parentId; };
-        const uint8_t                               getPriority() const { return m_priority; };
-        const std::map<std::string, std::string>  & getExt() const { return m_ext; };
+        const std::string       & getId() const;
+        const AssetStatus         getAssetStatus() const;
+        const std::string       & getAssetType() const;
+        const std::string       & getAssetSubtype() const;
+        const std::string       & getFriendlyName() const;
+        const std::string       & getParentId() const;
+        const uint8_t             getPriority() const;
+        const Asset::HashMap    & getExt() const;
 
         // setters
         void setId(const std::string & id);
@@ -163,11 +146,27 @@ namespace fty
         void setFriendlyName(const std::string & friendlyName);
         void setParentId(const std::string & parendId);
         void setPriority(const uint8_t priority);
-        void setExt(const std::map<std::string, std::string> & ext);
+        void setExt(const Asset::HashMap & ext);
 
         // overload equality and inequality check
         bool operator== (const Asset &asset) const;
         bool operator!= (const Asset &asset) const;
+
+        private:
+        /// internal identification string (iname)
+        std::string    m_id;
+        AssetStatus    m_assetStatus   = AssetStatus::Unknown;
+        std::string    m_assetType     = TYPE_UNKNOWN;
+        std::string    m_assetSubtype  = SUB_UNKNOWN;
+
+        /// friendly name (hist. ename) provided by user
+        std::string    m_friendlyName;
+        /// direct parent iname
+        std::string    m_parentId;
+        /// priority 1..5 (1 is most, 5 is least)
+        uint8_t        m_priority      = 5;
+        /// ext map storage (asset-specific values)
+        Asset::HashMap m_ext;
     };
 
     void operator<<= (cxxtools::SerializationInfo & si, const Asset & asset);

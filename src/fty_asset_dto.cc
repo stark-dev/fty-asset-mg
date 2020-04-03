@@ -31,9 +31,9 @@
 #include <zhash.h>
 
 // for fty-proto conversion
-static std::map<std::string, std::string> zhashToMap(zhash_t *hash)
+static fty::Asset::HashMap zhashToMap(zhash_t *hash)
 {
-    std::map<std::string, std::string> map;
+    fty::Asset::HashMap map;
 
     for (auto* item = zhash_first(hash); item; item = zhash_next(hash))
     {
@@ -44,7 +44,7 @@ static std::map<std::string, std::string> zhashToMap(zhash_t *hash)
 }
 
 
-static zhash_t* mapToZhash(const std::map<std::string, std::string> &map)
+static zhash_t* mapToZhash(const fty::Asset::HashMap &map)
 {
     zhash_t *hash = zhash_new ();
     for (const auto & i :map) {
@@ -71,6 +71,47 @@ namespace fty
         {"nonactive", AssetStatus::Nonactive}
     };
 
+    // getters
+    const std::string & Asset::getId() const
+    {
+        return m_id;
+    }
+
+    const AssetStatus Asset::getAssetStatus() const
+    {
+        return m_assetStatus;
+    }
+
+    const std::string & Asset::getAssetType() const
+    {
+        return m_assetType;
+    }
+
+    const std::string & Asset::getAssetSubtype() const
+    {
+        return m_assetSubtype;
+    }
+
+    const std::string & Asset::getFriendlyName() const
+    {
+        return m_friendlyName;
+    }
+
+    const std::string & Asset::getParentId() const
+    {
+        return m_parentId;
+    }
+
+    const uint8_t Asset::getPriority() const
+    {
+        return m_priority;
+    }
+
+    const Asset::HashMap & Asset::getExt() const
+    {
+        return m_ext;
+    }
+    
     // setters
     void Asset::setId(const std::string & id)
     {
@@ -107,7 +148,7 @@ namespace fty
         m_priority = priority;
     }
 
-    void Asset::setExt(const std::map<std::string, std::string> & ext)
+    void Asset::setExt(const Asset::HashMap & ext)
     {
         m_ext = ext;
     }
@@ -196,7 +237,7 @@ namespace fty
     {
         int tmpInt;
         std::string tmpString;
-        std::map<std::string, std::string> tmpMap;
+        Asset::HashMap tmpMap;
 
         auto getByKey = [&](const std::string& key)
         {
@@ -402,7 +443,7 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            std::map<std::string, std::string> ext;
+            Asset::HashMap ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
@@ -443,7 +484,7 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            std::map<std::string, std::string> ext;
+            Asset::HashMap ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
@@ -486,7 +527,7 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            std::map<std::string, std::string> ext;
+            Asset::HashMap ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
@@ -528,7 +569,7 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            std::map<std::string, std::string> ext;
+            Asset::HashMap ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
@@ -569,7 +610,7 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            std::map<std::string, std::string> ext;
+            Asset::HashMap ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
@@ -614,7 +655,7 @@ void fty_asset_dto_test(bool verbose)
         try {
             using namespace fty;
 
-            std::map<std::string, std::string> ext;
+            Asset::HashMap ext;
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
