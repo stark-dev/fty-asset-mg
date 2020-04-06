@@ -31,6 +31,7 @@
 
 //  External dependencies
 #include <czmq.h>
+#include <cxxtools/allocator.h>
 #include <tntdb.h>
 #include <malamute.h>
 #include <magic.h>
@@ -86,12 +87,15 @@ typedef struct _fty_asset_autoupdate_t fty_asset_autoupdate_t;
 #define FTY_ASSET_AUTOUPDATE_T_DEFINED
 typedef struct _fty_asset_inventory_t fty_asset_inventory_t;
 #define FTY_ASSET_INVENTORY_T_DEFINED
+typedef struct _fty_asset_dto_t fty_asset_dto_t;
+#define FTY_ASSET_DTO_T_DEFINED
 
 
 //  Public classes, each with its own header file
 #include "fty_asset_server.h"
 #include "fty_asset_autoupdate.h"
 #include "fty_asset_inventory.h"
+#include "fty_asset_dto.h"
 
 #ifdef FTY_ASSET_BUILD_DRAFT_API
 

@@ -7,6 +7,7 @@ nobase_include_HEADERS = \
     fty_asset_server.h \
     fty_asset_autoupdate.h \
     fty_asset_inventory.h \
+    fty_asset_dto.h \
     fty_asset_library.h
 
 
