@@ -26,9 +26,10 @@
 @end
 */
 
-#include "../include/fty_asset_dto.h"
-
+#include <ftyproto.h>
 #include <zhash.h>
+
+#include "include/fty_asset_dto.h"
 
 // for fty-proto conversion
 static fty::Asset::HashMap zhashToMap(zhash_t *hash)
@@ -48,7 +49,7 @@ static zhash_t* mapToZhash(const fty::Asset::HashMap &map)
 {
     zhash_t *hash = zhash_new ();
     for (const auto & i :map) {
-        zhash_insert (hash, i.first.c_str (), (void*) i.second.c_str());
+        zhash_insert (hash, i.first.c_str (), const_cast<void *>(reinterpret_cast<const void *>(i.second.c_str())));
     }
 
     return hash;
@@ -56,32 +57,51 @@ static zhash_t* mapToZhash(const fty::Asset::HashMap &map)
 
 namespace fty
 {
-    std::map<AssetStatus, std::string> AssetStatusToProto =
+    const std::string assetStatusToString(AssetStatus status)
     {
-        {AssetStatus::Unknown, "unknown"},
-        {AssetStatus::Active, "active"},
-        {AssetStatus::Nonactive, "nonactive"}
-    };
+        std::string retVal;
 
-    std::map<std::string, fty::AssetStatus> ProtoToAssetStatus = 
-    {
-        {"unknown", AssetStatus::Unknown},
-        {"active", AssetStatus::Active},
-        {"nonactive", AssetStatus::Nonactive}
-    };
+        switch(status)
+        {
+            case AssetStatus::Active:
+                retVal = "active";
+                break;
+            case AssetStatus::Nonactive:
+                retVal = "nonactive";
+                break;
+            case AssetStatus::Unknown:
+            default:
+                retVal = "unknown";
+                break;
+            
+        }
 
-    const std::string Asset::internalName() const
+        return retVal;
+    }
+
+    AssetStatus stringToAssetStatus(const std::string & str)
     {
-        return m_assetSubtype + "-" + std::to_string(m_id);
+        AssetStatus retVal = AssetStatus::Unknown;
+
+        if(str == "active")
+        {
+            retVal = AssetStatus::Active;
+        }
+        else if(str == "nonactive")
+        {
+            retVal = AssetStatus::Nonactive;
+        }
+
+        return retVal;
     }
 
     // getters
-    const int Asset::getId() const
+    const std::string & Asset::getInternalName() const
     {
-        return m_id;
+        return m_internalName;
     }
 
-    const AssetStatus Asset::getAssetStatus() const
+    AssetStatus Asset::getAssetStatus() const
     {
         return m_assetStatus;
     }
@@ -96,17 +116,12 @@ namespace fty
         return m_assetSubtype;
     }
 
-    const std::string & Asset::getFriendlyName() const
-    {
-        return m_friendlyName;
-    }
-
     const std::string & Asset::getParentId() const
     {
         return m_parentId;
     }
 
-    const int Asset::getPriority() const
+    int Asset::getPriority() const
     {
         return m_priority;
     }
@@ -117,12 +132,12 @@ namespace fty
     }
     
     // setters
-    void Asset::setId(const int id)
+    void Asset::setInternalName(const std::string & internalName)
     {
-        m_id = id;
+        m_internalName = internalName;
     }
 
-    void Asset::setAssetStatus(const AssetStatus assetStatus)
+    void Asset::setAssetStatus(AssetStatus assetStatus)
     {
         m_assetStatus = assetStatus;
     }
@@ -137,17 +152,12 @@ namespace fty
         m_assetSubtype = assetSubtype;
     }
 
-    void Asset::setFriendlyName(const std::string & friendlyName)
-    {
-        m_friendlyName = friendlyName;
-    }
-
     void Asset::setParentId(const std::string & parendId)
     {
         m_parentId = parendId;
     }
 
-    void Asset::setPriority(const int priority)
+    void Asset::setPriority(int priority)
     {
         m_priority = priority;
     }
@@ -159,42 +169,16 @@ namespace fty
 
     bool Asset::operator== (const Asset &asset) const
     {
-        if(
-            m_id           != asset.m_id           ||
-            m_assetStatus  != asset.m_assetStatus  ||
-            m_assetType    != asset.m_assetType    ||
-            m_assetSubtype != asset.m_assetSubtype ||
-            m_friendlyName != asset.m_friendlyName ||
-            m_parentId     != asset.m_parentId     ||
-            m_parentId     != asset.m_parentId     ||
-            m_priority     != asset.m_priority
-        )
-        {
-            std::cout << m_id           << " : " <<  asset.m_id << std::endl;
-            std::cout << (int)m_assetStatus  << " : " << (int)asset.m_assetStatus << std::endl;
-            std::cout << m_assetType    << " : " <<  asset.m_assetType << std::endl;
-            std::cout << m_assetSubtype << " : " <<  asset.m_assetSubtype << std::endl;
-            std::cout << m_friendlyName << " : " <<  asset.m_friendlyName << std::endl;
-            std::cout << m_parentId     << " : " <<  asset.m_parentId << std::endl;
-            std::cout << m_parentId     << " : " <<  asset.m_parentId << std::endl;
-            std::cout << m_priority     << " : " <<  asset.m_priority << std::endl;
-            return false;
-        }
-
-        for(const auto & p : m_ext)
-        {
-            auto search = asset.m_ext.find(p.first);
-            if(search == asset.m_ext.end())
-            {
-                return false;
-            }
-            else if(search->second != p.second)
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return (
+            m_internalName == asset.m_internalName &&
+            m_assetStatus  == asset.m_assetStatus  &&
+            m_assetType    == asset.m_assetType    &&
+            m_assetSubtype == asset.m_assetSubtype &&
+            m_parentId     == asset.m_parentId     &&
+            m_parentId     == asset.m_parentId     &&
+            m_priority     == asset.m_priority     &&
+            m_ext          == asset.m_ext
+        );
     }
 
     bool Asset::operator!= (const Asset &asset) const
@@ -206,17 +190,16 @@ namespace fty
     void operator<<= (cxxtools::SerializationInfo & si, const Asset & asset)
     {
         // basic
-        si.addMember("id") <<= asset.getId();
         si.addMember("status") <<= int(asset.getAssetStatus());
         si.addMember("type") <<= asset.getAssetType();
         si.addMember("sub_type") <<= asset.getAssetSubtype();
-        si.addMember("name") <<= asset.getFriendlyName();
+        si.addMember("name") <<= asset.getInternalName();
         si.addMember("priority") <<= asset.getPriority();
         si.addMember("location") <<= asset.getParentId();
 
         cxxtools::SerializationInfo &extSi = si.addMember("ext");
         extSi.setCategory (cxxtools::SerializationInfo::Object);
-        for (const auto keyValue : asset.getExt())
+        for (const auto & keyValue : asset.getExt())
         {
             auto key = keyValue.first;
             auto value = keyValue.second;
@@ -230,7 +213,6 @@ namespace fty
     {
         int tmpInt;
         std::string tmpString;
-        Asset::HashMap tmpMap;
 
         // status
         si.getMember("status") >>= tmpInt;
@@ -246,7 +228,7 @@ namespace fty
 
         // external name
         si.getMember("name") >>= tmpString;
-        asset.setFriendlyName(tmpString);
+        asset.setInternalName(tmpString);
 
         // priority
         si.getMember("priority") >>= tmpInt;
@@ -256,21 +238,11 @@ namespace fty
         si.getMember("location") >>= tmpString;
         asset.setParentId(tmpString);
 
-        // id (if missing assign -1)
-        if (!si.findMember("id"))
-        {
-            tmpInt = -1;
-        }
-        else
-        {
-            si.getMember("id") >>= tmpInt;
-        }
-        asset.setId(tmpInt);
-
-        // ext map
-        tmpMap.clear();
         if (si.findMember("ext"))
         {
+            // ext map
+            Asset::HashMap tmpMap;
+
             const cxxtools::SerializationInfo extSi = si.getMember("ext");
             for (const auto & element : extSi)
             {
@@ -278,29 +250,25 @@ namespace fty
                 // ext from UI behaves as an object of objects with empty 1st level keys
                 if (key.empty())
                 {
-                    for (const auto innerElement : element)
+                    for (const auto & innerElement : element)
                     {
                         auto innerKey = innerElement.name();
                         log_debug ("inner key = %s", innerKey.c_str ());
                         // only DB is interested in read_only attribute
                         if (innerKey != "read_only")
                         {
-                            std::string value;
-                            innerElement >>= value;
-                            tmpMap[innerKey] = value;
+                            innerElement >>= tmpMap[innerKey];
                         }
                     }
                 }
                 else
                 {
-                    std::string value;
-                    element >>= value;
-                    log_debug ("key = %s, value = %s", key.c_str (), value.c_str ());
-                    tmpMap[key] = value;
+                    element >>= tmpMap[key];
+                    log_debug ("key = %s, value = %s", key.c_str (), tmpMap[key].c_str ());
                 }
             }
+            asset.setExt(tmpMap);
         }
-        asset.setExt(tmpMap);
     }
 
     fty_proto_t * assetToFtyProto(const Asset & asset, const std::string & operation)
@@ -310,16 +278,16 @@ namespace fty
         zhash_t *aux = zhash_new();
         zhash_autofree (aux);
 
-        zhash_insert(aux, "priority", (void*) std::to_string(asset.getPriority()).c_str());
-        zhash_insert(aux, "type", (void*) asset.getAssetType().c_str());
-        zhash_insert(aux, "subtype", (void*) asset.getAssetSubtype().c_str());
-        zhash_insert(aux, "parent", (void*) asset.getParentId().c_str());
-        zhash_insert(aux, "status", (void*) AssetStatusToProto.at(asset.getAssetStatus()).c_str());
+        zhash_insert(aux, "priority", const_cast<void *>(reinterpret_cast<const void *>(std::to_string(asset.getPriority()).c_str())));
+        zhash_insert(aux, "type", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetType().c_str())));
+        zhash_insert(aux, "subtype", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetSubtype().c_str())));
+        zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(asset.getParentId().c_str())));
+        zhash_insert(aux, "status", const_cast<void *>(reinterpret_cast<const void *>(assetStatusToString(asset.getAssetStatus()).c_str())));
 
         zhash_t *ext = mapToZhash(asset.getExt());
 
         fty_proto_set_aux(proto, &aux);
-        fty_proto_set_name(proto, "%s", asset.internalName().c_str());
+        fty_proto_set_name(proto, "%s", asset.getInternalName().c_str());
         fty_proto_set_operation(proto, "%s", operation.c_str());
         fty_proto_set_ext(proto, &ext);
 
@@ -337,10 +305,10 @@ namespace fty
         }
 
         Asset asset;
-        asset.setAssetStatus(ProtoToAssetStatus.at(fty_proto_aux_string(proto, "status", "active")));
+        asset.setInternalName(fty_proto_name(proto));
+        asset.setAssetStatus(stringToAssetStatus(fty_proto_aux_string(proto, "status", "active")));
         asset.setAssetType(fty_proto_aux_string(proto, "type", ""));
         asset.setAssetSubtype(fty_proto_aux_string(proto, "subtype", ""));
-        // asset.setFriendlyName(fty_proto_name(proto));
         asset.setParentId(fty_proto_aux_string(proto, "parent", ""));
         asset.setPriority(fty_proto_aux_number(proto, "priority", 5));
 
@@ -424,10 +392,10 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
+            asset.setInternalName("dc-0");
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            // asset.setFriendlyName("test-device");
             asset.setParentId("abc123");
             asset.setExt(ext);
             asset.setPriority(4);
@@ -465,10 +433,10 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
+            asset.setInternalName("dc-0");
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            // asset.setFriendlyName("test-device");
             asset.setParentId("abc123");
             asset.setExt(ext);
             asset.setPriority(4);
@@ -508,10 +476,10 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
+            asset.setInternalName("dc-0");
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            // asset.setFriendlyName("test-device");
             asset.setParentId("abc123");
             asset.setExt(ext);
             asset.setPriority(4);
@@ -550,10 +518,10 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
+            asset.setInternalName("dc-0");
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            // asset.setFriendlyName("test-device");
             asset.setParentId("abc123");
             asset.setExt(ext);
             asset.setPriority(4);
@@ -591,10 +559,10 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
+            asset.setInternalName("dc-0");
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            // asset.setFriendlyName("test-device");
             asset.setParentId("abc123");
             asset.setExt(ext);
             asset.setPriority(4);
@@ -636,10 +604,10 @@ void fty_asset_dto_test(bool verbose)
             ext.emplace(std::make_pair("testKey", "testValue"));
 
             Asset asset;
+            asset.setInternalName("dc-0");
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            // asset.setFriendlyName("test-device");
             asset.setParentId("abc123");
             asset.setExt(ext);
             asset.setPriority(4);

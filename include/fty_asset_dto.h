@@ -25,10 +25,11 @@
 #include <string>
 
 #include <fty_common.h>
-#include <ftyproto.h>
 
 #include <cxxtools/serializationinfo.h>
 #include <cxxtools/jsondeserializer.h>
+
+typedef struct _fty_proto_t fty_proto_t;
 
 namespace fty
 {
@@ -128,27 +129,22 @@ namespace fty
         public:
         using HashMap = std::map<std::string, std::string>;
 
-        // helpers
-        const std::string         internalName() const;
-
         // getters
-        const int                 getId() const;
-        const AssetStatus         getAssetStatus() const;
+        const std::string       & getInternalName() const;
+        AssetStatus               getAssetStatus() const;
         const std::string       & getAssetType() const;
         const std::string       & getAssetSubtype() const;
-        const std::string       & getFriendlyName() const;
         const std::string       & getParentId() const;
-        const int                 getPriority() const;
+        int                       getPriority() const;
         const Asset::HashMap    & getExt() const;
 
         // setters
-        void setId(const int id);
-        void setAssetStatus(const AssetStatus assetStatus);
+        void setInternalName(const std::string & internalName);
+        void setAssetStatus(AssetStatus assetStatus);
         void setAssetType(const std::string & assetType);
         void setAssetSubtype(const std::string & assetSubtype);
-        void setFriendlyName(const std::string & friendlyName);
         void setParentId(const std::string & parendId);
-        void setPriority(const int priority);
+        void setPriority(int priority);
         void setExt(const Asset::HashMap & ext);
 
         // overload equality and inequality check
@@ -156,18 +152,18 @@ namespace fty
         bool operator!= (const Asset &asset) const;
 
         private:
-        int            m_id            = -1; // numeric id (iname = <subtype>-<id>)
+        // internal name = <subtype>-<id>)
+        std::string    m_internalName;
+
         AssetStatus    m_assetStatus   = AssetStatus::Unknown;
         std::string    m_assetType     = TYPE_UNKNOWN;
         std::string    m_assetSubtype  = SUB_UNKNOWN;
 
-        /// friendly name (hist. ename) provided by user
-        std::string    m_friendlyName;
-        /// direct parent iname
+        // direct parent iname
         std::string    m_parentId;
-        /// priority 1..5 (1 is most, 5 is least)
+        // priority 1..5 (1 is most, 5 is least)
         int            m_priority      = 5;
-        /// ext map storage (asset-specific values)
+        // ext map storage (asset-specific values)
         Asset::HashMap m_ext;
     };
 
