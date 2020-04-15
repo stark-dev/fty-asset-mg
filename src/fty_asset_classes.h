@@ -109,6 +109,10 @@ typedef struct _total_power_t total_power_t;
 typedef struct _dns_t dns_t;
 #define DNS_T_DEFINED
 #endif
+#ifndef FTY_ASSET_MANIPULATION_T_DEFINED
+typedef struct _fty_asset_manipulation_t fty_asset_manipulation_t;
+#define FTY_ASSET_MANIPULATION_T_DEFINED
+#endif
 
 //  Extra headers
 #include "topology/dbtypes.h"
@@ -135,6 +139,7 @@ typedef struct _dns_t dns_t;
 #include "dbhelpers.h"
 #include "total_power.h"
 #include "dns.h"
+#include "fty_asset_manipulation.h"
 
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef FTY_ASSET_BUILD_DRAFT_API

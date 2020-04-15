@@ -36,6 +36,7 @@ src_libfty_asset_la_SOURCES = \
     src/fty_asset_autoupdate.cc \
     src/fty_asset_inventory.cc \
     src/fty_asset_dto.cc \
+    src/fty_asset_manipulation.cc \
     src/platform.h
 
 if ENABLE_DRAFTS

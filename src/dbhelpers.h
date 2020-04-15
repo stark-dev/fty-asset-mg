@@ -33,6 +33,7 @@
 #include <vector>
 #include <tuple>
 #include <string>
+#include <type_traits>
 #include "fty_asset_classes.h"
 
 // Selects assets in a given container
@@ -111,13 +112,69 @@ FTY_ASSET_PRIVATE int
     get_active_power_devices
         (bool test = false);
 
-// Inserts data from create/update message into DB
-FTY_ASSET_PRIVATE db_reply_t
-    create_or_update_asset
-    (fty_proto_t *fmsg,
-     bool read_only,
-     bool test,
-     LIMITATIONS_STRUCT *limitations);
+//////////////////////////////////////////////////////////////////////////////////
+
+/// insert fty::Asset to database (only main properties)
+long insertAssetToDB(const fty::Asset & asset);
+/// update fty::Asset in database (only main properties)
+long updateAssetToDB(const fty::Asset & asset);
+/// insert or update external properties of asset into database
+void updateAssetExtProperties(const fty::Asset & asset);
+
+/// select one field of an asset from the database
+/// SELECT <column> from asset_table where <keyColumn> = <keyValue>
+template<typename TypeRet, typename TypeValue>
+TypeRet selectAssetProperty(
+    const std::string & column,     // column to select
+    const std::string & keyColumn,  // key
+    const TypeValue & keyValue      // value of key param
+)
+{
+    tntdb::Connection conn = tntdb::connectCached (DBConn::url);
+    tntdb::Statement statement;
+
+    TypeRet obj = TypeRet();
+
+    std::string query = 
+        std::string(" SELECT ") + column +
+        std::string(" FROM t_bios_asset_element ") +
+        std::string(" WHERE ") + keyColumn + std::string(" = :value");
+
+    statement = conn.prepareCached (query.c_str());
+
+    tntdb::Row row = statement.
+        set ("value", keyValue).
+        selectRow ();
+
+    row[0].get(obj);
+
+    return obj;
+}
+
+template<typename TypeKey, typename TypeValue>
+/// UPDATE in asset_table <updateColumn> to <updateValue> where <keyColumn> = <keyValue>
+void updateAssetProperty(
+    const std::string & keyColumn,
+    const TypeKey & keyValue,
+    const std::string & updateColumn,
+    const TypeValue & updateValue
+)
+{
+    tntdb::Connection conn = tntdb::connectCached (DBConn::url);
+    tntdb::Statement statement;
+
+    std::string query = 
+        std::string(" UPDATE t_bios_asset_element ") +
+        std::string(" SET ") + updateColumn + std::string(" :update_value ") +
+        std::string(" WHERE ") + keyColumn + std::string(" = :key_value");
+
+    statement = conn.prepareCached (query.c_str());
+
+    statement.
+        set ("update_value", updateValue).
+        set ("key_value", keyValue).
+        execute();
+}
 
 // for test purposes
 extern std::map<std::string, std::string> test_map_asset_state;

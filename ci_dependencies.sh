@@ -823,7 +823,7 @@ else
     export CCACHE_BASEDIR
         git --no-pager log --oneline -n1
     if [ -e ci_dependencies.sh ]; then
-        PROPAGATED_BRANCH="`git branch | grep * | cut -d ' ' -f2`"
+        PROPAGATED_BRANCH="`git branch | grep \* | cut -d ' ' -f2`"
         DEFAULT_BRANCH="`git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'`"
         if [ "x$REQUESTED_BRANCH" = "x" ]; then
             echo "`date`: INFO: Building prerequisites of 'fty-common-messagebus' using ci_dependencies.sh the default branch..." >&2

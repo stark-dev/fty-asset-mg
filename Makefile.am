@@ -88,6 +88,7 @@ EXTRA_DIST += \
     src/dbhelpers.h \
     src/total_power.h \
     src/dns.h \
+    src/fty_asset_manipulation.h \
     src/topology/dbtypes.h \
     src/topology/cleanup.h \
     README.md \
