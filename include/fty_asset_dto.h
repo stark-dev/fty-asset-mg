@@ -40,6 +40,9 @@ namespace fty
         Nonactive
     };
 
+    const std::string assetStatusToString(AssetStatus status);
+    AssetStatus stringToAssetStatus(const std::string & str);
+
     // WARNING keep consistent with DB table t_bios_asset_element_type
     static constexpr const char *TYPE_UNKNOWN                         = "unknown";         // 0
     static constexpr const char *TYPE_GROUP                           = "group";           // 1
@@ -171,6 +174,8 @@ namespace fty
 
     void operator<<= (cxxtools::SerializationInfo & si, const Asset & asset);
     void operator>>= (const cxxtools::SerializationInfo & si, Asset & asset);
+    void operator<<= (std::string & json, const Asset & asset);
+    void operator>>= (const std::string & json, Asset & asset);
 
     fty_proto_t * assetToFtyProto(const Asset & asset, const std::string & operation);
     Asset ftyProtoToAsset(fty_proto_t * proto, bool extAttributeReadOnly = false);
