@@ -217,6 +217,37 @@ namespace fty
         si.addMember("ext") <<= asset.getExt();
     }
 
+    std::string Asset::toJson() const
+    {
+        std::ostringstream output;
+
+        cxxtools::SerializationInfo si;
+        cxxtools::JsonSerializer serializer(output);
+
+        si <<= *this;
+        serializer.serialize(si);
+
+        std::string json = output.str();
+
+        return json;
+    }
+
+    Asset Asset::fromJson(const std::string & json)
+    {
+        Asset a;
+
+        std::istringstream input(json);
+
+        cxxtools::SerializationInfo si;
+        cxxtools::JsonDeserializer deserializer(input);
+
+        deserializer.deserialize(si);
+
+        si >>= a;
+
+        return a;
+    }
+
     void operator>>= (const cxxtools::SerializationInfo & si, Asset & asset)
     {
         int tmpInt;
@@ -250,31 +281,6 @@ namespace fty
         Asset::ExtMap tmpMap;
         si.getMember("ext") >>= tmpMap;
         asset.setExt(tmpMap);   
-    }
-
-    void operator<<= (std::string & json, const Asset & asset)
-    {
-        std::ostringstream output;
-
-        cxxtools::SerializationInfo si;
-        cxxtools::JsonSerializer serializer(output);
-
-        si <<= asset;
-        serializer.serialize(si);
-
-        json = output.str();
-    }
-
-    void operator>>= (const std::string & json, Asset & asset)
-    {
-        std::istringstream input(json);
-
-        cxxtools::SerializationInfo si;
-        cxxtools::JsonDeserializer deserializer(input);
-
-        deserializer.deserialize(si);
-
-        si >>= asset;
     }
 
     fty_proto_t * assetToFtyProto(const Asset & asset, const std::string & operation)
@@ -558,12 +564,9 @@ void fty_asset_dto_test(bool verbose)
             asset.setExtEntry("testKey", "testValue");
             asset.setPriority(4);
 
-            std::string jsonStr;
-            jsonStr <<= asset;
+            std::string jsonStr = asset.toJson();
 
-            Asset asset2;
-
-            jsonStr >>= asset2;
+            Asset asset2 = Asset::fromJson(jsonStr);
 
             if (asset != asset2)
             {

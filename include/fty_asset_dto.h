@@ -156,6 +156,10 @@ namespace fty
         bool operator== (const Asset &asset) const;
         bool operator!= (const Asset &asset) const;
 
+        // conversion to/from JSON
+        std::string toJson() const;
+        static Asset fromJson(const std::string & json);
+
         private:
         // internal name = <subtype>-<id>)
         std::string    m_internalName;
@@ -169,13 +173,11 @@ namespace fty
         // priority 1..5 (1 is most, 5 is least)
         int            m_priority      = 5;
         // ext map storage (asset-specific values with readonly attribute)
-        Asset::ExtMap m_ext;
+        ExtMap m_ext;
     };
 
     void operator<<= (cxxtools::SerializationInfo & si, const Asset & asset);
     void operator>>= (const cxxtools::SerializationInfo & si, Asset & asset);
-    void operator<<= (std::string & json, const Asset & asset);
-    void operator>>= (const std::string & json, Asset & asset);
 
     fty_proto_t * assetToFtyProto(const Asset & asset, const std::string & operation);
     Asset ftyProtoToAsset(fty_proto_t * proto, bool extAttributeReadOnly = false);
