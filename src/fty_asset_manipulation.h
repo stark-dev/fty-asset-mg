@@ -24,8 +24,8 @@
 #include "fty_asset_dto.h"
 
 // insert asset into db
-fty::Asset createAsset(const fty::Asset & asset, bool tryActivate, bool test = false);
-fty::Asset updateAsset(const fty::Asset & asset, bool test = false);
+fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test = false);
+fty::Asset updateAsset(const fty::Asset& asset, bool test = false);
 
 // for test purposes
 extern std::map<std::string, std::string> test_map_asset_state;

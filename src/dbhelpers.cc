@@ -411,7 +411,7 @@ should_deactivate (std::string operation, std::string current_status, std::strin
 
 //////////////////////////////////////////////////////////////////////////////////
 
-long insertAssetToDB(const fty::Asset & asset)
+long insertAssetToDB(const fty::Asset& asset)
 {
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
     tntdb::Statement statement;
@@ -429,11 +429,11 @@ long insertAssetToDB(const fty::Asset & asset)
     uint64_t affected_rows;
 
     affected_rows = statement.
-        set ("name", asset.getInternalName().c_str()).
-        set ("type", asset.getAssetType().c_str()).
-        set ("subtype", asset.getAssetSubtype().c_str()).
+        set ("name", asset.getInternalName()).
+        set ("type", asset.getAssetType()).
+        set ("subtype", asset.getAssetSubtype()).
         setNull ("id_parent").
-        set ("status", fty::assetStatusToString(asset.getAssetStatus()).c_str()).
+        set ("status", fty::assetStatusToString(asset.getAssetStatus())).
         set ("priority", asset.getPriority()).
         set ("asset_tag", "").
         execute();
@@ -445,7 +445,7 @@ long insertAssetToDB(const fty::Asset & asset)
     return assetIndex;
 }
 
-long updateAssetToDB(const fty::Asset & asset)
+long updateAssetToDB(const fty::Asset& asset)
 {
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
     tntdb::Statement statement;
@@ -464,11 +464,11 @@ long updateAssetToDB(const fty::Asset & asset)
     uint64_t affected_rows;
 
     affected_rows = statement.
-        set ("name", (asset.getInternalName().c_str())).
-        set ("type", asset.getAssetType().c_str()).
-        set ("subtype", asset.getAssetSubtype().c_str()).
+        set ("name", (asset.getInternalName())).
+        set ("type", asset.getAssetType()).
+        set ("subtype", asset.getAssetSubtype()).
         setNull ("id_parent").
-        set ("status", fty::assetStatusToString(asset.getAssetStatus()).c_str()).
+        set ("status", fty::assetStatusToString(asset.getAssetStatus())).
         set ("priority", asset.getPriority()).
         set ("asset_tag", "").
         execute();
@@ -480,7 +480,7 @@ long updateAssetToDB(const fty::Asset & asset)
     return assetIndex;
 }
 
-void updateAssetExtProperties(const fty::Asset & asset)
+void updateAssetExtProperties(const fty::Asset& asset)
 {
     constexpr const char * insertExtProperties = 
         " INSERT INTO t_bios_asset_ext_attributes " \
@@ -499,9 +499,9 @@ void updateAssetExtProperties(const fty::Asset & asset)
     tntdb::Transaction trans (conn);
     tntdb::Statement st = conn.prepareCached(insertExtProperties);
 
-    std::string deviceName = asset.getInternalName();
+    const std::string& deviceName = asset.getInternalName();
 
-    for (const auto & property : asset.getExt())
+    for (const auto& property : asset.getExt())
     {
         bool readOnly = (property.first == "uuid" ? true : property.second.second);
 

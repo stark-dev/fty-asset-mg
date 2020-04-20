@@ -115,38 +115,40 @@ FTY_ASSET_PRIVATE int
 //////////////////////////////////////////////////////////////////////////////////
 
 /// insert fty::Asset to database (only main properties)
-long insertAssetToDB(const fty::Asset & asset);
+long insertAssetToDB(const fty::Asset& asset);
 /// update fty::Asset in database (only main properties)
-long updateAssetToDB(const fty::Asset & asset);
+long updateAssetToDB(const fty::Asset& asset);
 /// insert or update external properties of asset into database
-void updateAssetExtProperties(const fty::Asset & asset);
+void updateAssetExtProperties(const fty::Asset& asset);
 
 /// select one field of an asset from the database
 /// SELECT <column> from asset_table where <keyColumn> = <keyValue>
 template<typename TypeRet, typename TypeValue>
 TypeRet selectAssetProperty(
-    const std::string & column,     // column to select
-    const std::string & keyColumn,  // key
-    const TypeValue & keyValue      // value of key param
+    const std::string& column,     // column to select
+    const std::string& keyColumn,  // key
+    const TypeValue& keyValue      // value of key param
 )
 {
+    std::stringstream query;
+    query << " SELECT " << column <<
+             " FROM t_bios_asset_element " <<
+             " WHERE " << keyColumn << " = :value";
+
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
     tntdb::Statement statement;
 
-    TypeRet obj = TypeRet();
-
-    std::string query = 
-        std::string(" SELECT ") + column +
-        std::string(" FROM t_bios_asset_element ") +
-        std::string(" WHERE ") + keyColumn + std::string(" = :value");
-
-    statement = conn.prepareCached (query.c_str());
+    statement = conn.prepareCached (query.str());
 
     tntdb::Row row = statement.
         set ("value", keyValue).
         selectRow ();
 
-    row[0].get(obj);
+    TypeRet obj;
+    if(!row[0].get(obj))
+    {
+        throw std::runtime_error("Unable to get data from DB");
+    }
 
     return obj;
 }
@@ -154,21 +156,21 @@ TypeRet selectAssetProperty(
 template<typename TypeKey, typename TypeValue>
 /// UPDATE in asset_table <updateColumn> to <updateValue> where <keyColumn> = <keyValue>
 void updateAssetProperty(
-    const std::string & keyColumn,
-    const TypeKey & keyValue,
-    const std::string & updateColumn,
-    const TypeValue & updateValue
+    const std::string& keyColumn,
+    const TypeKey& keyValue,
+    const std::string& updateColumn,
+    const TypeValue& updateValue
 )
 {
+    std::stringstream query; 
+    query << " UPDATE t_bios_asset_element " <<
+             " SET " << updateColumn << " :update_value " <<
+             " WHERE " << keyColumn << " = :key_value";
+    
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
     tntdb::Statement statement;
 
-    std::string query = 
-        std::string(" UPDATE t_bios_asset_element ") +
-        std::string(" SET ") + updateColumn + std::string(" :update_value ") +
-        std::string(" WHERE ") + keyColumn + std::string(" = :key_value");
-
-    statement = conn.prepareCached (query.c_str());
+    statement = conn.prepareCached (query.str());
 
     statement.
         set ("update_value", updateValue).

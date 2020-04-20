@@ -206,32 +206,7 @@ struct _fty_asset_server_t {
     mlm_client_t *stream_client;
     bool test;
     LIMITATIONS_STRUCT limitations;
-
-    messagebus::MessageBus * message_bus;
 };
-
-//  --------------------------------------------------------------------------
-//  Message handler
-
-static void  handleMessagebusRequest(messagebus::Message msg)
-{
-    log_debug("handle request");
-    try
-    {
-        log_debug("received new message");
-        for(const auto & item : msg.metaData()) {
-            log_debug("metaData - %s: %s", item.first.c_str(), item.second.c_str());
-        }
-        for(const auto & item : msg.userData()) {
-            log_debug("userData - %s", item.c_str());
-        }
-        // dto::UserData data = msg.userData();
-    }
-    catch (std::exception& ex)
-    {
-        log_error(ex.what());
-    }
-}
 
 //  --------------------------------------------------------------------------
 //  Create a new fty_asset_server
@@ -253,9 +228,6 @@ fty_asset_server_new (void)
         exit (1);
     }
 
-    // new messagebus interfaces
-    self->message_bus = nullptr;
-
     self->test = false;
     self->limitations.max_active_power_devices = -1;
     self->limitations.global_configurability = 1;
@@ -275,9 +247,6 @@ fty_asset_server_destroy (fty_asset_server_t **self_p)
     zstr_free (&self->name);
     mlm_client_destroy (&self->mailbox_client);
     mlm_client_destroy (&self->stream_client);
-
-    // new messagebus interfaces
-    delete self->message_bus;
 
     free (self);
     *self_p = NULL;
@@ -1115,7 +1084,7 @@ static void
             zmsg_addstr (reply, "OPERATION_NOT_IMPLEMENTED");
         }
     }
-    catch(const std::runtime_error& e)
+    catch(const std::exception& e)
     {
         log_error (e.what());
         fty_proto_print (fmsg);
@@ -1278,19 +1247,6 @@ fty_asset_server (zsock_t *pipe, void *args)
             }
             else if (streq (cmd, "CONNECTMAILBOX")) {
                 char* endpoint = zmsg_popstr (msg);
-
-                // new messagebus interfaces (-ng suffix)
-                std::string clientNameNg = std::string(cfg->name) + "-ng";
-                if(cfg->message_bus != nullptr)
-                {
-                    delete cfg->message_bus;
-                }
-
-                cfg->message_bus = messagebus::MlmMessageBus(endpoint, clientNameNg.c_str());
-
-                cfg->message_bus->connect();
-                cfg->message_bus->receive("FTY.Q.ASSET.QUERY", &handleMessagebusRequest);
-
                 int rv = mlm_client_connect (cfg->mailbox_client, endpoint, 1000, cfg->name);
                 if (rv == -1) {
                     log_error ("%s:\tCan't connect to malamute endpoint '%s'", cfg->name, endpoint);
@@ -1380,8 +1336,6 @@ fty_asset_server (zsock_t *pipe, void *args)
             // DO NOTHING for now
         }
     }
-
-    // delete cfg->message_bus;
 
     log_info ("%s:\tended", cfg->name);
     //TODO:  save info to persistence before I die

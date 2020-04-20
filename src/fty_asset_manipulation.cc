@@ -38,7 +38,7 @@
 #include <fty_common_asset.h>
 
 /// create asset name from type/subtype and integer ID
-static std::string createAssetName(const std::string & type, const std::string & subtype, long index)
+static std::string createAssetName(const std::string& type, const std::string& subtype, long index)
 {
     std::string assetName;
 
@@ -53,12 +53,12 @@ static std::string createAssetName(const std::string & type, const std::string &
 
 // TODO remove as soon as fty::Asset activation is supported
 /// convert fty::Asset to fty::FullAsset
-static fty::FullAsset assetToFullAsset(const fty::Asset & asset)
+static fty::FullAsset assetToFullAsset(const fty::Asset& asset)
 {
     fty::FullAsset::HashMap auxMap; // does not exist in new Asset implementation
     fty::FullAsset::HashMap extMap;
    
-    for (const auto & element : asset.getExt())
+    for (const auto& element : asset.getExt())
     {
         // FullAsset hash map has no readOnly parameter
         extMap[element.first] = element.second.first;
@@ -80,7 +80,7 @@ static fty::FullAsset assetToFullAsset(const fty::Asset & asset)
 }
 
 /// test if asset activation is possible
-static bool testAssetActivation(const fty::Asset & asset)
+static bool testAssetActivation(const fty::Asset& asset)
 {
     mlm::MlmSyncClient client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
     fty::AssetActivator activationAccessor(client);
@@ -92,7 +92,7 @@ static bool testAssetActivation(const fty::Asset & asset)
 }
 
 /// perform asset activation
-static void activateAsset(const fty::Asset & asset)
+static void activateAsset(const fty::Asset& asset)
 {
     mlm::MlmSyncClient client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
     fty::AssetActivator activationAccessor(client);
@@ -103,7 +103,7 @@ static void activateAsset(const fty::Asset & asset)
     activationAccessor.activate(fa);
 }
 
-fty::Asset createAsset(const fty::Asset & asset, bool tryActivate, bool test)
+fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
 {
     fty::Asset createdAsset;
     createdAsset = asset;
@@ -115,72 +115,64 @@ fty::Asset createAsset(const fty::Asset & asset, bool tryActivate, bool test)
     }
     else
     {
-        try
+        // check if asset can be activated (if needed)
+        if((createdAsset.getAssetStatus() == fty::AssetStatus::Active) && !testAssetActivation(createdAsset))
         {
-            // check if asset can be activated (if needed)
-            if((createdAsset.getAssetStatus() == fty::AssetStatus::Active) && !testAssetActivation(createdAsset))
+            if(tryActivate) // if activation fails and tryActivate is true -> create anyway wih status "non active"
             {
-                if(tryActivate) // if activation fails and tryActivate is true -> create anyway wih status "non active"
-                {
-                    createdAsset.setAssetStatus(fty::AssetStatus::Nonactive);
-                }
-                else            // do not create asset in db
-                {
-                    throw std::runtime_error("Licensing limitation hit - maximum amount of active power devices allowed in license reached.");
-                }
+                createdAsset.setAssetStatus(fty::AssetStatus::Nonactive);
             }
-
-            // datacenter parent ID must be null
-            if(createdAsset.getAssetType() == fty::TYPE_DATACENTER && createdAsset.getParentId() != "")
+            else            // do not create asset in db
             {
-                throw std::runtime_error("Invalid parent ID for asset type DataCenter");
-            }
-
-            // first insertion with random unique name, to get the int id later
-            // (@ is prohibited in name => name-@@-123 is unique)
-            createdAsset.setInternalName(asset.getInternalName() + std::string("-@@-") + std::to_string(rand()));
-
-            // TODO get id of last inserted element (race condition may occur, use a select statement instead)
-            long assetIndex = insertAssetToDB(createdAsset);
-
-            // create and update asset internal name (<type/subtype>-<id>)
-            std::string assetName = createAssetName(asset.getAssetType(), asset.getAssetSubtype(), assetIndex);
-            createdAsset.setInternalName(assetName);
-
-            updateAssetProperty<std::string, int>("name", assetName, "id_asset_element", assetIndex);
-
-            // update parent integer id (from iname)
-            if (createdAsset.getParentId() != "")
-            {
-                // get integer parent ID
-                int parentId;
-                parentId = selectAssetProperty<int, std::string>("id_asset_element", "name", createdAsset.getParentId());
-
-                // update id of parent
-                updateAssetProperty<int, int>("id_parent", parentId, "id_asset_element", assetIndex);
-            }
-
-            // update external properties
-            log_debug ("Processing inventory for asset %s", createdAsset.getInternalName().c_str());
-            updateAssetExtProperties(createdAsset);
-
-            // activate asset
-            if(createdAsset.getAssetStatus() == fty::AssetStatus::Active)
-            {
-                activateAsset(asset);
+                throw std::runtime_error("Licensing limitation hit - maximum amount of active power devices allowed in license reached.");
             }
         }
 
-        catch(const std::exception& e)
+        // datacenter parent ID must be null
+        if(createdAsset.getAssetType() == fty::TYPE_DATACENTER && !createdAsset.getParentId().empty())
         {
-            throw std::runtime_error(e.what());
+            throw std::runtime_error("Invalid parent ID for asset type DataCenter");
+        }
+
+        // first insertion with random unique name, to get the int id later
+        // (@ is prohibited in name => name-@@-123 is unique)
+        createdAsset.setInternalName(asset.getInternalName() + std::string("-@@-") + std::to_string(rand()));
+
+        // TODO get id of last inserted element (race condition may occur, use a select statement instead)
+        long assetIndex = insertAssetToDB(createdAsset);
+
+        // create and update asset internal name (<type/subtype>-<id>)
+        std::string assetName = createAssetName(asset.getAssetType(), asset.getAssetSubtype(), assetIndex);
+        createdAsset.setInternalName(assetName);
+
+        updateAssetProperty("name", assetName, "id_asset_element", assetIndex);
+
+        // update parent integer id (from iname)
+        if (!createdAsset.getParentId().empty())
+        {
+            // get integer parent ID
+            int parentId;
+            parentId = selectAssetProperty<int>("id_asset_element", "name", createdAsset.getParentId());
+
+            // update id of parent
+            updateAssetProperty("id_parent", parentId, "id_asset_element", assetIndex);
+        }
+
+        // update external properties
+        log_debug ("Processing inventory for asset %s", createdAsset.getInternalName().c_str());
+        updateAssetExtProperties(createdAsset);
+
+        // activate asset
+        if(createdAsset.getAssetStatus() == fty::AssetStatus::Active)
+        {
+            activateAsset(asset);
         }
     }
 
     return createdAsset;
 }
 
-fty::Asset updateAsset(const fty::Asset & asset, bool test)
+fty::Asset updateAsset(const fty::Asset& asset, bool test)
 {
     fty::Asset updatedAsset;
     updatedAsset = asset;
@@ -195,7 +187,7 @@ fty::Asset updateAsset(const fty::Asset & asset, bool test)
         try
         {
             // datacenter parent ID must be null
-            if(updatedAsset.getAssetType() == fty::TYPE_DATACENTER && updatedAsset.getParentId() != "")
+            if(updatedAsset.getAssetType() == fty::TYPE_DATACENTER && !updatedAsset.getParentId().empty())
             {
                 throw std::runtime_error("Invalid parent ID for asset type DataCenter");
             }
@@ -222,14 +214,14 @@ fty::Asset updateAsset(const fty::Asset & asset, bool test)
             long assetIndex = updateAssetToDB(updatedAsset);
 
             // update parent integer id (from iname)
-            if (updatedAsset.getParentId() != "")
+            if (!updatedAsset.getParentId().empty())
             {
                 // get integer parent ID
                 int parentId;
-                parentId = selectAssetProperty<int, std::string>("id_asset_element", "name", updatedAsset.getParentId());
+                parentId = selectAssetProperty<int>("id_asset_element", "name", updatedAsset.getParentId());
 
                 // update id of parent
-                updateAssetProperty<int, int>("id_parent", parentId, "id_asset_element", assetIndex);
+                updateAssetProperty("id_parent", parentId, "id_asset_element", assetIndex);
             }
 
             if(needActivation)
