@@ -69,7 +69,7 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
 {
     json = "";
 
-	tntdb::Connection conn = tntdb::connect (DBConn::url);
+    tntdb::Connection conn = tntdb::connect (DBConn::url);
 
     // ##################################################
     // BLOCK 1
@@ -164,7 +164,7 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
     std::set <std::string> fed_by;
     if (!checked_feed_by.empty ())
     {
-		fed_by = persist::topology2_feed_by (conn, checked_feed_by);
+        fed_by = persist::topology2_feed_by (conn, checked_feed_by);
         if (fed_by.empty ()) {
             //std::string expected = TRANSLATE_ME("must be a device.");
             //http_die("request-param-bad", "feed_by", checked_feed_by.c_str(), expected.c_str ());
@@ -174,7 +174,7 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
         }
     }
 
-	auto result = persist::topology2_from (conn, checked_from);
+    auto result = persist::topology2_from (conn, checked_from);
 
     if (result.empty () && checked_from != "none") {
         //std::string expected = TRANSLATE_ME("valid asset name");
@@ -188,19 +188,19 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
 
     std::ostringstream out;
 
-	if (checked_recursive) {
+    if (checked_recursive) {
         persist::topology2_from_json_recursive (
             out,
             conn,
             result, checked_from, checked_filter, fed_by, groups
         );
-	}
-	else {
+    }
+    else {
         persist::topology2_from_json (
             out,
             result, checked_from, checked_filter, fed_by, groups
         );
-	}
+    }
 
     json = out.str();
 
