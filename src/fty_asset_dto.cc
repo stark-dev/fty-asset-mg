@@ -51,7 +51,7 @@ static fty::Asset::ExtMap zhashToExtMap(zhash_t *hash, bool readOnly)
 static zhash_t* extMapToZhash(const fty::Asset::ExtMap &map)
 {
     zhash_t *hash = zhash_new ();
-    for (const auto & i :map) {
+    for (const auto& i :map) {
         zhash_insert (hash, i.first.c_str (), const_cast<void *>(reinterpret_cast<const void *>(i.second.first.c_str())));
     }
 
@@ -82,7 +82,7 @@ namespace fty
         return retVal;
     }
 
-    AssetStatus stringToAssetStatus(const std::string & str)
+    AssetStatus stringToAssetStatus(const std::string& str)
     {
         AssetStatus retVal = AssetStatus::Unknown;
 
@@ -99,7 +99,7 @@ namespace fty
     }
 
     // getters
-    const std::string & Asset::getInternalName() const
+    const std::string& Asset::getInternalName() const
     {
         return m_internalName;
     }
@@ -109,17 +109,17 @@ namespace fty
         return m_assetStatus;
     }
 
-    const std::string & Asset::getAssetType() const
+    const std::string& Asset::getAssetType() const
     {
         return m_assetType;
     }
 
-    const std::string & Asset::getAssetSubtype() const
+    const std::string& Asset::getAssetSubtype() const
     {
         return m_assetSubtype;
     }
 
-    const std::string & Asset::getParentId() const
+    const std::string& Asset::getParentId() const
     {
         return m_parentId;
     }
@@ -129,23 +129,28 @@ namespace fty
         return m_priority;
     }
 
-    const Asset::ExtMap & Asset::getExt() const
+    const std::string& Asset::getAssetTag() const
+    {
+        return m_assetTag;
+    }
+
+    const Asset::ExtMap& Asset::getExt() const
     {
         return m_ext;
     }
 
-    const std::string & Asset::getExtEntry(const std::string & key) const
+    const std::string& Asset::getExtEntry(const std::string& key) const
     {
         return m_ext.at(key).first;
     }
 
-    bool Asset::isExtEntryReadOnly(const std::string & key) const
+    bool Asset::isExtEntryReadOnly(const std::string& key) const
     {
         return m_ext.at(key).second;
     }
     
     // setters
-    void Asset::setInternalName(const std::string & internalName)
+    void Asset::setInternalName(const std::string& internalName)
     {
         m_internalName = internalName;
     }
@@ -155,17 +160,17 @@ namespace fty
         m_assetStatus = assetStatus;
     }
 
-    void Asset::setAssetType(const std::string & assetType)
+    void Asset::setAssetType(const std::string& assetType)
     {
         m_assetType = assetType;
     }
 
-    void Asset::setAssetSubtype(const std::string & assetSubtype)
+    void Asset::setAssetSubtype(const std::string& assetSubtype)
     {
         m_assetSubtype = assetSubtype;
     }
 
-    void Asset::setParentId(const std::string & parendId)
+    void Asset::setParentId(const std::string& parendId)
     {
         m_parentId = parendId;
     }
@@ -175,12 +180,17 @@ namespace fty
         m_priority = priority;
     }
 
-    void Asset::setExt(const Asset::ExtMap & map)
+    void Asset::setAssetTag(const std::string& assetTag)
+    {
+        m_assetTag = assetTag;
+    }
+
+    void Asset::setExt(const Asset::ExtMap& map)
     {
         m_ext = map;
     }
 
-    void Asset::setExtEntry(const std::string & key, const std::string & value, bool readOnly) 
+    void Asset::setExtEntry(const std::string& key, const std::string& value, bool readOnly) 
     {
         m_ext[key] = std::make_pair(key, readOnly);
     }
@@ -205,7 +215,7 @@ namespace fty
     }
 
     // serialization and deserialization operators
-    void operator<<= (cxxtools::SerializationInfo & si, const Asset & asset)
+    void operator<<= (cxxtools::SerializationInfo& si, const Asset& asset)
     {
         // basic
         si.addMember("status") <<= int(asset.getAssetStatus());
@@ -232,7 +242,7 @@ namespace fty
         return json;
     }
 
-    Asset Asset::fromJson(const std::string & json)
+    Asset Asset::fromJson(const std::string& json)
     {
         Asset a;
 
@@ -248,7 +258,7 @@ namespace fty
         return a;
     }
 
-    void operator>>= (const cxxtools::SerializationInfo & si, Asset & asset)
+    void operator>>= (const cxxtools::SerializationInfo& si, Asset& asset)
     {
         int tmpInt;
         std::string tmpString;
@@ -283,7 +293,7 @@ namespace fty
         asset.setExt(tmpMap);   
     }
 
-    fty_proto_t * assetToFtyProto(const Asset & asset, const std::string & operation)
+    fty_proto_t * assetToFtyProto(const Asset& asset, const std::string& operation)
     {
         fty_proto_t *proto = fty_proto_new(FTY_PROTO_ASSET);
 
@@ -634,7 +644,7 @@ void fty_asset_dto_test(bool verbose)
 
 
 	printf("\tSummary tests from fty_asset_dto\n");
-	for(const auto & result : testsResults)
+	for(const auto& result : testsResults)
 	{
 		if(result.second)
 		{
