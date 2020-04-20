@@ -179,9 +179,5 @@ void updateAssetProperty(
 // for test purposes
 extern std::map<std::string, std::string> test_map_asset_state;
 
-//  Self test of this class
-void
-    dbhelpers_test (bool verbose);
-
 //  @end
 #endif

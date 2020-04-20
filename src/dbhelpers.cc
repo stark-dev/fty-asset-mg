@@ -512,12 +512,3 @@ void updateAssetExtProperties(const fty::Asset & asset)
             execute ();
     }
 }
-
-//  Self test of this class
-void
-dbhelpers_test (bool verbose)
-{
-    printf (" * dbhelpers: ");
-
-    printf ("OK\n");
-}
