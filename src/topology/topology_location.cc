@@ -177,7 +177,7 @@ int s_topology_location_from2 (std::map<std::string, std::string> & param, std::
 	auto result = persist::topology2_from (conn, checked_from);
 
     if (result.empty () && checked_from != "none") {
-        //std::string expected = TRANSLATE_ME("valid asset name.");
+        //std::string expected = TRANSLATE_ME("valid asset name");
         //http_die("request-param-bad", "from", checked_from.c_str(), expected.c_str ());
         log_error("request-param-bad, 'from' is not a valid asset name");
         param["error"] = TRANSLATE_ME("'from' is not a valid asset name (%s)", checked_from.c_str());
