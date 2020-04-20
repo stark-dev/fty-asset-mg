@@ -426,21 +426,19 @@ long insertAssetToDB(const fty::Asset& asset)
         " :id_parent, :status, :priority, :asset_tag) "
     );
 
-    uint64_t affected_rows;
-
-    affected_rows = statement.
+    statement.
         set ("name", asset.getInternalName()).
         set ("type", asset.getAssetType()).
         set ("subtype", asset.getAssetSubtype()).
         setNull ("id_parent").
         set ("status", fty::assetStatusToString(asset.getAssetStatus())).
         set ("priority", asset.getPriority()).
-        set ("asset_tag", "").
+        set ("asset_tag", asset.getAssetTag()).
         execute();
 
     // TODO get id of last inserted element (race condition may occur, use a select statement instead)
     long assetIndex = conn.lastInsertId();
-    log_debug("[t_bios_asset_element]: %" PRIu64 " rows inserted", affected_rows);
+    log_debug("[t_bios_asset_element]: inserted asset with ID %ld", assetIndex);
 
     return assetIndex;
 }
@@ -461,21 +459,19 @@ long updateAssetToDB(const fty::Asset& asset)
                 " ON DUPLICATE KEY UPDATE name = :name "
             );
 
-    uint64_t affected_rows;
-
-    affected_rows = statement.
+    statement.
         set ("name", (asset.getInternalName())).
         set ("type", asset.getAssetType()).
         set ("subtype", asset.getAssetSubtype()).
         setNull ("id_parent").
         set ("status", fty::assetStatusToString(asset.getAssetStatus())).
         set ("priority", asset.getPriority()).
-        set ("asset_tag", "").
+        set ("asset_tag", asset.getAssetTag()).
         execute();
 
     // TODO get id of last inserted element (race condition may occur, use a select statement instead)
     long assetIndex = conn.lastInsertId();
-    log_debug("[t_bios_asset_element]: %" PRIu64 " rows inserted", affected_rows);
+    log_debug("[t_bios_asset_element]: updated asset with ID %ld", assetIndex);
 
     return assetIndex;
 }
