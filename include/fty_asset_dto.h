@@ -28,8 +28,6 @@
 
 #include <cxxtools/serializationinfo.h>
 
-typedef struct _fty_proto_t fty_proto_t;
-
 namespace fty
 {
     /// List of valid asset statuses
@@ -182,9 +180,6 @@ namespace fty
 
     void operator<<= (cxxtools::SerializationInfo& si, const Asset& asset);
     void operator>>= (const cxxtools::SerializationInfo& si, Asset& asset);
-
-    fty_proto_t * assetToFtyProto(const Asset& asset, const std::string& operation);
-    Asset ftyProtoToAsset(fty_proto_t * proto, bool extAttributeReadOnly = false);
 }
 
 //  Self test of this class

@@ -1039,7 +1039,7 @@ static void
 
     // get asset from fty-proto
     fty::Asset asset;
-    asset = fty::ftyProtoToAsset(fmsg, read_only);
+    asset = ftyProtoToAsset(fmsg, read_only, cfg->test);
 
     try
     {

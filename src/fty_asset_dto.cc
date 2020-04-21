@@ -27,36 +27,10 @@
 */
 
 #include <sstream>
-#include <ftyproto.h>
-#include <zhash.h>
 #include <cxxtools/jsonserializer.h>
 #include <cxxtools/jsondeserializer.h>
 
 #include "include/fty_asset_dto.h"
-
-// for fty-proto conversion
-static fty::Asset::ExtMap zhashToExtMap(zhash_t *hash, bool readOnly)
-{
-    fty::Asset::ExtMap map;
-
-    for (auto* item = zhash_first(hash); item; item = zhash_next(hash))
-    {
-        map.emplace(zhash_cursor(hash), std::make_pair(static_cast<const char *>(item), readOnly));
-    }
-
-    return map;
-}
-
-
-static zhash_t* extMapToZhash(const fty::Asset::ExtMap &map)
-{
-    zhash_t *hash = zhash_new ();
-    for (const auto& i :map) {
-        zhash_insert (hash, i.first.c_str (), const_cast<void *>(reinterpret_cast<const void *>(i.second.first.c_str())));
-    }
-
-    return hash;
-}
 
 namespace fty
 {
@@ -291,53 +265,6 @@ namespace fty
         Asset::ExtMap tmpMap;
         si.getMember("ext") >>= tmpMap;
         asset.setExt(tmpMap);   
-    }
-
-    fty_proto_t * assetToFtyProto(const Asset& asset, const std::string& operation)
-    {
-        fty_proto_t *proto = fty_proto_new(FTY_PROTO_ASSET);
-
-        zhash_t *aux = zhash_new();
-        zhash_autofree (aux);
-
-        zhash_insert(aux, "priority", const_cast<void *>(reinterpret_cast<const void *>(std::to_string(asset.getPriority()).c_str())));
-        zhash_insert(aux, "type", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetType().c_str())));
-        zhash_insert(aux, "subtype", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetSubtype().c_str())));
-        zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(asset.getParentIname().c_str())));
-        zhash_insert(aux, "status", const_cast<void *>(reinterpret_cast<const void *>(assetStatusToString(asset.getAssetStatus()).c_str())));
-
-        zhash_t *ext = extMapToZhash(asset.getExt());
-
-        fty_proto_set_aux(proto, &aux);
-        fty_proto_set_name(proto, "%s", asset.getInternalName().c_str());
-        fty_proto_set_operation(proto, "%s", operation.c_str());
-        fty_proto_set_ext(proto, &ext);
-
-        zhash_destroy(&aux);
-        zhash_destroy(&ext);
-
-        return proto;
-    }
-
-    Asset ftyProtoToAsset(fty_proto_t * proto, bool extAttributeReadOnly)
-    {
-        if (fty_proto_id(proto) != FTY_PROTO_ASSET)
-        {
-            throw std::invalid_argument("Wrong fty-proto type");
-        }
-
-        Asset asset;
-        asset.setInternalName(fty_proto_name(proto));
-        asset.setAssetStatus(stringToAssetStatus(fty_proto_aux_string(proto, "status", "active")));
-        asset.setAssetType(fty_proto_aux_string(proto, "type", ""));
-        asset.setAssetSubtype(fty_proto_aux_string(proto, "subtype", ""));
-        asset.setParentIname(fty_proto_aux_string(proto, "parent", ""));
-        asset.setPriority(fty_proto_aux_number(proto, "priority", 5));
-
-        zhash_t *ext = fty_proto_ext(proto);
-        asset.setExt(zhashToExtMap(ext, extAttributeReadOnly));
-
-        return asset;
     }
 }
 
@@ -577,48 +504,6 @@ void fty_asset_dto_test(bool verbose)
             std::string jsonStr = asset.toJson();
 
             Asset asset2 = Asset::fromJson(jsonStr);
-
-            if (asset != asset2)
-            {
-                throw std::runtime_error("Assets do not match");
-            }
-
-            printf (" *<=  Test #%s > OK\n", testNumber.c_str ());
-            testsResults.emplace_back (" Test #" + testNumber + " " + testName, true);
-        }
-        catch (const std::exception &e) {
-            printf (" *<=  Test #%s > Failed\n", testNumber.c_str ());
-            printf ("Error: %s\n", e.what ());
-            testsResults.emplace_back (" Test #" + testNumber + " " + testName, false);
-        }
-    }
-    
-    // fty-proto encoding/decoding
-    testNumber = "4.1";
-    testName = "fty-proto encoding and decoding";
-    printf ("\n----------------------------------------------------------------"
-            "-------\n");
-    {
-        printf (" *=>  Test #%s %s\n", testNumber.c_str (), testName.c_str ());
-
-        try {
-            using namespace fty;
-
-            Asset asset;
-            asset.setInternalName("dc-0");
-            asset.setAssetStatus(AssetStatus::Nonactive);
-            asset.setAssetType(TYPE_DEVICE);
-            asset.setAssetSubtype(SUB_UPS);
-            asset.setParentIname("abc123");
-            asset.setExtEntry("testKey","testValue");
-            asset.setPriority(4);
-
-            fty_proto_t * p = assetToFtyProto(asset, "UPDATE");
-
-            Asset asset2;
-
-            asset2 = ftyProtoToAsset(p);
-            fty_proto_destroy(&p);
 
             if (asset != asset2)
             {
