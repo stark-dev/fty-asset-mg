@@ -416,25 +416,48 @@ long insertAssetToDB(const fty::Asset& asset)
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
     tntdb::Statement statement;
 
-    statement = conn.prepareCached (
-        " INSERT INTO t_bios_asset_element "
-        " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
-        " VALUES "
-        " (:name, "
-        " (SELECT id_asset_element_type from t_bios_asset_element_type where name = ':type'), "
-        " (SELECT id_asset_device_type from t_bios_asset_device_type where name = ':subtype'), "
-        " :id_parent, :status, :priority, :asset_tag) "
-    );
+    // if parent iname is empty, set parent id to NULL
+    if(asset.getParentIname().empty())
+    {
+        statement = conn.prepareCached (
+            " INSERT INTO t_bios_asset_element "
+            " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
+            " VALUES ("
+            " :name, "
+            " (SELECT id_asset_element_type from t_bios_asset_element_type where name = ':type'), "
+            " (SELECT id_asset_device_type from t_bios_asset_device_type where name = ':subtype'), "
+            " NULL, "
+            " :status, "
+            " :priority, "
+            " :asset_tag) "
+        );
+    }
+    else
+    {
+        statement = conn.prepareCached (
+            " INSERT INTO t_bios_asset_element "
+            " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
+            " VALUES ("
+            " :name, "
+            " (SELECT id_asset_element_type from t_bios_asset_element_type where name = ':type'), "
+            " (SELECT id_asset_device_type from t_bios_asset_device_type where name = ':subtype'), "
+            " (SELECT id_asset_element from (SELECT * FROM t_bios_asset_element) AS e where e.name = ':id_parent'), "
+            " :status, "
+            " :priority, "
+            " :asset_tag) "
+        );
+    }
 
-    statement.
-        set ("name", asset.getInternalName()).
-        set ("type", asset.getAssetType()).
-        set ("subtype", asset.getAssetSubtype()).
-        setNull ("id_parent").
-        set ("status", fty::assetStatusToString(asset.getAssetStatus())).
-        set ("priority", asset.getPriority()).
-        set ("asset_tag", asset.getAssetTag()).
-        execute();
+    statement.set ("name", asset.getInternalName());
+    statement.set ("type", asset.getAssetType());
+    statement.set ("subtype", asset.getAssetSubtype());
+    statement.set ("status", fty::assetStatusToString(asset.getAssetStatus()));
+    statement.set ("priority", asset.getPriority());
+    statement.set ("asset_tag", asset.getAssetTag());
+
+    if(!asset.getParentIname().empty()) statement.set ("id_parent", asset.getParentIname());
+
+    statement.execute();
 
     // TODO get id of last inserted element (race condition may occur, use a select statement instead)
     long assetIndex = conn.lastInsertId();
@@ -448,26 +471,50 @@ long updateAssetToDB(const fty::Asset& asset)
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
     tntdb::Statement statement;
 
-    statement = conn.prepareCached (
-                " INSERT INTO t_bios_asset_element "
-                " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
-                " VALUES "
-                " (:name, "
-                " (SELECT id_asset_element_type from t_bios_asset_element_type where name = ':type'), "
-                " (SELECT id_asset_device_type from t_bios_asset_device_type where name = ':subtype'), "
-                " :id_parent, :status, :priority, :asset_tag) "
-                " ON DUPLICATE KEY UPDATE name = :name "
-            );
+    // if parent iname is empty, set parent id to NULL
+    if(asset.getParentIname().empty())
+    {
+        statement = conn.prepareCached (
+            " INSERT INTO t_bios_asset_element "
+            " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
+            " VALUES ("
+            " :name, "
+            " (SELECT id_asset_element_type from t_bios_asset_element_type where name = ':type'), "
+            " (SELECT id_asset_device_type from t_bios_asset_device_type where name = ':subtype'), "
+            " NULL, "
+            " :status, "
+            " :priority, "
+            " :asset_tag) "
+            " ON DUPLICATE KEY UPDATE name = :name "
+        );
+    }
+    else
+    {
+        statement = conn.prepareCached (
+            " INSERT INTO t_bios_asset_element "
+            " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
+            " VALUES ("
+            " :name, "
+            " (SELECT id_asset_element_type from t_bios_asset_element_type where name = ':type'), "
+            " (SELECT id_asset_device_type from t_bios_asset_device_type where name = ':subtype'), "
+            " (SELECT id_asset_element from (SELECT * FROM t_bios_asset_element) AS e where e.name = ':id_parent'), "
+            " :status, "
+            " :priority, "
+            " :asset_tag) "
+            " ON DUPLICATE KEY UPDATE name = :name "
+        );
+    }
 
-    statement.
-        set ("name", (asset.getInternalName())).
-        set ("type", asset.getAssetType()).
-        set ("subtype", asset.getAssetSubtype()).
-        setNull ("id_parent").
-        set ("status", fty::assetStatusToString(asset.getAssetStatus())).
-        set ("priority", asset.getPriority()).
-        set ("asset_tag", asset.getAssetTag()).
-        execute();
+    statement.set ("name", asset.getInternalName());
+    statement.set ("type", asset.getAssetType());
+    statement.set ("subtype", asset.getAssetSubtype());
+    statement.set ("status", fty::assetStatusToString(asset.getAssetStatus()));
+    statement.set ("priority", asset.getPriority());
+    statement.set ("asset_tag", asset.getAssetTag());
+
+    if(!asset.getParentIname().empty()) statement.set ("id_parent", asset.getParentIname());
+
+    statement.execute();
 
     // TODO get id of last inserted element (race condition may occur, use a select statement instead)
     long assetIndex = conn.lastInsertId();

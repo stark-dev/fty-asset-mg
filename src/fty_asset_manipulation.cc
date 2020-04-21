@@ -69,7 +69,7 @@ static fty::FullAsset assetToFullAsset(const fty::Asset& asset)
         fty::assetStatusToString(asset.getAssetStatus()),
         asset.getAssetType(),
         asset.getAssetSubtype(),
-        asset.getInternalName(), // asset name has been moved to ext structure
+        asset.getExtEntry("name"), // asset name is stored in ext structure
         asset.getParentIname(),
         asset.getPriority(),
         auxMap,
@@ -147,17 +147,6 @@ fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
 
         updateAssetProperty("name", assetName, "id_asset_element", assetIndex);
 
-        // update parent integer id (from iname)
-        if (!createdAsset.getParentIname().empty())
-        {
-            // get integer parent ID
-            int parentId;
-            parentId = selectAssetProperty<int>("id_asset_element", "name", createdAsset.getParentIname());
-
-            // update id of parent
-            updateAssetProperty("id_parent", parentId, "id_asset_element", assetIndex);
-        }
-
         // update external properties
         log_debug ("Processing inventory for asset %s", createdAsset.getInternalName().c_str());
         updateAssetExtProperties(createdAsset);
@@ -211,18 +200,7 @@ fty::Asset updateAsset(const fty::Asset& asset, bool test)
 
             // TODO use update query instead of insert
             // perform update
-            long assetIndex = updateAssetToDB(updatedAsset);
-
-            // update parent integer id (from iname)
-            if (!updatedAsset.getParentIname().empty())
-            {
-                // get integer parent ID
-                int parentId;
-                parentId = selectAssetProperty<int>("id_asset_element", "name", updatedAsset.getParentIname());
-
-                // update id of parent
-                updateAssetProperty("id_parent", parentId, "id_asset_element", assetIndex);
-            }
+            updateAssetToDB(updatedAsset);
 
             if(needActivation)
             {
