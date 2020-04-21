@@ -136,7 +136,7 @@ namespace fty
         AssetStatus          getAssetStatus() const;
         const std::string&   getAssetType() const;
         const std::string&   getAssetSubtype() const;
-        const std::string&   getParentId() const;
+        const std::string&   getParentIname() const;
         int                  getPriority() const;
         const std::string&   getAssetTag() const;
         const Asset::ExtMap& getExt() const;
@@ -148,7 +148,7 @@ namespace fty
         void setAssetStatus(AssetStatus assetStatus);
         void setAssetType(const std::string& assetType);
         void setAssetSubtype(const std::string& assetSubtype);
-        void setParentId(const std::string& parendId);
+        void setParentIname(const std::string& parentIname);
         void setPriority(int priority);
         void setAssetTag(const std::string& assetTag);
         void setExt(const Asset::ExtMap& map);
@@ -171,7 +171,7 @@ namespace fty
         std::string    m_assetSubtype  = SUB_UNKNOWN;
 
         // direct parent iname
-        std::string    m_parentId;
+        std::string    m_parentIname;
         // priority 1..5 (1 is most, 5 is least)
         int            m_priority      = 5;
         // asset tag

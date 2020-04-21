@@ -119,9 +119,9 @@ namespace fty
         return m_assetSubtype;
     }
 
-    const std::string& Asset::getParentId() const
+    const std::string& Asset::getParentIname() const
     {
-        return m_parentId;
+        return m_parentIname;
     }
 
     int Asset::getPriority() const
@@ -170,9 +170,9 @@ namespace fty
         m_assetSubtype = assetSubtype;
     }
 
-    void Asset::setParentId(const std::string& parendId)
+    void Asset::setParentIname(const std::string& parentIname)
     {
-        m_parentId = parendId;
+        m_parentIname = parentIname;
     }
 
     void Asset::setPriority(int priority)
@@ -202,9 +202,9 @@ namespace fty
             m_assetStatus  == asset.m_assetStatus  &&
             m_assetType    == asset.m_assetType    &&
             m_assetSubtype == asset.m_assetSubtype &&
-            m_parentId     == asset.m_parentId     &&
-            m_parentId     == asset.m_parentId     &&
+            m_parentIname  == asset.m_parentIname  &&
             m_priority     == asset.m_priority     &&
+            m_assetTag     == asset.m_assetTag     &&
             m_ext          == asset.m_ext
         );
     }
@@ -223,7 +223,7 @@ namespace fty
         si.addMember("sub_type") <<= asset.getAssetSubtype();
         si.addMember("name") <<= asset.getInternalName();
         si.addMember("priority") <<= asset.getPriority();
-        si.addMember("location") <<= asset.getParentId();
+        si.addMember("parent") <<= asset.getParentIname();
         si.addMember("ext") <<= asset.getExt();
     }
 
@@ -284,8 +284,8 @@ namespace fty
         asset.setPriority(tmpInt);
 
         // parend id
-        si.getMember("location") >>= tmpString;
-        asset.setParentId(tmpString);
+        si.getMember("parent") >>= tmpString;
+        asset.setParentIname(tmpString);
 
         // ext attribute
         Asset::ExtMap tmpMap;
@@ -303,7 +303,7 @@ namespace fty
         zhash_insert(aux, "priority", const_cast<void *>(reinterpret_cast<const void *>(std::to_string(asset.getPriority()).c_str())));
         zhash_insert(aux, "type", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetType().c_str())));
         zhash_insert(aux, "subtype", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetSubtype().c_str())));
-        zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(asset.getParentId().c_str())));
+        zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(asset.getParentIname().c_str())));
         zhash_insert(aux, "status", const_cast<void *>(reinterpret_cast<const void *>(assetStatusToString(asset.getAssetStatus()).c_str())));
 
         zhash_t *ext = extMapToZhash(asset.getExt());
@@ -331,7 +331,7 @@ namespace fty
         asset.setAssetStatus(stringToAssetStatus(fty_proto_aux_string(proto, "status", "active")));
         asset.setAssetType(fty_proto_aux_string(proto, "type", ""));
         asset.setAssetSubtype(fty_proto_aux_string(proto, "subtype", ""));
-        asset.setParentId(fty_proto_aux_string(proto, "parent", ""));
+        asset.setParentIname(fty_proto_aux_string(proto, "parent", ""));
         asset.setPriority(fty_proto_aux_number(proto, "priority", 5));
 
         zhash_t *ext = fty_proto_ext(proto);
@@ -415,7 +415,7 @@ void fty_asset_dto_test(bool verbose)
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
+            asset.setParentIname("abc123");
             asset.setExtEntry("testKey","testValue");
             asset.setPriority(4);
 
@@ -453,14 +453,14 @@ void fty_asset_dto_test(bool verbose)
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
+            asset.setParentIname("abc123");
             asset.setExtEntry("testKey","testValue");
             asset.setPriority(4);
 
             Asset asset2;
             asset2 = asset;
 
-            asset2.setParentId("wrong-name");
+            asset2.setParentIname("wrong-name");
 
             if (asset == asset2)
             {
@@ -493,7 +493,7 @@ void fty_asset_dto_test(bool verbose)
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
+            asset.setParentIname("abc123");
             asset.setExtEntry("testKey","testValue");
             asset.setPriority(4);
 
@@ -532,7 +532,7 @@ void fty_asset_dto_test(bool verbose)
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
+            asset.setParentIname("abc123");
             asset.setExtEntry("testKey","testValue");
             asset.setPriority(4);
 
@@ -570,7 +570,7 @@ void fty_asset_dto_test(bool verbose)
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
+            asset.setParentIname("abc123");
             asset.setExtEntry("testKey", "testValue");
             asset.setPriority(4);
 
@@ -609,7 +609,7 @@ void fty_asset_dto_test(bool verbose)
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
+            asset.setParentIname("abc123");
             asset.setExtEntry("testKey","testValue");
             asset.setPriority(4);
 

@@ -70,7 +70,7 @@ static fty::FullAsset assetToFullAsset(const fty::Asset& asset)
         asset.getAssetType(),
         asset.getAssetSubtype(),
         asset.getInternalName(), // asset name has been moved to ext structure
-        asset.getParentId(),
+        asset.getParentIname(),
         asset.getPriority(),
         auxMap,
         extMap
@@ -129,7 +129,7 @@ fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
         }
 
         // datacenter parent ID must be null
-        if(createdAsset.getAssetType() == fty::TYPE_DATACENTER && !createdAsset.getParentId().empty())
+        if(createdAsset.getAssetType() == fty::TYPE_DATACENTER && !createdAsset.getParentIname().empty())
         {
             throw std::runtime_error("Invalid parent ID for asset type DataCenter");
         }
@@ -148,11 +148,11 @@ fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
         updateAssetProperty("name", assetName, "id_asset_element", assetIndex);
 
         // update parent integer id (from iname)
-        if (!createdAsset.getParentId().empty())
+        if (!createdAsset.getParentIname().empty())
         {
             // get integer parent ID
             int parentId;
-            parentId = selectAssetProperty<int>("id_asset_element", "name", createdAsset.getParentId());
+            parentId = selectAssetProperty<int>("id_asset_element", "name", createdAsset.getParentIname());
 
             // update id of parent
             updateAssetProperty("id_parent", parentId, "id_asset_element", assetIndex);
@@ -187,7 +187,7 @@ fty::Asset updateAsset(const fty::Asset& asset, bool test)
         try
         {
             // datacenter parent ID must be null
-            if(updatedAsset.getAssetType() == fty::TYPE_DATACENTER && !updatedAsset.getParentId().empty())
+            if(updatedAsset.getAssetType() == fty::TYPE_DATACENTER && !updatedAsset.getParentIname().empty())
             {
                 throw std::runtime_error("Invalid parent ID for asset type DataCenter");
             }
@@ -214,11 +214,11 @@ fty::Asset updateAsset(const fty::Asset& asset, bool test)
             long assetIndex = updateAssetToDB(updatedAsset);
 
             // update parent integer id (from iname)
-            if (!updatedAsset.getParentId().empty())
+            if (!updatedAsset.getParentIname().empty())
             {
                 // get integer parent ID
                 int parentId;
-                parentId = selectAssetProperty<int>("id_asset_element", "name", updatedAsset.getParentId());
+                parentId = selectAssetProperty<int>("id_asset_element", "name", updatedAsset.getParentIname());
 
                 // update id of parent
                 updateAssetProperty("id_parent", parentId, "id_asset_element", assetIndex);
