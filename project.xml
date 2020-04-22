@@ -15,7 +15,6 @@
         <option name = "recursive_dependencies" value = "true" />
         <!-- option name = "clangformat_implem" value = "autotools" / -->
         <option name = "use_cmake" value = "0" />
-        <option name = "dist" value = "trusty" />
         <option name = "shadow_gcc" value = "2" />
         <!-- option name = "clangformat_require_good" value = "1" / -->
         <option name = "clangformat_allow_failures" value = "1" />
@@ -100,6 +99,10 @@
     <use project = "fty-common-mlm" libname = "libfty_common_mlm" header = "fty_common_mlm.h"
         test = "fty_common_mlm_selftest"
         repository = "https://github.com/42ity/fty-common-mlm.git" />
+    
+    <!-- use fty-common-messagebus -->
+    <use project = "fty-common-messagebus" libname = "libfty_common_messagebus" header = "fty_common_messagebus.h"
+        repository = "https://github.com/42ity/fty-common-messagebus.git" />
 
     <!-- TODO: test attr -->
     <use project = "fty-asset-activator" libname = "libfty_asset_activator" header = "fty_asset_activator.h"
@@ -128,7 +131,7 @@
     <!-- topology requests processor (power, location) -->
     <class name = "topology_processor" private = "1" state = "stable">Topology requests processor</class>
 
-    <class name = "dbhelpers" state = "stable" private = "1">Helpers functions for database</class>
+    <class name = "dbhelpers" state = "stable" private = "1" selftest = "0" >Helpers functions for database</class>
     <class name = "total_power" private = "1" state = "stable">Calculation of total power for one asset</class>
     <class name = "dns" private = "1" state = "stable">DNS and networking helper</class>
 
@@ -137,6 +140,7 @@
     <class name = "fty_asset_inventory" state = "stable" >Inventory server: process inventory ASSET messages and update extended attributes</class>
 
     <class name = "fty_asset_dto" state = "stable" >Asset DTO: defines ASSET attributes for data exchange</class>
+    <class name = "fty_asset_manipulation" state = "stable" private = "1" selftest = "0" >Helper functions to perform asset manipulation</class>
 
     <main name = "fty-asset" service = "1" >
         Agent managing assets

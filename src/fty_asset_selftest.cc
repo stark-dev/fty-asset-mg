@@ -4,7 +4,7 @@
     Runs all selftests.
 
     -------------------------------------------------------------------------
-    Copyright (C) 2014 - 2020 Eaton
+    Copyright (C) 2016 - 2020 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -43,7 +43,6 @@ all_tests [] = {
 // Tests for stable/draft private classes:
 // Now built only with --enable-drafts, so even stable builds are hidden behind the flag
     { "topology_processor", NULL, true, false, "topology_processor_test" },
-    { "dbhelpers", NULL, true, false, "dbhelpers_test" },
     { "total_power", NULL, true, false, "total_power_test" },
     { "dns", NULL, true, false, "dns_test" },
     { "private_classes", NULL, false, false, "$ALL" }, // compat option for older projects

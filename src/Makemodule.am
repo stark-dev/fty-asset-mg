@@ -36,6 +36,7 @@ src_libfty_asset_la_SOURCES = \
     src/fty_asset_autoupdate.cc \
     src/fty_asset_inventory.cc \
     src/fty_asset_dto.cc \
+    src/fty_asset_manipulation.cc \
     src/platform.h
 
 if ENABLE_DRAFTS
@@ -176,6 +177,10 @@ check-local: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_bui
 check-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v
 	$(MAKE) check-empty-selftest-rw
+
+################################################################################
+### Note: Customized after generation; take care upon regens
+################################################################################
 
 check-topology_db_topology2: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t topology_db_topology2

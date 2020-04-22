@@ -27,36 +27,10 @@
 */
 
 #include <sstream>
-#include <ftyproto.h>
-#include <zhash.h>
 #include <cxxtools/jsonserializer.h>
 #include <cxxtools/jsondeserializer.h>
 
 #include "include/fty_asset_dto.h"
-
-// for fty-proto conversion
-static fty::Asset::ExtMap zhashToExtMap(zhash_t *hash, bool readOnly)
-{
-    fty::Asset::ExtMap map;
-
-    for (auto* item = zhash_first(hash); item; item = zhash_next(hash))
-    {
-        map.emplace(zhash_cursor(hash), std::make_pair(static_cast<const char *>(item), readOnly));
-    }
-
-    return map;
-}
-
-
-static zhash_t* extMapToZhash(const fty::Asset::ExtMap &map)
-{
-    zhash_t *hash = zhash_new ();
-    for (const auto & i :map) {
-        zhash_insert (hash, i.first.c_str (), const_cast<void *>(reinterpret_cast<const void *>(i.second.first.c_str())));
-    }
-
-    return hash;
-}
 
 namespace fty
 {
@@ -82,7 +56,7 @@ namespace fty
         return retVal;
     }
 
-    AssetStatus stringToAssetStatus(const std::string & str)
+    AssetStatus stringToAssetStatus(const std::string& str)
     {
         AssetStatus retVal = AssetStatus::Unknown;
 
@@ -99,7 +73,7 @@ namespace fty
     }
 
     // getters
-    const std::string & Asset::getInternalName() const
+    const std::string& Asset::getInternalName() const
     {
         return m_internalName;
     }
@@ -109,19 +83,19 @@ namespace fty
         return m_assetStatus;
     }
 
-    const std::string & Asset::getAssetType() const
+    const std::string& Asset::getAssetType() const
     {
         return m_assetType;
     }
 
-    const std::string & Asset::getAssetSubtype() const
+    const std::string& Asset::getAssetSubtype() const
     {
         return m_assetSubtype;
     }
 
-    const std::string & Asset::getParentId() const
+    const std::string& Asset::getParentIname() const
     {
-        return m_parentId;
+        return m_parentIname;
     }
 
     int Asset::getPriority() const
@@ -129,23 +103,28 @@ namespace fty
         return m_priority;
     }
 
-    const Asset::ExtMap & Asset::getExt() const
+    const std::string& Asset::getAssetTag() const
+    {
+        return m_assetTag;
+    }
+
+    const Asset::ExtMap& Asset::getExt() const
     {
         return m_ext;
     }
 
-    const std::string & Asset::getExtEntry(const std::string & key) const
+    const std::string& Asset::getExtEntry(const std::string& key) const
     {
         return m_ext.at(key).first;
     }
 
-    bool Asset::isExtEntryReadOnly(const std::string & key) const
+    bool Asset::isExtEntryReadOnly(const std::string& key) const
     {
         return m_ext.at(key).second;
     }
     
     // setters
-    void Asset::setInternalName(const std::string & internalName)
+    void Asset::setInternalName(const std::string& internalName)
     {
         m_internalName = internalName;
     }
@@ -155,19 +134,19 @@ namespace fty
         m_assetStatus = assetStatus;
     }
 
-    void Asset::setAssetType(const std::string & assetType)
+    void Asset::setAssetType(const std::string& assetType)
     {
         m_assetType = assetType;
     }
 
-    void Asset::setAssetSubtype(const std::string & assetSubtype)
+    void Asset::setAssetSubtype(const std::string& assetSubtype)
     {
         m_assetSubtype = assetSubtype;
     }
 
-    void Asset::setParentId(const std::string & parendId)
+    void Asset::setParentIname(const std::string& parentIname)
     {
-        m_parentId = parendId;
+        m_parentIname = parentIname;
     }
 
     void Asset::setPriority(int priority)
@@ -175,12 +154,17 @@ namespace fty
         m_priority = priority;
     }
 
-    void Asset::setExt(const Asset::ExtMap & map)
+    void Asset::setAssetTag(const std::string& assetTag)
+    {
+        m_assetTag = assetTag;
+    }
+
+    void Asset::setExt(const Asset::ExtMap& map)
     {
         m_ext = map;
     }
 
-    void Asset::setExtEntry(const std::string & key, const std::string & value, bool readOnly) 
+    void Asset::setExtEntry(const std::string& key, const std::string& value, bool readOnly) 
     {
         m_ext[key] = std::make_pair(key, readOnly);
     }
@@ -192,9 +176,9 @@ namespace fty
             m_assetStatus  == asset.m_assetStatus  &&
             m_assetType    == asset.m_assetType    &&
             m_assetSubtype == asset.m_assetSubtype &&
-            m_parentId     == asset.m_parentId     &&
-            m_parentId     == asset.m_parentId     &&
+            m_parentIname  == asset.m_parentIname  &&
             m_priority     == asset.m_priority     &&
+            m_assetTag     == asset.m_assetTag     &&
             m_ext          == asset.m_ext
         );
     }
@@ -205,7 +189,7 @@ namespace fty
     }
 
     // serialization and deserialization operators
-    void operator<<= (cxxtools::SerializationInfo & si, const Asset & asset)
+    void operator<<= (cxxtools::SerializationInfo& si, const Asset& asset)
     {
         // basic
         si.addMember("status") <<= int(asset.getAssetStatus());
@@ -213,7 +197,7 @@ namespace fty
         si.addMember("sub_type") <<= asset.getAssetSubtype();
         si.addMember("name") <<= asset.getInternalName();
         si.addMember("priority") <<= asset.getPriority();
-        si.addMember("location") <<= asset.getParentId();
+        si.addMember("parent") <<= asset.getParentIname();
         si.addMember("ext") <<= asset.getExt();
     }
 
@@ -232,7 +216,7 @@ namespace fty
         return json;
     }
 
-    Asset Asset::fromJson(const std::string & json)
+    Asset Asset::fromJson(const std::string& json)
     {
         Asset a;
 
@@ -248,7 +232,7 @@ namespace fty
         return a;
     }
 
-    void operator>>= (const cxxtools::SerializationInfo & si, Asset & asset)
+    void operator>>= (const cxxtools::SerializationInfo& si, Asset& asset)
     {
         int tmpInt;
         std::string tmpString;
@@ -274,60 +258,13 @@ namespace fty
         asset.setPriority(tmpInt);
 
         // parend id
-        si.getMember("location") >>= tmpString;
-        asset.setParentId(tmpString);
+        si.getMember("parent") >>= tmpString;
+        asset.setParentIname(tmpString);
 
         // ext attribute
         Asset::ExtMap tmpMap;
         si.getMember("ext") >>= tmpMap;
         asset.setExt(tmpMap);   
-    }
-
-    fty_proto_t * assetToFtyProto(const Asset & asset, const std::string & operation)
-    {
-        fty_proto_t *proto = fty_proto_new(FTY_PROTO_ASSET);
-
-        zhash_t *aux = zhash_new();
-        zhash_autofree (aux);
-
-        zhash_insert(aux, "priority", const_cast<void *>(reinterpret_cast<const void *>(std::to_string(asset.getPriority()).c_str())));
-        zhash_insert(aux, "type", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetType().c_str())));
-        zhash_insert(aux, "subtype", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetSubtype().c_str())));
-        zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(asset.getParentId().c_str())));
-        zhash_insert(aux, "status", const_cast<void *>(reinterpret_cast<const void *>(assetStatusToString(asset.getAssetStatus()).c_str())));
-
-        zhash_t *ext = extMapToZhash(asset.getExt());
-
-        fty_proto_set_aux(proto, &aux);
-        fty_proto_set_name(proto, "%s", asset.getInternalName().c_str());
-        fty_proto_set_operation(proto, "%s", operation.c_str());
-        fty_proto_set_ext(proto, &ext);
-
-        zhash_destroy(&aux);
-        zhash_destroy(&ext);
-
-        return proto;
-    }
-
-    Asset ftyProtoToAsset(fty_proto_t * proto, bool extAttributeReadOnly)
-    {
-        if (fty_proto_id(proto) != FTY_PROTO_ASSET)
-        {
-            throw std::invalid_argument("Wrong fty-proto type");
-        }
-
-        Asset asset;
-        asset.setInternalName(fty_proto_name(proto));
-        asset.setAssetStatus(stringToAssetStatus(fty_proto_aux_string(proto, "status", "active")));
-        asset.setAssetType(fty_proto_aux_string(proto, "type", ""));
-        asset.setAssetSubtype(fty_proto_aux_string(proto, "subtype", ""));
-        asset.setParentId(fty_proto_aux_string(proto, "parent", ""));
-        asset.setPriority(fty_proto_aux_number(proto, "priority", 5));
-
-        zhash_t *ext = fty_proto_ext(proto);
-        asset.setExt(zhashToExtMap(ext, extAttributeReadOnly));
-
-        return asset;
     }
 }
 
@@ -405,7 +342,7 @@ void fty_asset_dto_test(bool verbose)
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
+            asset.setParentIname("abc123");
             asset.setExtEntry("testKey","testValue");
             asset.setPriority(4);
 
@@ -443,14 +380,14 @@ void fty_asset_dto_test(bool verbose)
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
+            asset.setParentIname("abc123");
             asset.setExtEntry("testKey","testValue");
             asset.setPriority(4);
 
             Asset asset2;
             asset2 = asset;
 
-            asset2.setParentId("wrong-name");
+            asset2.setParentIname("wrong-name");
 
             if (asset == asset2)
             {
@@ -483,7 +420,7 @@ void fty_asset_dto_test(bool verbose)
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
+            asset.setParentIname("abc123");
             asset.setExtEntry("testKey","testValue");
             asset.setPriority(4);
 
@@ -522,7 +459,7 @@ void fty_asset_dto_test(bool verbose)
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
+            asset.setParentIname("abc123");
             asset.setExtEntry("testKey","testValue");
             asset.setPriority(4);
 
@@ -560,55 +497,13 @@ void fty_asset_dto_test(bool verbose)
             asset.setAssetStatus(AssetStatus::Nonactive);
             asset.setAssetType(TYPE_DEVICE);
             asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
+            asset.setParentIname("abc123");
             asset.setExtEntry("testKey", "testValue");
             asset.setPriority(4);
 
             std::string jsonStr = asset.toJson();
 
             Asset asset2 = Asset::fromJson(jsonStr);
-
-            if (asset != asset2)
-            {
-                throw std::runtime_error("Assets do not match");
-            }
-
-            printf (" *<=  Test #%s > OK\n", testNumber.c_str ());
-            testsResults.emplace_back (" Test #" + testNumber + " " + testName, true);
-        }
-        catch (const std::exception &e) {
-            printf (" *<=  Test #%s > Failed\n", testNumber.c_str ());
-            printf ("Error: %s\n", e.what ());
-            testsResults.emplace_back (" Test #" + testNumber + " " + testName, false);
-        }
-    }
-    
-    // fty-proto encoding/decoding
-    testNumber = "4.1";
-    testName = "fty-proto encoding and decoding";
-    printf ("\n----------------------------------------------------------------"
-            "-------\n");
-    {
-        printf (" *=>  Test #%s %s\n", testNumber.c_str (), testName.c_str ());
-
-        try {
-            using namespace fty;
-
-            Asset asset;
-            asset.setInternalName("dc-0");
-            asset.setAssetStatus(AssetStatus::Nonactive);
-            asset.setAssetType(TYPE_DEVICE);
-            asset.setAssetSubtype(SUB_UPS);
-            asset.setParentId("abc123");
-            asset.setExtEntry("testKey","testValue");
-            asset.setPriority(4);
-
-            fty_proto_t * p = assetToFtyProto(asset, "UPDATE");
-
-            Asset asset2;
-
-            asset2 = ftyProtoToAsset(p);
-            fty_proto_destroy(&p);
 
             if (asset != asset2)
             {
@@ -634,7 +529,7 @@ void fty_asset_dto_test(bool verbose)
 
 
 	printf("\tSummary tests from fty_asset_dto\n");
-	for(const auto & result : testsResults)
+	for(const auto& result : testsResults)
 	{
 		if(result.second)
 		{

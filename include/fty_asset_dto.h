@@ -28,8 +28,6 @@
 
 #include <cxxtools/serializationinfo.h>
 
-typedef struct _fty_proto_t fty_proto_t;
-
 namespace fty
 {
     /// List of valid asset statuses
@@ -41,7 +39,7 @@ namespace fty
     };
 
     const std::string assetStatusToString(AssetStatus status);
-    AssetStatus stringToAssetStatus(const std::string & str);
+    AssetStatus stringToAssetStatus(const std::string& str);
 
     // WARNING keep consistent with DB table t_bios_asset_element_type
     static constexpr const char *TYPE_UNKNOWN                         = "unknown";         // 0
@@ -132,25 +130,27 @@ namespace fty
         using ExtMap = std::map<std::string, std::pair<std::string,bool>>;
 
         // getters
-        const std::string       & getInternalName() const;
-        AssetStatus               getAssetStatus() const;
-        const std::string       & getAssetType() const;
-        const std::string       & getAssetSubtype() const;
-        const std::string       & getParentId() const;
-        int                       getPriority() const;
-        const Asset::ExtMap     & getExt() const;
-        const std::string       & getExtEntry(const std::string & key) const;
-        bool                      isExtEntryReadOnly(const std::string & key) const;
+        const std::string&   getInternalName() const;
+        AssetStatus          getAssetStatus() const;
+        const std::string&   getAssetType() const;
+        const std::string&   getAssetSubtype() const;
+        const std::string&   getParentIname() const;
+        int                  getPriority() const;
+        const std::string&   getAssetTag() const;
+        const Asset::ExtMap& getExt() const;
+        const std::string&   getExtEntry(const std::string& key) const;
+        bool                 isExtEntryReadOnly(const std::string& key) const;
 
         // setters
-        void setInternalName(const std::string & internalName);
+        void setInternalName(const std::string& internalName);
         void setAssetStatus(AssetStatus assetStatus);
-        void setAssetType(const std::string & assetType);
-        void setAssetSubtype(const std::string & assetSubtype);
-        void setParentId(const std::string & parendId);
+        void setAssetType(const std::string& assetType);
+        void setAssetSubtype(const std::string& assetSubtype);
+        void setParentIname(const std::string& parentIname);
         void setPriority(int priority);
-        void setExt(const Asset::ExtMap & map);
-        void setExtEntry(const std::string & key, const std::string & value, bool readOnly = false);
+        void setAssetTag(const std::string& assetTag);
+        void setExt(const Asset::ExtMap& map);
+        void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false);
 
         // overload equality and inequality check
         bool operator== (const Asset &asset) const;
@@ -158,7 +158,7 @@ namespace fty
 
         // conversion to/from JSON
         std::string toJson() const;
-        static Asset fromJson(const std::string & json);
+        static Asset fromJson(const std::string& json);
 
         private:
         // internal name = <subtype>-<id>)
@@ -169,18 +169,17 @@ namespace fty
         std::string    m_assetSubtype  = SUB_UNKNOWN;
 
         // direct parent iname
-        std::string    m_parentId;
+        std::string    m_parentIname;
         // priority 1..5 (1 is most, 5 is least)
         int            m_priority      = 5;
+        // asset tag
+        std::string    m_assetTag;
         // ext map storage (asset-specific values with readonly attribute)
         ExtMap m_ext;
     };
 
-    void operator<<= (cxxtools::SerializationInfo & si, const Asset & asset);
-    void operator>>= (const cxxtools::SerializationInfo & si, Asset & asset);
-
-    fty_proto_t * assetToFtyProto(const Asset & asset, const std::string & operation);
-    Asset ftyProtoToAsset(fty_proto_t * proto, bool extAttributeReadOnly = false);
+    void operator<<= (cxxtools::SerializationInfo& si, const Asset& asset);
+    void operator>>= (const cxxtools::SerializationInfo& si, Asset& asset);
 }
 
 //  Self test of this class
