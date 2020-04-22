@@ -175,48 +175,40 @@ fty::Asset updateAsset(const fty::Asset& asset, bool test)
     }
     else
     {
-        try
+        // datacenter parent ID must be null
+        if(updatedAsset.getAssetType() == fty::TYPE_DATACENTER && !updatedAsset.getParentIname().empty())
         {
-            // datacenter parent ID must be null
-            if(updatedAsset.getAssetType() == fty::TYPE_DATACENTER && !updatedAsset.getParentIname().empty())
-            {
-                throw std::runtime_error("Invalid parent ID for asset type DataCenter");
-            }
-
-            // get current asset status (as stored in db)
-            std::string currentStatus;
-            currentStatus = selectAssetProperty<std::string>("status", "name", updatedAsset.getInternalName());
-
-            // activate if needed
-            // (old status is non active and requested status is active)
-            bool needActivation = ((updatedAsset.getAssetStatus() == fty::AssetStatus::Active) && (currentStatus == fty::assetStatusToString(fty::AssetStatus::Nonactive)));
-            if(needActivation)
-            {
-                // check if asset can be activated
-                if(!testAssetActivation(updatedAsset))
-                {
-                    // TODO should update proceed on activation failure? (setting status to non active)
-                    throw std::runtime_error("Licensing limitation hit - maximum amount of active power devices allowed in license reached.");
-                }
-            }
-
-            // TODO use update query instead of insert
-            // perform update
-            updateAssetToDB(updatedAsset);
-
-            if(needActivation)
-            {
-                activateAsset(updatedAsset);
-            }
-
-            log_debug ("Processing inventory for asset %s", updatedAsset.getInternalName().c_str());
-            updateAssetExtProperties(updatedAsset);
+            throw std::runtime_error("Invalid parent ID for asset type DataCenter");
         }
 
-        catch(const std::exception& e)
+        // get current asset status (as stored in db)
+        std::string currentStatus;
+        currentStatus = selectAssetProperty<std::string>("status", "name", updatedAsset.getInternalName());
+
+        // activate if needed
+        // (old status is non active and requested status is active)
+        bool needActivation = ((updatedAsset.getAssetStatus() == fty::AssetStatus::Active) && (currentStatus == fty::assetStatusToString(fty::AssetStatus::Nonactive)));
+        if(needActivation)
         {
-            throw std::runtime_error(e.what());
+            // check if asset can be activated
+            if(!testAssetActivation(updatedAsset))
+            {
+                // TODO should update proceed on activation failure? (setting status to non active)
+                throw std::runtime_error("Licensing limitation hit - maximum amount of active power devices allowed in license reached.");
+            }
         }
+
+        // TODO use update query instead of insert
+        // perform update
+        updateAssetToDB(updatedAsset);
+
+        if(needActivation)
+        {
+            activateAsset(updatedAsset);
+        }
+
+        log_debug ("Processing inventory for asset %s", updatedAsset.getInternalName().c_str());
+        updateAssetExtProperties(updatedAsset);
     }
 
     return updatedAsset;
