@@ -82,7 +82,7 @@ static fty::FullAsset assetToFullAsset(const fty::Asset& asset)
 }
 
 /// test if asset activation is possible
-static bool testAssetActivation(const fty::Asset& asset)
+static bool canAssetBeActivated(const fty::Asset& asset)
 {
     mlm::MlmSyncClient client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
     fty::AssetActivator activationAccessor(client);
@@ -118,10 +118,11 @@ fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
     else
     {
         // check if asset can be activated (if needed)
-        if((createdAsset.getAssetStatus() == fty::AssetStatus::Active) && !testAssetActivation(createdAsset))
+        if((createdAsset.getAssetStatus() == fty::AssetStatus::Active) && !canAssetBeActivated(createdAsset))
         {
             if(tryActivate) // if activation fails and tryActivate is true -> create anyway wih status "non active"
             {
+                log_warning("Licensing limitation hit - setting asset status to non active.");
                 createdAsset.setAssetStatus(fty::AssetStatus::Nonactive);
             }
             else            // do not create asset in db
@@ -163,7 +164,7 @@ fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
     return createdAsset;
 }
 
-fty::Asset updateAsset(const fty::Asset& asset, bool test)
+fty::Asset updateAsset(const fty::Asset& asset, bool tryActivate, bool test)
 {
     fty::Asset updatedAsset;
     updatedAsset = asset;
@@ -191,10 +192,17 @@ fty::Asset updateAsset(const fty::Asset& asset, bool test)
         if(needActivation)
         {
             // check if asset can be activated
-            if(!testAssetActivation(updatedAsset))
+            if(!canAssetBeActivated(updatedAsset))
             {
-                // TODO should update proceed on activation failure? (setting status to non active)
-                throw std::runtime_error("Licensing limitation hit - maximum amount of active power devices allowed in license reached.");
+                if(tryActivate) // if activation fails and tryActivate is true -> update anyway wih status "non active"
+                {
+                    log_warning("Licensing limitation hit - setting asset status to non active.");
+                    updatedAsset.setAssetStatus(fty::AssetStatus::Nonactive);
+                }
+                else            // do not update asset in db
+                {
+                    throw std::runtime_error("Licensing limitation hit - maximum amount of active power devices allowed in license reached.");
+                }
             }
         }
 
@@ -213,6 +221,23 @@ fty::Asset updateAsset(const fty::Asset& asset, bool test)
 
     return updatedAsset;
 }
+
+fty::Asset getAsset(const std::string& assetInternalName)
+{
+    std::vector<fty::Asset> v = getAssetsFromDB(assetInternalName);
+
+    fty::Asset a = std::move(v.back());
+    v.pop_back();
+
+    return a;
+}
+
+std::vector<fty::Asset> listAssets()
+{
+    return getAssetsFromDB("");
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 // for fty-proto conversion helpers
 static fty::Asset::ExtMap zhashToExtMap(zhash_t *hash, bool readOnly)

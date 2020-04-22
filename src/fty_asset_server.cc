@@ -196,7 +196,13 @@
 #include <functional>
 #include <fty_common_db_uptime.h>
 #include <fty_common_messagebus.h>
-// TODO add dependencies tntdb and cxxtools
+
+static constexpr const char* FTY_ASSET_ENDPOINT = "ipc://@/malamute";
+static constexpr const char* FTY_ASSET_SENDER_NAME = "asset-agent-sender";
+static constexpr const char* FTY_ASSET_MAILBOX = "FTY.Q.ASSET.QUERY";
+
+static constexpr const char* METADATA_TRY_ACTIVATE      = "TRY_ACTIVATE";
+static constexpr const char* METADATA_NO_ERROR_IF_EXIST = "NO_ERROR_IF_EXIST";
 
 //  Structure of our class
 
@@ -206,6 +212,9 @@ struct _fty_asset_server_t {
     mlm_client_t *stream_client;
     bool test;
     LIMITATIONS_STRUCT limitations;
+
+    // new generation interfaces
+    std::unique_ptr<messagebus::MessageBus> message_bus;
 };
 
 //  --------------------------------------------------------------------------
@@ -247,6 +256,8 @@ fty_asset_server_destroy (fty_asset_server_t **self_p)
     zstr_free (&self->name);
     mlm_client_destroy (&self->mailbox_client);
     mlm_client_destroy (&self->stream_client);
+
+    self->message_bus.reset();
 
     free (self);
     *self_p = NULL;
@@ -996,6 +1007,205 @@ static void
     zstr_free (&uuid);
 }
 
+// new generation asset manipulation handler
+static void handleAssetManipulationReq(const messagebus::Message & msg)
+{
+    log_debug("Request: handle asset manipulation");
+    
+    // TODO find a way to get configuration
+    // asset manipulation is disabled
+    // if(cfg->limitations.global_configurability == 0)
+    // {
+    //     throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
+    // }
+    
+    std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus(FTY_ASSET_ENDPOINT, FTY_ASSET_SENDER_NAME));
+    // response message
+    messagebus::Message response;
+
+    // Request to add a new asset into the DB   
+    if(msg.metaData().at(messagebus::Message::SUBJECT) == "CREATE")
+    {
+        log_debug("Handle asset manipulation - subject CREATE");
+
+        try
+        {
+            fty::Asset asset;
+
+            std::string userData = msg.userData().front();
+            asset.fromJson(userData);
+
+            bool tryActivate = (msg.metaData().at(METADATA_TRY_ACTIVATE) == "true");
+            bool noErrorIfExist = (msg.metaData().at(METADATA_NO_ERROR_IF_EXIST) == "true");
+
+            asset = createAsset(asset, tryActivate, true/* cfg->test */);
+
+            // create response (ok)
+            response.metaData().emplace(messagebus::Message::SUBJECT, "CREATE");
+            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
+            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
+            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_OK);
+
+            response.userData().push_back(asset.toJson());
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+
+            // send notification
+        }
+        catch (std::exception& e)
+        {
+            log_error(e.what());
+
+            // create response (error)
+            response.metaData().emplace(messagebus::Message::SUBJECT, "CREATE");
+            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
+            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
+            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_KO);
+
+            // TODO translatable message
+            response.userData().push_back(e.what());
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+    }
+    // Request to update an existing asset into the DB
+    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "UPDATE")
+    {
+        log_debug("Handle asset manipulation - subject UPDATE");
+
+        try
+        {
+            fty::Asset asset;
+
+            std::string userData = msg.userData().front();
+            asset.fromJson(userData);
+
+            bool tryActivate = (msg.metaData().at(METADATA_TRY_ACTIVATE) == "true");
+
+            asset = updateAsset(asset, tryActivate, true/* cfg->test */);
+
+            // create response (ok)
+            response.metaData().emplace(messagebus::Message::SUBJECT, "UPDATE");
+            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
+            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
+            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_OK);
+
+            response.userData().push_back(asset.toJson());
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+
+            // send notification
+        }
+        catch (std::exception& e)
+        {
+            log_error(e.what());
+
+            // create response (error)
+            response.metaData().emplace(messagebus::Message::SUBJECT, "UPDATE");
+            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
+            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
+            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_KO);
+
+            // TODO translatable message
+            response.userData().push_back(e.what());
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+    }
+    // Request to delete an existing asset from the DB
+    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "DELETE")
+    {
+        // TODO not implemented yet
+        log_debug("Handle asset manipulation - subject DELETE");
+    }
+    // Return the status of the requested asset
+    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "GET")
+    {
+        log_debug("Handle asset manipulation - subject GET");
+
+        try
+        {
+            std::string assetIname = msg.userData().front();
+            fty::Asset asset = getAsset(assetIname);
+
+            // create response (ok)
+            response.metaData().emplace(messagebus::Message::SUBJECT, "GET");
+            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
+            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
+            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_OK);
+
+            response.userData().push_back(asset.toJson());
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+        catch (std::exception& e)
+        {
+            log_error(e.what());
+
+            // create response (error)
+            response.metaData().emplace(messagebus::Message::SUBJECT, "GET");
+            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
+            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
+            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_KO);
+
+            // TODO translatable message
+            response.userData().push_back(e.what());
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+    }
+    // Return a list of all assets in the system
+    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "LIST")
+    {
+        log_debug("Handle asset manipulation - subject LIST");
+
+        try
+        {
+            std::vector<fty::Asset> assetVector = listAssets();
+
+            // create response (ok)
+            response.metaData().emplace(messagebus::Message::SUBJECT, "LIST");
+            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
+            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
+            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_OK);
+
+            for(const fty::Asset& asset : assetVector)
+            {
+                response.userData().push_back(asset.toJson());
+            }
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+        catch (std::exception& e)
+        {
+            log_error(e.what());
+
+            // create response (error)
+            response.metaData().emplace(messagebus::Message::SUBJECT, "LIST");
+            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
+            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
+            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_KO);
+
+            // TODO translatable message
+            response.userData().push_back(e.what());
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+    }
+    else
+    {
+        log_warning("Handle asset manipulation - Unknown subject");
+    }
+}
+
 static void
     s_handle_subject_asset_manipulation (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
 {
@@ -1064,7 +1274,8 @@ static void
             }
         }
         else if (streq (operation, "update")) {
-            asset = updateAsset(asset, cfg->test);
+            // tryUpdate is not supported in old interface
+            asset = updateAsset(asset, false, cfg->test);
 
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, asset.getInternalName().c_str());
@@ -1251,6 +1462,13 @@ fty_asset_server (zsock_t *pipe, void *args)
                 if (rv == -1) {
                     log_error ("%s:\tCan't connect to malamute endpoint '%s'", cfg->name, endpoint);
                 }
+
+                // new messagebus interfaces (-ng suffix)
+                std::string clientNameNg = std::string(cfg->name) + "-ng";
+                cfg->message_bus.reset(messagebus::MlmMessageBus(endpoint, clientNameNg));
+                cfg->message_bus->connect();
+                cfg->message_bus->receive(FTY_ASSET_MAILBOX, &handleAssetManipulationReq);
+
                 zstr_free (&endpoint);
                 zsock_signal (pipe, 0);
             }
