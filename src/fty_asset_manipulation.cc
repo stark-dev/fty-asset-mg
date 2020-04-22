@@ -243,31 +243,29 @@ fty_proto_t * assetToFtyProto(const fty::Asset& asset, const std::string& operat
 {
     fty_proto_t *proto = fty_proto_new(FTY_PROTO_ASSET);
 
+    // no need to free, as fty_proto_set_aux transfers ownership to caller
     zhash_t *aux = zhash_new();
-    zhash_autofree (aux);
 
     zhash_insert(aux, "priority", const_cast<void *>(reinterpret_cast<const void *>(std::to_string(asset.getPriority()).c_str())));
     zhash_insert(aux, "type", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetType().c_str())));
     zhash_insert(aux, "subtype", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetSubtype().c_str())));
     if (test)
     {
-        zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(0)));
+        zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>("0")));
     }
     else
     {
-        zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(selectAssetProperty<int>("id_parent", "name", asset.getInternalName()))));
+        zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(std::to_string(selectAssetProperty<int>("id_parent", "name", asset.getInternalName())).c_str())));
     }
     zhash_insert(aux, "status", const_cast<void *>(reinterpret_cast<const void *>(assetStatusToString(asset.getAssetStatus()).c_str())));
 
+    // no need to free, as fty_proto_set_ext transfers ownership to caller
     zhash_t *ext = extMapToZhash(asset.getExt());
 
     fty_proto_set_aux(proto, &aux);
     fty_proto_set_name(proto, "%s", asset.getInternalName().c_str());
     fty_proto_set_operation(proto, "%s", operation.c_str());
     fty_proto_set_ext(proto, &ext);
-
-    zhash_destroy(&aux);
-    zhash_destroy(&ext);
 
     return proto;
 }
