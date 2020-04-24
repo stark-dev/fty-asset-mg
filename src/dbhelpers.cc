@@ -554,4 +554,6 @@ void updateAssetExtProperties(const fty::Asset& asset)
             set ("readonly", readOnly).
             execute ();
     }
+
+    trans.commit();
 }

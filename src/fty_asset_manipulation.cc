@@ -255,7 +255,15 @@ fty_proto_t * assetToFtyProto(const fty::Asset& asset, const std::string& operat
     }
     else
     {
-        zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(std::to_string(selectAssetProperty<int>("id_parent", "name", asset.getInternalName())).c_str())));
+        std::string parentIname = asset.getInternalName();
+        if(!parentIname.empty())
+        {
+            zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(std::to_string(selectAssetProperty<int>("id_parent", "name", asset.getInternalName())).c_str())));
+        }
+        else
+        {
+            zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>("0")));
+        }
     }
     zhash_insert(aux, "status", const_cast<void *>(reinterpret_cast<const void *>(assetStatusToString(asset.getAssetStatus()).c_str())));
 
@@ -288,7 +296,15 @@ fty::Asset ftyProtoToAsset(fty_proto_t * proto, bool extAttributeReadOnly, bool 
     }
     else
     {
-        asset.setParentIname(selectAssetProperty<std::string>("name", "id_parent", fty_proto_aux_number(proto, "parent", 0)));
+        int parentId = fty_proto_aux_number(proto, "parent", 0);
+        if(parentId != 0)
+        {
+            asset.setParentIname(selectAssetProperty<std::string>("name", "id_parent", parentId));
+        }
+        else
+        {
+            asset.setParentIname("");
+        }
     }
     asset.setPriority(fty_proto_aux_number(proto, "priority", 5));
 
