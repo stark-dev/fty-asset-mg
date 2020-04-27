@@ -1036,13 +1036,13 @@ static void
 
     // get operation from message
     const char *operation = fty_proto_operation (fmsg);
-
-    // get asset from fty-proto
-    fty::Asset asset;
-    asset = ftyProtoToAsset(fmsg, read_only, cfg->test);
-
+    
     try
     {
+        // get asset from fty-proto
+        fty::Asset asset;
+        asset = ftyProtoToAsset(fmsg, read_only, cfg->test);
+
         // asset manipulation is disabled
         if(cfg->limitations.global_configurability == 0)
         {
