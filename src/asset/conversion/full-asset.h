@@ -1,7 +1,7 @@
 /*  =========================================================================
-    fty-asset - Agent managing information about assets
+    asset_conversion_full_asset - asset/conversion/full-asset
 
-    Copyright (C) 2014 - 2020 Eaton
+    Copyright (C) 2016 - 2020 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,10 +19,14 @@
     =========================================================================
 */
 
-#ifndef FTY_ASSET_H_H_INCLUDED
-#define FTY_ASSET_H_H_INCLUDED
+#pragma once
 
-//  Include the project library file
-#include "fty_asset_library.h"
+// fwd declaration
+namespace fty {
+class Asset;
+class FullAsset;
+} // namespace fty
 
-#endif
+namespace fty { namespace conversion {
+    fty::FullAsset toFullAsset(const Asset& asset);
+}} // namespace fty::conversion

@@ -29,6 +29,16 @@
 //  Platform definitions, must come first
 #include "platform.h"
 
+//  Asserts check the invariants of methods. If they're not
+//  fulfilled the program should fail fast. Therefore enforce them!
+#ifdef NDEBUG
+  #undef NDEBUG
+  #include <assert.h>
+  #define NDEBUG
+#else
+  #include <assert.h>
+#endif
+
 //  External API
 #include "../include/fty-asset.h"
 
@@ -113,6 +123,34 @@ typedef struct _dns_t dns_t;
 typedef struct _fty_asset_manipulation_t fty_asset_manipulation_t;
 #define FTY_ASSET_MANIPULATION_T_DEFINED
 #endif
+#ifndef ASSET_SERVER_T_DEFINED
+typedef struct _asset_server_t asset_server_t;
+#define ASSET_SERVER_T_DEFINED
+#endif
+#ifndef ASSET_ASSET_T_DEFINED
+typedef struct _asset_asset_t asset_asset_t;
+#define ASSET_ASSET_T_DEFINED
+#endif
+#ifndef ASSET_ASSET_DB_T_DEFINED
+typedef struct _asset_asset_db_t asset_asset_db_t;
+#define ASSET_ASSET_DB_T_DEFINED
+#endif
+#ifndef ASSET_ASSET_DB_TEST_T_DEFINED
+typedef struct _asset_asset_db_test_t asset_asset_db_test_t;
+#define ASSET_ASSET_DB_TEST_T_DEFINED
+#endif
+#ifndef ASSET_CONVERSION_JSON_T_DEFINED
+typedef struct _asset_conversion_json_t asset_conversion_json_t;
+#define ASSET_CONVERSION_JSON_T_DEFINED
+#endif
+#ifndef ASSET_CONVERSION_PROTO_T_DEFINED
+typedef struct _asset_conversion_proto_t asset_conversion_proto_t;
+#define ASSET_CONVERSION_PROTO_T_DEFINED
+#endif
+#ifndef ASSET_CONVERSION_FULL_ASSET_T_DEFINED
+typedef struct _asset_conversion_full_asset_t asset_conversion_full_asset_t;
+#define ASSET_CONVERSION_FULL_ASSET_T_DEFINED
+#endif
 
 //  Extra headers
 #include "topology/dbtypes.h"
@@ -140,6 +178,13 @@ typedef struct _fty_asset_manipulation_t fty_asset_manipulation_t;
 #include "total_power.h"
 #include "dns.h"
 #include "fty_asset_manipulation.h"
+#include "asset-server.h"
+#include "asset/asset.h"
+#include "asset/asset-db.h"
+#include "asset/asset-db-test.h"
+#include "asset/conversion/json.h"
+#include "asset/conversion/proto.h"
+#include "asset/conversion/full-asset.h"
 
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef FTY_ASSET_BUILD_DRAFT_API

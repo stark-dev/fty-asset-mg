@@ -80,6 +80,16 @@
         repository = "https://github.com/42ity/libmagic.git"
         test = "magic_close"
         redhat_name = "file-devel" />
+    
+    <use project = "openssl"
+        header = "openssl/sha.h"
+        debian_name = "libssl-dev"
+        />
+    
+    <use project = "uuid"
+        header = "uuid/uuid.h"
+        debian_name = "uuid-dev"
+        />
 
     <!-- Note: pure C projects should use fty-log/fty_logger.h, C++ use fty_log.h -->
     <use project = "fty-common-logging" libname = "libfty_common_logging"
@@ -141,6 +151,14 @@
 
     <class name = "fty_asset_dto" state = "stable" >Asset DTO: defines ASSET attributes for data exchange</class>
     <class name = "fty_asset_manipulation" state = "stable" private = "1" selftest = "0" >Helper functions to perform asset manipulation</class>
+
+    <class name = "asset-server" state = "stable" private = "1" selftest = "0" >asset-server</class>
+    <class name = "asset/asset" state = "stable" private = "1" selftest = "0" >asset/asset</class>
+    <class name = "asset/asset-db" state = "stable" private = "1" selftest = "0" >asset/asset-db</class>
+    <class name = "asset/asset-db-test" state = "stable" private = "1" selftest = "0" >asset/asset-db-test</class>
+    <class name = "asset/conversion/json" state = "stable" private = "1" selftest = "0" >asset/conversion/json</class>
+    <class name = "asset/conversion/proto" state = "stable" private = "1" selftest = "0" >asset/conversion/proto</class>
+    <class name = "asset/conversion/full-asset" state = "stable" private = "1" selftest = "0" >asset/conversion/full-asset</class>
 
     <main name = "fty-asset" service = "1" >
         Agent managing assets

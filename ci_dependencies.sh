@@ -510,6 +510,26 @@ fi
 fi
 
 
+# Start of recipe for dependency: openssl
+if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list libssl-dev >/dev/null 2>&1) || \
+       (command -v brew >/dev/null 2>&1 && brew ls --versions openssl >/dev/null 2>&1) || \
+       ([ -e "openssl" ]) \
+; then
+ echo "INFO: Get 'openssl' using apt-get libssl-dev" >&2
+ sudo apt-get install libssl-dev -y || exit $?
+fi
+
+
+# Start of recipe for dependency: uuid
+if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list uuid-dev >/dev/null 2>&1) || \
+       (command -v brew >/dev/null 2>&1 && brew ls --versions uuid >/dev/null 2>&1) || \
+       ([ -e "uuid" ]) \
+; then
+ echo "INFO: Get 'uuid' using apt-get uuid-dev" >&2
+ sudo apt-get install uuid-dev -y || exit $?
+fi
+
+
 # Start of recipe for dependency: fty-common-logging
 if ! (command -v dpkg-query >/dev/null 2>&1 && dpkg-query --list libfty_common_logging-dev >/dev/null 2>&1) || \
        (command -v brew >/dev/null 2>&1 && brew ls --versions fty-common-logging >/dev/null 2>&1) || \

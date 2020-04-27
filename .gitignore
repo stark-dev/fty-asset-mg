@@ -43,6 +43,7 @@ doc/*.3
 doc/*.7
 
 # autoconf files
+.dirstamp
 .deps
 .libs
 *.log
@@ -63,7 +64,6 @@ src/platform.h.in
 src/platform.h.in~
 src/stamp-h1
 src/test-suite.log
-src/.dirstamp
 
 # CMake cache
 CMakeCache.txt
