@@ -222,19 +222,46 @@ fty::Asset updateAsset(const fty::Asset& asset, bool tryActivate, bool test)
     return updatedAsset;
 }
 
-fty::Asset getAsset(const std::string& assetInternalName)
+fty::Asset getAsset(const std::string& assetInternalName, bool test)
 {
-    std::vector<fty::Asset> v = getAssetsFromDB(assetInternalName);
+    fty::Asset a;
 
-    fty::Asset a = std::move(v.back());
-    v.pop_back();
+    if(test)
+    {
+        log_debug ("[getAsset]: runs in test mode");
+        a.setInternalName(assetInternalName);
+    }
+    else
+    {
+        std::vector<fty::Asset> v = getAssetsFromDB(assetInternalName);
+        
+        a = std::move(v.back());
+        v.pop_back();
+    }
 
     return a;
 }
 
-std::vector<fty::Asset> listAssets()
+std::vector<fty::Asset> listAssets(bool test)
 {
-    return getAssetsFromDB("");
+    std::vector<fty::Asset> v;
+
+    if(test)
+    {
+        log_debug ("[listAssets]: runs in test mode");
+
+        fty::Asset a;
+
+        v.push_back(a);
+        v.push_back(a);
+        v.push_back(a);
+        v.push_back(a);
+    }
+    else
+    {
+        v = getAssetsFromDB("");
+    }
+    return v;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

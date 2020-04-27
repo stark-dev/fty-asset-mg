@@ -198,7 +198,7 @@
 #include <fty_common_messagebus.h>
 
 static constexpr const char* FTY_ASSET_ENDPOINT = "ipc://@/malamute";
-static constexpr const char* FTY_ASSET_SENDER_NAME = "asset-agent-sender";
+static constexpr const char* FTY_ASSET_MAILBOX_NAME = "asset-agent-ng";
 static constexpr const char* FTY_ASSET_MAILBOX = "FTY.Q.ASSET.QUERY";
 
 static constexpr const char* METADATA_TRY_ACTIVATE      = "TRY_ACTIVATE";
@@ -1007,48 +1007,101 @@ static void
     zstr_free (&uuid);
 }
 
+static messagebus::Message createResponse(
+    const std::string& subject,
+    const std::string& correlationID,
+    const std::string& from,
+    const std::string& to,
+    const std::string& status,
+    const std::string& data
+)
+{
+    messagebus::Message msg;
+
+    msg.metaData().emplace(messagebus::Message::SUBJECT, subject);
+    msg.metaData().emplace(messagebus::Message::FROM, from);
+    msg.metaData().emplace(messagebus::Message::TO, to);
+    msg.metaData().emplace(messagebus::Message::CORRELATION_ID, correlationID);
+    msg.metaData().emplace(messagebus::Message::STATUS, status);
+
+    msg.userData().push_back(data);
+
+    return msg;
+}
+
+static messagebus::Message createResponse(
+    const std::string& subject,
+    const std::string& correlationID,
+    const std::string& from,
+    const std::string& to,
+    const std::string& status,
+    const std::vector<std::string>& data
+)
+{
+    messagebus::Message msg;
+
+    msg.metaData().emplace(messagebus::Message::SUBJECT, subject);
+    msg.metaData().emplace(messagebus::Message::FROM, from);
+    msg.metaData().emplace(messagebus::Message::TO, to);
+    msg.metaData().emplace(messagebus::Message::CORRELATION_ID, correlationID);
+    msg.metaData().emplace(messagebus::Message::STATUS, status);
+
+    for(const auto& e : data)
+    {
+        msg.userData().push_back(e);
+    }
+
+    return msg;
+}
+
 // new generation asset manipulation handler
 static void handleAssetManipulationReq(const messagebus::Message & msg)
-{
-    log_debug("Request: handle asset manipulation");
-    
+{   
     // TODO find a way to get configuration
     // asset manipulation is disabled
     // if(cfg->limitations.global_configurability == 0)
     // {
     //     throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
     // }
+
+    log_debug("[handle asset manipulation] : message received from %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
     
-    std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus(FTY_ASSET_ENDPOINT, FTY_ASSET_SENDER_NAME));
+    // TODO get endpoint as param in test mode
+    std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus("inproc://fty_asset_server-test", FTY_ASSET_MAILBOX_NAME));
+    // std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus(FTY_ASSET_ENDPOINT, FTY_ASSET_SENDER_NAME));
+    publisher->connect();
     // response message
     messagebus::Message response;
 
     // Request to add a new asset into the DB   
     if(msg.metaData().at(messagebus::Message::SUBJECT) == "CREATE")
     {
-        log_debug("Handle asset manipulation - subject CREATE");
+        log_debug("[handle asset manipulation] : subject CREATE");
 
         try
         {
-            fty::Asset asset;
-
             std::string userData = msg.userData().front();
-            asset.fromJson(userData);
+
+            fty::Asset asset = fty::Asset::fromJson(userData);
 
             bool tryActivate = (msg.metaData().at(METADATA_TRY_ACTIVATE) == "true");
-            bool noErrorIfExist = (msg.metaData().at(METADATA_NO_ERROR_IF_EXIST) == "true");
+            // TODO implement no error if exist
+            // bool noErrorIfExist = (msg.metaData().at(METADATA_NO_ERROR_IF_EXIST) == "true");
 
-            asset = createAsset(asset, tryActivate, true/* cfg->test */);
+            // TODO get test value
+            fty::Asset createdAsset = createAsset(asset, tryActivate, true/* cfg->test */);
 
-            // create response (ok)
-            response.metaData().emplace(messagebus::Message::SUBJECT, "CREATE");
-            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
-            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
-            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_OK);
-
-            response.userData().push_back(asset.toJson());
+            response = createResponse(
+                "CREATE",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                FTY_ASSET_MAILBOX_NAME,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_OK,
+                createdAsset.toJson()
+            );
 
             // send response
+            log_debug("[handle asset manipulation] : sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
             publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
             // send notification
@@ -1057,42 +1110,47 @@ static void handleAssetManipulationReq(const messagebus::Message & msg)
         {
             log_error(e.what());
 
-            // create response (error)
-            response.metaData().emplace(messagebus::Message::SUBJECT, "CREATE");
-            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
-            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
-            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_KO);
+            // if(!noErrorIfExist)
+            // {
+                // create response (error)
+                response = createResponse(
+                    "CREATE",
+                    msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                    FTY_ASSET_MAILBOX_NAME,
+                    msg.metaData().find(messagebus::Message::FROM)->second,
+                    messagebus::STATUS_KO,
+                    e.what()    // TODO set translatable message
+                );
 
-            // TODO translatable message
-            response.userData().push_back(e.what());
-
-            // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+                // send response
+                publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+            // }
         }
     }
     // Request to update an existing asset into the DB
     else if(msg.metaData().at(messagebus::Message::SUBJECT) == "UPDATE")
     {
-        log_debug("Handle asset manipulation - subject UPDATE");
+        log_debug("[handle asset manipulation] : subject UPDATE");
 
         try
         {
-            fty::Asset asset;
-
             std::string userData = msg.userData().front();
-            asset.fromJson(userData);
+
+            fty::Asset asset = fty::Asset::fromJson(userData);
 
             bool tryActivate = (msg.metaData().at(METADATA_TRY_ACTIVATE) == "true");
 
-            asset = updateAsset(asset, tryActivate, true/* cfg->test */);
+            fty::Asset updatedAsset = updateAsset(asset, tryActivate, true/* cfg->test */);
 
             // create response (ok)
-            response.metaData().emplace(messagebus::Message::SUBJECT, "UPDATE");
-            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
-            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
-            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_OK);
-
-            response.userData().push_back(asset.toJson());
+            response = createResponse(
+                "UPDATE",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                FTY_ASSET_MAILBOX_NAME,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_OK,
+                updatedAsset.toJson()
+            );
 
             // send response
             publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
@@ -1104,13 +1162,14 @@ static void handleAssetManipulationReq(const messagebus::Message & msg)
             log_error(e.what());
 
             // create response (error)
-            response.metaData().emplace(messagebus::Message::SUBJECT, "UPDATE");
-            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
-            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
-            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_KO);
-
-            // TODO translatable message
-            response.userData().push_back(e.what());
+            response = createResponse(
+                "UPDATE",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                FTY_ASSET_MAILBOX_NAME,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_KO,
+                e.what()    // TODO set translatable message
+            );
 
             // send response
             publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
@@ -1120,25 +1179,27 @@ static void handleAssetManipulationReq(const messagebus::Message & msg)
     else if(msg.metaData().at(messagebus::Message::SUBJECT) == "DELETE")
     {
         // TODO not implemented yet
-        log_debug("Handle asset manipulation - subject DELETE");
+        log_debug("[handle asset manipulation] : subject DELETE");
     }
     // Return the status of the requested asset
     else if(msg.metaData().at(messagebus::Message::SUBJECT) == "GET")
     {
-        log_debug("Handle asset manipulation - subject GET");
+        log_debug("[handle asset manipulation] : subject GET");
 
         try
         {
             std::string assetIname = msg.userData().front();
-            fty::Asset asset = getAsset(assetIname);
+            fty::Asset asset = getAsset(assetIname, true/* cfg->test */);
 
             // create response (ok)
-            response.metaData().emplace(messagebus::Message::SUBJECT, "GET");
-            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
-            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
-            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_OK);
-
-            response.userData().push_back(asset.toJson());
+            response = createResponse(
+                "GET",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                FTY_ASSET_MAILBOX_NAME,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_OK,
+                asset.toJson()
+            );
 
             // send response
             publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
@@ -1148,13 +1209,14 @@ static void handleAssetManipulationReq(const messagebus::Message & msg)
             log_error(e.what());
 
             // create response (error)
-            response.metaData().emplace(messagebus::Message::SUBJECT, "GET");
-            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
-            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
-            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_KO);
-
-            // TODO translatable message
-            response.userData().push_back(e.what());
+            response = createResponse(
+                "GET",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                FTY_ASSET_MAILBOX_NAME,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_KO,
+                e.what()    // TODO set translatable message
+            );
 
             // send response
             publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
@@ -1163,22 +1225,28 @@ static void handleAssetManipulationReq(const messagebus::Message & msg)
     // Return a list of all assets in the system
     else if(msg.metaData().at(messagebus::Message::SUBJECT) == "LIST")
     {
-        log_debug("Handle asset manipulation - subject LIST");
+        log_debug("[handle asset manipulation] : subject LIST");
 
         try
         {
-            std::vector<fty::Asset> assetVector = listAssets();
+            std::vector<fty::Asset> assetVector = listAssets(true/* cfg->test */);
 
-            // create response (ok)
-            response.metaData().emplace(messagebus::Message::SUBJECT, "LIST");
-            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
-            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
-            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_OK);
-
+            std::vector<std::string> jsonVector;
+            
             for(const fty::Asset& asset : assetVector)
             {
-                response.userData().push_back(asset.toJson());
+                jsonVector.push_back(asset.toJson());
             }
+
+            // create response (ok)
+            response = createResponse(
+                "LIST",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                FTY_ASSET_MAILBOX_NAME,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_OK,
+                jsonVector
+            );
 
             // send response
             publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
@@ -1188,13 +1256,14 @@ static void handleAssetManipulationReq(const messagebus::Message & msg)
             log_error(e.what());
 
             // create response (error)
-            response.metaData().emplace(messagebus::Message::SUBJECT, "LIST");
-            response.metaData().emplace(messagebus::Message::TO, msg.metaData().find(messagebus::Message::FROM)->second);
-            response.metaData().emplace(messagebus::Message::CORRELATION_ID, msg.metaData().find(messagebus::Message::CORRELATION_ID)->second);
-            response.metaData().emplace(messagebus::Message::STATUS, messagebus::STATUS_KO);
-
-            // TODO translatable message
-            response.userData().push_back(e.what());
+            response = createResponse(
+                "LIST",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                FTY_ASSET_MAILBOX_NAME,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_KO,
+                e.what()    // TODO set translatable message
+            );
 
             // send response
             publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
@@ -1563,6 +1632,69 @@ fty_asset_server (zsock_t *pipe, void *args)
 
 //  --------------------------------------------------------------------------
 //  Self test of this class
+
+// stores correlationID : asset JSON for each message received
+std::map<std::string, std::string> assetTestMap;
+
+static void dummyHandler(const messagebus::Message & msg)
+{
+    log_debug("Message received from %s", msg.metaData().at(messagebus::Message::FROM).c_str());
+
+    try
+    {
+        std::string msgSubject = msg.metaData().find(messagebus::Message::SUBJECT)->second;
+        if(msgSubject == "CREATE")
+        {
+            std::string assetJson = msg.userData().front();
+
+            if(assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second == assetJson)
+            {
+                log_info ("fty-asset-server-test:Test #13.1: OK");
+            }
+            else
+            {
+                log_error ("fty-asset-server-test:Test #13.1: FAILED");
+            }
+        }
+        else if(msgSubject == "UPDATE")
+        {
+            std::string assetJson = msg.userData().front();
+
+            if(assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second == assetJson)
+            {
+                log_info ("fty-asset-server-test:Test #13.2: OK");
+            }
+            else
+            {
+                log_error ("fty-asset-server-test:Test #13.2: FAILED");
+            }
+        }
+        else if(msgSubject == "GET")
+        {
+            std::string assetJson = msg.userData().front();
+            fty::Asset a = fty::Asset::fromJson(assetJson);
+
+            std::string assetName = a.getInternalName();
+
+            if(assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second == assetName)
+            {
+                log_info ("fty-asset-server-test:Test #13.3: OK");
+            }
+            else
+            {
+                log_error ("fty-asset-server-test:Test #13.3: FAILED");
+            }
+        }
+        else
+        {
+            log_error ("fty-asset-server-test:Test #13: FAILED");
+        }
+    }
+    catch(std::exception& e)
+    {
+        log_error(e.what());
+    }
+}
 
 void
 fty_asset_server_test (bool verbose)
@@ -2138,6 +2270,85 @@ fty_asset_server_test (bool verbose)
         assert(asset_test1 && asset_test2 && asset_test3); // all three must be present
         assert(2 == active_power_assets);
         */
+    }
+
+    // Test #13: new generation asset interface
+    { 
+        log_debug ("fty-asset-server-test:Test #13");
+
+        std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus(endpoint, "test-publisher"));
+        std::unique_ptr<messagebus::MessageBus> receiver(messagebus::MlmMessageBus(endpoint, "test-receiver"));
+
+        messagebus::Message msg;
+
+        fty::Asset asset;
+        asset.setInternalName("test-asset");
+        asset.setAssetStatus(fty::AssetStatus::Active);
+        asset.setAssetType("device");
+        asset.setAssetSubtype("ups");
+        asset.setParentIname("");
+        asset.setPriority(4);
+        asset.setExtEntry("name", "Test asset", false);
+
+        publisher->connect();
+
+        receiver->connect();
+        receiver->receive("FTY.Q.ASSET.TEST", dummyHandler);
+
+        // test create
+        msg.metaData().emplace(messagebus::Message::CORRELATION_ID, messagebus::generateUuid());
+        msg.metaData().emplace(messagebus::Message::SUBJECT, "CREATE");
+        msg.metaData().emplace(messagebus::Message::FROM, "test-receiver");
+        msg.metaData().emplace(messagebus::Message::TO, "asset_agent_test-ng");
+        msg.metaData().emplace(messagebus::Message::REPLY_TO, "FTY.Q.ASSET.TEST");
+        msg.metaData().emplace(METADATA_TRY_ACTIVATE, "true");
+        msg.metaData().emplace(METADATA_NO_ERROR_IF_EXIST, "true");
+
+        msg.userData().push_back(asset.toJson());
+
+        assetTestMap.emplace(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, asset.toJson());
+
+        log_info ("fty-asset-server-test:Test #13.1: send CREATE message");
+        publisher->sendRequest(FTY_ASSET_MAILBOX, msg);
+        zclock_sleep (200);
+
+        // test update
+        msg.metaData().clear();
+        msg.metaData().emplace(messagebus::Message::CORRELATION_ID, messagebus::generateUuid());
+        msg.metaData().emplace(messagebus::Message::SUBJECT, "UPDATE");
+        msg.metaData().emplace(messagebus::Message::FROM, "test-receiver");
+        msg.metaData().emplace(messagebus::Message::TO, "asset_agent_test-ng");
+        msg.metaData().emplace(messagebus::Message::REPLY_TO, "FTY.Q.ASSET.TEST");
+        msg.metaData().emplace(METADATA_TRY_ACTIVATE, "true");
+
+        msg.userData().clear();
+        msg.userData().push_back(asset.toJson());
+
+        assetTestMap.emplace(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, asset.toJson());
+
+        log_info ("fty-asset-server-test:Test #13.2: send UPDATE message");
+        publisher->sendRequest(FTY_ASSET_MAILBOX, msg);
+        zclock_sleep (200);
+
+        // test get
+        msg.metaData().clear();
+        msg.metaData().emplace(messagebus::Message::CORRELATION_ID, messagebus::generateUuid());
+        msg.metaData().emplace(messagebus::Message::SUBJECT, "GET");
+        msg.metaData().emplace(messagebus::Message::FROM, "test-receiver");
+        msg.metaData().emplace(messagebus::Message::TO, "asset_agent_test-ng");
+        msg.metaData().emplace(messagebus::Message::REPLY_TO, "FTY.Q.ASSET.TEST");
+        msg.metaData().emplace(METADATA_TRY_ACTIVATE, "true");
+
+        msg.userData().clear();
+        msg.userData().push_back("test-asset");
+
+        assetTestMap.emplace(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, "test-asset");
+
+        log_info ("fty-asset-server-test:Test #13.3: send GET message");
+        publisher->sendRequest(FTY_ASSET_MAILBOX, msg);
+        zclock_sleep (200);
+
+        log_info ("fty-asset-server-test:Test #13: OK");
     }
 
     zactor_destroy (&autoupdate_server);

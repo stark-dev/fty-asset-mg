@@ -29,9 +29,9 @@ typedef struct _fty_proto_t fty_proto_t;
 fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test = false);
 fty::Asset updateAsset(const fty::Asset& asset, bool tryActivate, bool test = false);
 // get asset
-fty::Asset getAsset(const std::string& assetInternalName);
+fty::Asset getAsset(const std::string& assetInternalName, bool test = false);
 // list assets
-std::vector<fty::Asset> listAssets();
+std::vector<fty::Asset> listAssets(bool test = false);
 
 // fty::Asset/fty-proto conversion
 fty_proto_t * assetToFtyProto(const fty::Asset& asset, const std::string& operation, bool test = false);
