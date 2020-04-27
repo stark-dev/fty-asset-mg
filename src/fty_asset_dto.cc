@@ -166,7 +166,7 @@ namespace fty
 
     void Asset::setExtEntry(const std::string& key, const std::string& value, bool readOnly) 
     {
-        m_ext[key] = std::make_pair(key, readOnly);
+        m_ext[key] = std::make_pair(value, readOnly);
     }
 
     bool Asset::operator== (const Asset &asset) const
