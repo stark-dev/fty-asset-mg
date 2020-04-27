@@ -629,20 +629,6 @@ static fty::Asset readAssetFromRow(tntdb::Connection& conn, const tntdb::Row& ro
 
 fty::Asset getAssetFromDB(const std::string& assetInternalName)
 {
-
-    fty::Asset asset;
-
-    int assetId;
-    std::string assetName;
-    std::string assetType;
-    std::string assetSubtype;
-    int parentId;
-    bool parentIdNotNull;
-    std::string parentIname;
-    std::string assetStatus;
-    int assetPriority;
-    std::string assetTag;
-
     tntdb::Connection conn;
     conn = tntdb::connectCached (DBConn::url);
 
@@ -657,93 +643,28 @@ fty::Asset getAssetFromDB(const std::string& assetInternalName)
     tntdb::Row row = st.
         set ("asset_name", assetInternalName).
         selectRow();
-
-    row.reader().get(assetId)
-                .get(assetName)
-                .get(assetType)
-                .get(assetSubtype)
-                .get(parentId, parentIdNotNull)
-                .get(assetStatus)
-                .get(assetPriority)
-                .get(assetTag);
     
-    if(parentIdNotNull)
-    {
-        parentIname = selectAssetProperty<std::string>("name", "id_asset_element", parentId);
-    }
-
-    asset.setInternalName(assetName);
-    asset.setAssetType(assetType);
-    asset.setAssetSubtype(assetSubtype);
-    asset.setParentIname(parentIname);
-    asset.setAssetStatus(fty::stringToAssetStatus(assetStatus));
-    asset.setPriority(assetPriority);
-    asset.setAssetTag(assetTag);
-
-    constexpr const char* selectExtProperties = 
-        " SELECT ext.keytag, ext.value, ext.read_only " \
-        " FROM t_bios_asset_ext_attributes as ext" \
-        " WHERE ext.id_asset_element = :asset_id ";
-    
-    st = conn.prepareCached(selectExtProperties);
-
-    tntdb::Result result = st.
-        set ("asset_id", assetId).
-        select();
-    
-    for (tntdb::Result::const_iterator it = result.begin(); it != result.end(); ++it)
-    {
-        std::string keytag;
-        std::string value;
-        bool readOnly = false;
-
-        tntdb::Row row = *it;
-
-        row.reader().get(keytag)
-                    .get(value)
-                    .get(readOnly);
-        
-        asset.setExtEntry(keytag, value, readOnly);
-    }
+    fty::Asset asset = readAssetFromRow(conn, row);
 
     return asset;
 }
 
-std::vector<fty::Asset> getAssetsFromDB(const std::string &iname)
+std::vector<fty::Asset> getAllAssetsFromDB()
 {
     constexpr const char* selectAll = 
         " SELECT a.id_asset_element, a.name, e.name, d.name, a.id_parent, a.status, a.priority, a.asset_tag " \
         " FROM t_bios_asset_element as a INNER JOIN t_bios_asset_device_type as d INNER JOIN t_bios_asset_element_type as e" \
         " ON a.id_type = e.id_asset_element_type AND a.id_subtype = d.id_asset_device_type ";
-    
-    constexpr const char* selectOne = 
-        " SELECT a.id_asset_element, a.name, e.name, d.name, a.id_parent, a.status, a.priority, a.asset_tag " \
-        " FROM t_bios_asset_element as a INNER JOIN t_bios_asset_device_type as d INNER JOIN t_bios_asset_element_type as e" \
-        " ON a.id_type = e.id_asset_element_type AND a.id_subtype = d.id_asset_device_type " \
-        " WHERE a.name = :asset_name ";
 
     std::vector<fty::Asset> assetVector;
 
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
 
-    if(iname.empty())  // select all
+    tntdb::Statement statement = conn.prepareCached(selectAll);
+    tntdb::Result result = statement.select();
+    for (tntdb::Result::const_iterator it = result.begin(); it != result.end(); ++it)
     {
-        tntdb::Statement statement = conn.prepareCached(selectAll);
-        tntdb::Result result = statement.select();
-        for (tntdb::Result::const_iterator it = result.begin(); it != result.end(); ++it)
-        {
-            fty::Asset asset = readAssetFromRow(conn, *it);
-            assetVector.push_back(asset);
-        }
-    }
-    else                // select one
-    {
-        tntdb::Statement statement = conn.prepareCached(selectOne);
-        tntdb::Row row = statement.
-            set ("asset_name", iname).
-            selectRow();
-
-        fty::Asset asset = readAssetFromRow(conn, row);
+        fty::Asset asset = readAssetFromRow(conn, *it);
         assetVector.push_back(asset);
     }
 

@@ -233,10 +233,7 @@ fty::Asset getAsset(const std::string& assetInternalName, bool test)
     }
     else
     {
-        std::vector<fty::Asset> v = getAssetsFromDB(assetInternalName);
-        
-        a = std::move(v.back());
-        v.pop_back();
+        a = getAssetFromDB(assetInternalName);
     }
 
     return a;
@@ -251,7 +248,8 @@ std::vector<fty::Asset> listAssets(bool test)
         log_debug ("[listAssets]: runs in test mode");
 
         fty::Asset a;
-
+        
+        //TODO improve test
         v.push_back(a);
         v.push_back(a);
         v.push_back(a);
@@ -259,7 +257,7 @@ std::vector<fty::Asset> listAssets(bool test)
     }
     else
     {
-        v = getAssetsFromDB("");
+        v = getAllAssetsFromDB();
     }
     return v;
 }

@@ -120,11 +120,10 @@ long insertAssetToDB(const fty::Asset& asset);
 long updateAssetToDB(const fty::Asset& asset);
 /// insert or update external properties of asset into database
 void updateAssetExtProperties(const fty::Asset& asset);
-
-/// select one or more assets from the database
-/// if iname is empty, it selects all assets in db
-/// if iname is not empty, it returns the asset that matches the iname
-std::vector<fty::Asset> getAssetsFromDB(const std::string &iname);
+/// select asset from the database that matches the given internal name
+fty::Asset getAssetFromDB(const std::string& assetInternalName);
+/// select all assets in the database
+std::vector<fty::Asset> getAllAssetsFromDB();
 
 /// select one field of an asset from the database
 /// SELECT <column> from asset_table where <keyColumn> = <keyValue>
