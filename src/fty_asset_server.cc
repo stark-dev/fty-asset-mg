@@ -194,11 +194,12 @@
 #include <string>
 #include <tntdb/connect.h>
 #include <functional>
+#include <malamute.h>
+#include <mlm_client.h>
 #include <fty_common_db_uptime.h>
 #include <fty_common_messagebus.h>
 
-static constexpr const char* FTY_ASSET_ENDPOINT = "ipc://@/malamute";
-static constexpr const char* FTY_ASSET_MAILBOX_NAME = "asset-agent-ng";
+// TODO define as class constants?
 static constexpr const char* FTY_ASSET_MAILBOX = "FTY.Q.ASSET.QUERY";
 
 static constexpr const char* METADATA_TRY_ACTIVATE      = "TRY_ACTIVATE";
@@ -206,61 +207,415 @@ static constexpr const char* METADATA_NO_ERROR_IF_EXIST = "NO_ERROR_IF_EXIST";
 
 //  Structure of our class
 
-struct _fty_asset_server_t {
-    char *name;
-    mlm_client_t *mailbox_client;
-    mlm_client_t *stream_client;
-    bool test;
-    LIMITATIONS_STRUCT limitations;
+class FtyAssetServer
+{
+    public:
+        FtyAssetServer();
+        ~FtyAssetServer() = default;
 
-    // new generation interfaces
-    std::unique_ptr<messagebus::MessageBus> message_bus;
+        bool getTestMode() const { return m_testMode; };
+        const std::string& getAgentName() const { return m_agentName; };
+        const std::string& getMailboxEndpoint() const { return m_mailboxEndpoint; };
+        const std::string& getStreamEndpoint() const { return m_streamEndpoint; };
+        const mlm_client_t* getMailboxClient() const { return m_mailboxClient.get(); }
+        const mlm_client_t* getStreamClient() const { return m_streamClient.get(); }
+        const int getMaxActivePowerDevices() const { return m_limitations.max_active_power_devices; };
+        const int getGlobalConfigurability() const { return m_limitations.global_configurability; };
+
+        void setTestMode(bool test) { m_testMode = test; };
+        void setAgentName(const std::string& name) { m_agentName = name; };
+        void setMailboxEndpoint(const std::string& endpoint) { m_mailboxEndpoint = endpoint; };
+        void setStreamEndpoint(const std::string& endpoint) { m_streamEndpoint = endpoint; };
+        void setMaxActivePowerDevices(int m) { m_limitations.max_active_power_devices = m; };
+        void setGlobalConfigurability(int c) { m_limitations.global_configurability = c; };
+
+        // new generation interface
+        const std::string& getAgentNameNg() const { return m_agentNameNg; };
+        void setAgentNameNg(const std::string& name) { m_agentNameNg = name; };
+
+        void createMailboxClientNg();
+        void resetMailboxClientNg();
+        void connectMailboxClientNg();
+        void receiveMailboxClientNg(const std::string& query);
+
+        static void destroyMlmClient(mlm_client_t* client)
+        {
+            mlm_client_destroy(&client);
+        }
+
+    private:
+        bool                          m_testMode = false;
+        std::string                   m_agentName = "asset-agent";
+        std::string                   m_mailboxEndpoint = "ipc://@/malamute";
+        std::string                   m_streamEndpoint = "ipc://@/malamute";
+        LIMITATIONS_STRUCT            m_limitations;
+
+        std::unique_ptr<mlm_client_t, decltype(&FtyAssetServer::destroyMlmClient)> m_mailboxClient;
+        std::unique_ptr<mlm_client_t, decltype(&FtyAssetServer::destroyMlmClient)> m_streamClient;
+
+        // new generation interface
+        std::string                   m_agentNameNg = "asset-agent-ng";
+        std::unique_ptr<messagebus::MessageBus> m_mailboxClientNg;
+
+        // topic handlers
+        void handleAssetManipulationReq(const messagebus::Message & msg);
 };
 
-//  --------------------------------------------------------------------------
-//  Create a new fty_asset_server
-
-fty_asset_server_t *
-fty_asset_server_new (void)
+FtyAssetServer::FtyAssetServer()
+    :
+    m_mailboxClient(mlm_client_new(), &FtyAssetServer::destroyMlmClient),
+    m_streamClient(mlm_client_new(), &FtyAssetServer::destroyMlmClient)
 {
-    fty_asset_server_t *self = (fty_asset_server_t *) zmalloc (sizeof (fty_asset_server_t));
-    assert (self);
-
-    self->mailbox_client = mlm_client_new ();
-    if (!self->mailbox_client) {
-        log_fatal ("mailbox mlm_client failed");
-        exit (1);
-    }
-    self->stream_client = mlm_client_new ();
-    if (!self->stream_client) {
-        log_fatal ("stream mlm_client failed");
-        exit (1);
-    }
-
-    self->test = false;
-    self->limitations.max_active_power_devices = -1;
-    self->limitations.global_configurability = 1;
-
-    return self;
+    m_limitations.max_active_power_devices = -1;
+    m_limitations.global_configurability = 1;
 }
 
-//  --------------------------------------------------------------------------
-//  Destroy the fty_asset_server
-
-void
-fty_asset_server_destroy (fty_asset_server_t **self_p)
+void FtyAssetServer::createMailboxClientNg()
 {
-    if (!(self_p && (*self_p))) return;
+    log_debug("New mailbox client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(), m_agentNameNg.c_str());
+    m_mailboxClientNg.reset(messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg));
+}
 
-    fty_asset_server_t *self = *self_p;
-    zstr_free (&self->name);
-    mlm_client_destroy (&self->mailbox_client);
-    mlm_client_destroy (&self->stream_client);
+void FtyAssetServer::resetMailboxClientNg()
+{
+    log_debug("Mailbox client %s deleted", m_agentNameNg.c_str());
+    m_mailboxClientNg.reset();
+}
 
-    self->message_bus.reset();
+void FtyAssetServer::connectMailboxClientNg()
+{
+    m_mailboxClientNg->connect();
+}
 
-    free (self);
-    *self_p = NULL;
+void FtyAssetServer::receiveMailboxClientNg(const std::string& query)
+{
+    m_mailboxClientNg->receive(query,
+        [&](messagebus::Message m) {
+            this->handleAssetManipulationReq(m); 
+        });
+}
+
+// create response (data is a single string)
+static messagebus::Message createResponse(
+    const std::string& subject,
+    const std::string& correlationID,
+    const std::string& from,
+    const std::string& to,
+    const std::string& status,
+    const std::string& data
+)
+{
+    messagebus::Message msg;
+
+    msg.metaData().emplace(messagebus::Message::SUBJECT, subject);
+    msg.metaData().emplace(messagebus::Message::FROM, from);
+    msg.metaData().emplace(messagebus::Message::TO, to);
+    msg.metaData().emplace(messagebus::Message::CORRELATION_ID, correlationID);
+    msg.metaData().emplace(messagebus::Message::STATUS, status);
+
+    msg.userData().push_back(data);
+
+    return msg;
+}
+
+// create response (data is a vector of strings)
+static messagebus::Message createResponse(
+    const std::string& subject,
+    const std::string& correlationID,
+    const std::string& from,
+    const std::string& to,
+    const std::string& status,
+    const std::vector<std::string>& data
+)
+{
+    messagebus::Message msg;
+
+    msg.metaData().emplace(messagebus::Message::SUBJECT, subject);
+    msg.metaData().emplace(messagebus::Message::FROM, from);
+    msg.metaData().emplace(messagebus::Message::TO, to);
+    msg.metaData().emplace(messagebus::Message::CORRELATION_ID, correlationID);
+    msg.metaData().emplace(messagebus::Message::STATUS, status);
+
+    for(const auto& e : data)
+    {
+        msg.userData().push_back(e);
+    }
+
+    return msg;
+}
+
+// new generation asset manipulation handler
+void FtyAssetServer::handleAssetManipulationReq(const messagebus::Message & msg)
+{   
+    // asset manipulation is disabled
+    if(m_limitations.global_configurability == 0)
+    {
+        throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
+    }
+    
+    std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-publisher"));
+    publisher->connect();
+
+    // response message
+    messagebus::Message response;
+
+    // TRY_ACTIVATE is optional and defaults to false
+    bool tryActivate = false;
+    {
+        auto it = msg.metaData().find(METADATA_TRY_ACTIVATE);
+        if(it != msg.metaData().end())
+        {
+            tryActivate = (msg.metaData().at(METADATA_TRY_ACTIVATE) == "true");
+        }
+    }
+    // NO_ERROR_IF_EXIST is optional and defaults to false (not implemented yet)
+    /* bool noErrorIfExist = false;
+    {
+        auto it = msg.metaData().find(METADATA_NO_ERROR_IF_EXIST);
+        if(it != msg.metaData().end())
+        {
+            noErrorIfExist = (msg.metaData().at(METADATA_NO_ERROR_IF_EXIST) == "true");
+        }
+    } */
+
+    // Request to add a new asset into the DB   
+    if(msg.metaData().at(messagebus::Message::SUBJECT) == "CREATE")
+    {
+        log_debug("[handle asset manipulation] : subject CREATE");
+
+        try
+        {
+            std::string userData = msg.userData().front();
+
+            fty::Asset asset = fty::Asset::fromJson(userData);            
+
+            fty::Asset createdAsset = createAsset(asset, tryActivate, m_testMode);
+
+            response = createResponse(
+                "CREATE",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_OK,
+                createdAsset.toJson()
+            );
+
+            // send response
+            log_debug("[handle asset manipulation] : sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+
+            // TODO send notification
+        }
+        catch (tntdb::Error &e)
+        {
+            log_error(e.what());
+            // create response (error)
+            response = createResponse(
+                "CREATE",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_KO,
+                TRANSLATE_ME("Database error")
+            );
+        }
+        catch (std::exception& e)
+        {
+            log_error(e.what());
+            // create response (error)
+            response = createResponse(
+                "CREATE",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_KO,
+                TRANSLATE_ME(e.what())
+            );
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+    }
+    // Request to update an existing asset into the DB
+    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "UPDATE")
+    {
+        log_debug("[handle asset manipulation] : subject UPDATE");
+
+        try
+        {
+            std::string userData = msg.userData().front();
+
+            fty::Asset asset = fty::Asset::fromJson(userData);
+
+            fty::Asset updatedAsset = updateAsset(asset, tryActivate, m_testMode);
+
+            // create response (ok)
+            response = createResponse(
+                "UPDATE",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_OK,
+                updatedAsset.toJson()
+            );
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+
+            // TODO send notification
+        }
+        catch (tntdb::Error &e)
+        {
+            log_error(e.what());
+            // create response (error)
+            response = createResponse(
+                "UPDATE",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_KO,
+                TRANSLATE_ME("Database error")
+            );
+        }
+        catch (std::exception& e)
+        {
+            log_error(e.what());
+            // create response (error)
+            response = createResponse(
+                "UPDATE",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_KO,
+                TRANSLATE_ME(e.what())
+            );
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+    }
+    // Request to delete an existing asset from the DB
+    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "DELETE")
+    {
+        // TODO not implemented yet
+        log_debug("[handle asset manipulation] : subject DELETE");
+    }
+    // Return the status of the requested asset
+    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "GET")
+    {
+        log_debug("[handle asset manipulation] : subject GET");
+
+        try
+        {
+            std::string assetIname = msg.userData().front();
+            fty::Asset asset = getAsset(assetIname, m_testMode);
+
+            // create response (ok)
+            response = createResponse(
+                "GET",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_OK,
+                asset.toJson()
+            );
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+        catch (tntdb::Error &e)
+        {
+            log_error(e.what());
+            // create response (error)
+            response = createResponse(
+                "GET",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_KO,
+                TRANSLATE_ME("Database error")
+            );
+        }
+        catch (std::exception& e)
+        {
+            log_error(e.what());
+            // create response (error)
+            response = createResponse(
+                "GET",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_KO,
+                TRANSLATE_ME(e.what())
+            );
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+    }
+    // Return a list of all assets in the system
+    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "LIST")
+    {
+        log_debug("[handle asset manipulation] : subject LIST");
+
+        try
+        {
+            std::vector<fty::Asset> assetVector = listAssets(m_testMode);
+
+            std::vector<std::string> jsonVector;
+            
+            for(const fty::Asset& asset : assetVector)
+            {
+                jsonVector.push_back(asset.toJson());
+            }
+
+            // create response (ok)
+            response = createResponse(
+                "LIST",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_OK,
+                jsonVector
+            );
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+        catch (tntdb::Error &e)
+        {
+            log_error(e.what());
+            // create response (error)
+            response = createResponse(
+                "LIST",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_KO,
+                TRANSLATE_ME("Database error")
+            );
+        }
+        catch (std::exception& e)
+        {
+            log_error(e.what());
+            // create response (error)
+            response = createResponse(
+                "LIST",
+                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
+                m_agentNameNg,
+                msg.metaData().find(messagebus::Message::FROM)->second,
+                messagebus::STATUS_KO,
+                TRANSLATE_ME(e.what())
+            );
+
+            // send response
+            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+        }
+    }
+    else
+    {
+        log_warning("Handle asset manipulation - Unknown subject");
+    }
 }
 
 // =============================================================================
@@ -270,28 +625,28 @@ fty_asset_server_destroy (fty_asset_server_t **self_p)
 
 static void
     s_process_TopologyPower(
-        fty_asset_server_t *cfg,
+        const std::string& client_name,
         const char *asset_name,
+        bool testMode,
         zmsg_t *reply)
 {
-    assert(cfg);
     assert(reply);
 
-    log_debug ("%s:\tTOPOLOGY POWER asset_name: %s", cfg->name, asset_name);
+    log_debug ("%s:\tTOPOLOGY POWER asset_name: %s", client_name.c_str(), asset_name);
 
     // result of power topology - list of power device names
     std::vector<std::string> powerDevices{};
     std::string assetName(asset_name ? asset_name : "");
 
     // select power devices
-    int r = select_devices_total_power(assetName, powerDevices, cfg->test);
+    int r = select_devices_total_power(assetName, powerDevices, testMode);
 
     zmsg_addstr (reply, assetName.c_str());
 
     // form a message according the contract for the case "OK" and for the case "ERROR"
     if (r == -1) {
         log_error ("%s:\tTOPOLOGY POWER: Cannot select power sources (%s)",
-            cfg->name, asset_name);
+            client_name.c_str(), asset_name);
 
         zmsg_addstr (reply, "ERROR");
         //zmsg_addstr (reply, "INTERNAL_ERROR");
@@ -299,18 +654,18 @@ static void
     }
     else if (r == -2) {
         log_error ("%s:\tTOPOLOGY POWER: Asset was not found (%s)",
-            cfg->name, asset_name);
+            client_name.c_str(), asset_name);
 
         zmsg_addstr (reply, "ERROR");
         //zmsg_addstr (reply, "ASSET_NOT_FOUND");
         zmsg_addstr (reply, TRANSLATE_ME("Asset not found").c_str());
     }
     else {
-        log_debug ("%s:\tPower topology for '%s':", cfg->name, asset_name);
+        log_debug ("%s:\tPower topology for '%s':", client_name.c_str(), asset_name);
 
         zmsg_addstr (reply, "OK");
         for (const auto &powerDeviceName : powerDevices ) {
-            log_debug ("%s:\t\t%s", cfg->name, powerDeviceName.c_str());
+            log_debug ("%s:\t\t%s", client_name.c_str(), powerDeviceName.c_str());
             zmsg_addstr (reply, powerDeviceName.c_str());
         }
     }
@@ -323,14 +678,13 @@ static void
 
 static void
     s_process_TopologyPowerTo(
-        fty_asset_server_t *cfg,
+        const std::string& client_name,
         const char *asset_name,
         zmsg_t *reply)
 {
-    assert(cfg);
     assert(reply);
 
-    log_debug ("%s:\tTOPOLOGY POWER_TO asset_name: %s", cfg->name, asset_name);
+    log_debug ("%s:\tTOPOLOGY POWER_TO asset_name: %s", client_name.c_str(), asset_name);
 
     std::string assetName(asset_name ? asset_name : "");
     std::string result; // JSON payload
@@ -341,7 +695,7 @@ static void
 
     if (r != 0) {
         log_error ("%s:\tTOPOLOGY POWER_TO r: %d (asset_name: %s)",
-            cfg->name, r, asset_name);
+            client_name.c_str(), r, asset_name);
 
         if (errReason.empty()) {
             if (!asset_name) errReason = TRANSLATE_ME("Missing argument");
@@ -364,16 +718,15 @@ static void
 
 static void
     s_process_TopologyPowerchains(
-        fty_asset_server_t *cfg,
+        const std::string& client_name,
         const char *select_cmd,
         const char *asset_name,
         zmsg_t *reply)
 {
-    assert(cfg);
     assert(reply);
 
     log_debug ("%s:\tTOPOLOGY POWERCHAINS select_cmd: %s, asset_name: %s",
-        cfg->name, select_cmd, asset_name);
+        client_name.c_str(), select_cmd, asset_name);
 
     std::string command(select_cmd ? select_cmd : "");
     std::string assetName(asset_name ? asset_name : "");
@@ -385,7 +738,7 @@ static void
 
     if (r != 0) {
         log_error ("%s:\tTOPOLOGY POWERCHAINS r: %d (cmd: %s, asset_name: %s)",
-            cfg->name, r, select_cmd, asset_name);
+            client_name.c_str(), r, select_cmd, asset_name);
 
         if (errReason.empty()) {
             if (!asset_name) errReason = TRANSLATE_ME("Missing argument");
@@ -409,17 +762,16 @@ static void
 
 static void
     s_process_TopologyLocation(
-        fty_asset_server_t *cfg,
+        const std::string& client_name,
         const char *select_cmd,
         const char *asset_name,
         const char *cmd_options,
         zmsg_t *reply)
 {
-    assert(cfg);
     assert(reply);
 
     log_debug ("%s:\tTOPOLOGY LOCATION select_cmd: %s, asset_name: %s (options: %s)",
-        cfg->name, select_cmd, asset_name, cmd_options);
+        client_name.c_str(), select_cmd, asset_name, cmd_options);
 
     std::string command(select_cmd ? select_cmd : "");
     std::string assetName(asset_name ? asset_name : "");
@@ -432,7 +784,7 @@ static void
 
     if (r != 0) {
         log_error ("%s:\tTOPOLOGY LOCATION r: %d (cmd: %s, asset_name: %s, options: %s)",
-            cfg->name, r, select_cmd, asset_name, cmd_options);
+            client_name.c_str(), r, select_cmd, asset_name, cmd_options);
 
         if (errReason.empty()) {
             if (!asset_name) errReason = TRANSLATE_ME("Missing argument");
@@ -455,15 +807,14 @@ static void
 
 static void
     s_process_TopologyInputPowerchain (
-        fty_asset_server_t *cfg,
+        const std::string& client_name,
         const char *asset_name,
         zmsg_t *reply)
 {
-    assert(cfg);
     assert(reply);
 
     log_debug ("%s:\tTOPOLOGY INPUT_POWERCHAIN asset_name: %s",
-        cfg->name, asset_name);
+        client_name.c_str(), asset_name);
 
     std::string assetName(asset_name ? asset_name : "");
     std::string result; // JSON payload
@@ -474,7 +825,7 @@ static void
 
     if (r != 0) {
         log_error ("%s:\tTOPOLOGY INPUT_POWERCHAIN r: %d (asset_name: %s)",
-            cfg->name, r, asset_name);
+            client_name.c_str(), r, asset_name);
 
         if (errReason.empty()) {
             if (!asset_name) errReason = TRANSLATE_ME("Missing argument");
@@ -501,30 +852,31 @@ static void
 
 static void
     s_handle_subject_topology(
-        fty_asset_server_t *cfg,
+        const FtyAssetServer& config,
         zmsg_t *msg)
 {
     assert (msg);
-    assert (cfg);
 
     char *message_type = zmsg_popstr (msg);
     char *uuid = zmsg_popstr (msg);
     char *command = zmsg_popstr (msg);
     zmsg_t *reply = zmsg_new ();
 
-    log_debug("%s:\tmessage_type: %s, uuid: %s, command: %s", cfg->name, message_type, uuid, command);
+    const std::string& client_name = config.getAgentName();
+
+    log_debug("%s:\tmessage_type: %s, uuid: %s, command: %s", client_name.c_str(), message_type, uuid, command);
 
     if (!message_type) {
-        log_error ("%s:\tExpected message_type for subject=TOPOLOGY", cfg->name);
+        log_error ("%s:\tExpected message_type for subject=TOPOLOGY", client_name.c_str());
     }
     else if (!uuid) {
-        log_error ("%s:\tExpected uuid for subject=TOPOLOGY", cfg->name);
+        log_error ("%s:\tExpected uuid for subject=TOPOLOGY", client_name.c_str());
     }
     else if (!command) {
-        log_error ("%s:\tExpected command for subject=TOPOLOGY", cfg->name);
+        log_error ("%s:\tExpected command for subject=TOPOLOGY", client_name.c_str());
     }
     else if (!reply) {
-        log_error ("%s:\tTOPOLOGY %s: reply allocation failed", cfg->name, command);
+        log_error ("%s:\tTOPOLOGY %s: reply allocation failed", client_name.c_str(), command);
     }
     else {
         // message model always enforce reply
@@ -533,25 +885,25 @@ static void
         zmsg_addstr (reply, command);
 
         if (!streq(message_type, "REQUEST")) {
-            log_error ("%s:\tExpected REQUEST message_type for subject=TOPOLOGY (message_type: %s)", cfg->name, message_type);
+            log_error ("%s:\tExpected REQUEST message_type for subject=TOPOLOGY (message_type: %s)", client_name.c_str(), message_type);
             zmsg_addstr (reply, "ERROR"); // status
             // reason, JSON payload (TRANSLATE_ME)
             zmsg_addstr (reply, TRANSLATE_ME("REQUEST_MSGTYPE_EXPECTED (msg type: %s)", message_type).c_str());
         }
         else if (streq (command, "POWER")) {
             char *asset_name = zmsg_popstr (msg);
-            s_process_TopologyPower (cfg, asset_name, reply);
+            s_process_TopologyPower (config.getAgentName(), asset_name, config.getTestMode(), reply);
             zstr_free (&asset_name);
         }
         else if (streq (command, "POWER_TO")) {
             char *asset_name = zmsg_popstr (msg);
-            s_process_TopologyPowerTo (cfg, asset_name, reply);
+            s_process_TopologyPowerTo (config.getAgentName(), asset_name, reply);
             zstr_free (&asset_name);
         }
         else if (streq (command, "POWERCHAINS")) {
             char *select_cmd = zmsg_popstr (msg);
             char *asset_name = zmsg_popstr (msg);
-            s_process_TopologyPowerchains (cfg, select_cmd, asset_name, reply);
+            s_process_TopologyPowerchains (config.getAgentName(), select_cmd, asset_name, reply);
             zstr_free (&asset_name);
             zstr_free (&select_cmd);
         }
@@ -559,27 +911,31 @@ static void
             char *select_cmd = zmsg_popstr (msg);
             char *asset_name = zmsg_popstr (msg);
             char *options = zmsg_popstr (msg); // can be NULL
-            s_process_TopologyLocation (cfg, select_cmd, asset_name, options, reply);
+            s_process_TopologyLocation (config.getAgentName(), select_cmd, asset_name, options, reply);
             zstr_free (&options);
             zstr_free (&asset_name);
             zstr_free (&select_cmd);
         }
         else if (streq (command, "INPUT_POWERCHAIN")) {
             char *asset_name = zmsg_popstr (msg);
-            s_process_TopologyInputPowerchain (cfg, asset_name, reply);
+            s_process_TopologyInputPowerchain (config.getAgentName(), asset_name, reply);
             zstr_free (&asset_name);
         }
         else {
-            log_error ("%s:\tUnexpected command for subject=TOPOLOGY (%s)", cfg->name, command);
+            log_error ("%s:\tUnexpected command for subject=TOPOLOGY (%s)", client_name.c_str(), command);
             zmsg_addstr (reply, "ERROR"); // status
             // reason, JSON payload (TRANSLATE_ME)
             zmsg_addstr (reply, TRANSLATE_ME("UNEXPECTED_COMMAND (command: %s)", command).c_str());
         }
 
         // send reply
-        int r = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "TOPOLOGY", NULL, 5000, &reply);
+        int r = mlm_client_sendto (
+            const_cast<mlm_client_t *>(config.getMailboxClient()),
+            mlm_client_sender (const_cast<mlm_client_t *>(config.getMailboxClient())),
+            "TOPOLOGY", NULL, 5000, &reply
+        );
         if (r != 0) {
-            log_error ("%s:\tTOPOLOGY %s: cannot send response message", command, cfg->name);
+            log_error ("%s:\tTOPOLOGY %s: cannot send response message", command, client_name.c_str());
         }
     }
 
@@ -591,13 +947,15 @@ static void
 
 static void
     s_handle_subject_assets_in_container (
-        fty_asset_server_t *cfg,
+        const FtyAssetServer& config,
         zmsg_t *msg)
 {
     assert (msg);
-    assert (cfg);
+
+    const std::string& client_name = config.getAgentName();
+
     if (zmsg_size (msg) < 2) {
-        log_error ("%s:\tASSETS_IN_CONTAINER: incoming message have less than 2 frames", cfg->name);
+        log_error ("%s:\tASSETS_IN_CONTAINER: incoming message have less than 2 frames", client_name.c_str());
         return;
     }
 
@@ -605,7 +963,7 @@ static void
     zmsg_t *reply = zmsg_new ();
 
     if (! streq (c_command, "GET")) {
-        log_error ("%s:\tASSETS_IN_CONTAINER: bad command '%s', expected GET", cfg->name, c_command);
+        log_error ("%s:\tASSETS_IN_CONTAINER: bad command '%s', expected GET", client_name.c_str(), c_command);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
     }
@@ -627,7 +985,7 @@ static void
     std::vector <std::string> assets;
     int rv = 0;
     if (zmsg_size (msg) == 0) {
-        rv = select_assets_by_container (container_name, filters, assets, cfg->test);
+        rv = select_assets_by_container (container_name, filters, assets, config.getTestMode());
     }
 
     if (rv == -1) {
@@ -645,9 +1003,14 @@ static void
     }
 
     // send the reply
-    rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS_IN_CONTAINER", NULL, 5000, &reply);
+    rv = mlm_client_sendto (
+        const_cast<mlm_client_t *>(config.getMailboxClient()),
+        mlm_client_sender (const_cast<mlm_client_t *>(config.getMailboxClient())),
+        "ASSETS_IN_CONTAINER", NULL, 5000, &reply
+    );
+
     if (rv == -1) {
-        log_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", cfg->name);
+        log_error ("%s:\tASSETS_IN_CONTAINER: mlm_client_sendto failed", client_name.c_str());
     }
 
     zmsg_destroy(&reply);
@@ -655,18 +1018,23 @@ static void
 
 static void
     s_handle_subject_ename_from_iname(
-        fty_asset_server_t *cfg,
+        const FtyAssetServer& config,
         zmsg_t *msg)
 {
     assert (msg);
-    assert (cfg);
+
+    const std::string& client_name = config.getAgentName();
 
     zmsg_t *reply = zmsg_new ();
     if (zmsg_size (msg) < 1) {
-        log_error ("%s:\tENAME_FROM_INAME: incoming message have less than 1 frame", cfg->name);
+        log_error ("%s:\tENAME_FROM_INAME: incoming message have less than 1 frame", client_name.c_str());
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "MISSING_INAME");
-        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply);
+        mlm_client_sendto (
+            const_cast<mlm_client_t *>(config.getMailboxClient()),
+            mlm_client_sender (const_cast<mlm_client_t *>(config.getMailboxClient())),
+            "ENAME_FROM_INAME", NULL, 5000, &reply
+        );
         zmsg_destroy(&reply);
         return;
     }
@@ -676,7 +1044,7 @@ static void
     zstr_free (&iname_str);
 
     std::string ename;
-    select_ename_from_iname (iname, ename, cfg->test);
+    select_ename_from_iname (iname, ename, config.getTestMode());
 
     if (ename.empty ()) {
         zmsg_addstr (reply, "ERROR");
@@ -687,9 +1055,14 @@ static void
         zmsg_addstr (reply, ename.c_str());
     }
 
-    int rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ENAME_FROM_INAME", NULL, 5000, &reply);
+    int rv = mlm_client_sendto (
+        const_cast<mlm_client_t *>(config.getMailboxClient()),
+        mlm_client_sender (const_cast<mlm_client_t *>(config.getMailboxClient())),
+        "ENAME_FROM_INAME", NULL, 5000, &reply
+    );
+
     if (rv == -1) {
-        log_error ("%s:\tENAME_FROM_INAME: mlm_client_sendto failed", cfg->name);
+        log_error ("%s:\tENAME_FROM_INAME: mlm_client_sendto failed", client_name.c_str());
     }
 
     zmsg_destroy(&reply);
@@ -697,32 +1070,41 @@ static void
 
 static void
     s_handle_subject_assets (
-        fty_asset_server_t *cfg,
+        const FtyAssetServer& config,
         zmsg_t *msg)
 {
     assert (msg);
-    assert (cfg);
+    
+    const std::string& client_name = config.getAgentName();
 
     zmsg_t *reply = zmsg_new ();
     if (zmsg_size (msg) < 1) {
-        log_error ("%s:\tASSETS: incoming message have less than 1 frame", cfg->name);
+        log_error ("%s:\tASSETS: incoming message have less than 1 frame", client_name.c_str());
         zmsg_addstr (reply, "0");
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "MISSING_COMMAND");
-        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
+        mlm_client_sendto (
+            const_cast<mlm_client_t *>(config.getMailboxClient()),
+            mlm_client_sender (const_cast<mlm_client_t *>(config.getMailboxClient())),
+            "ASSETS", NULL, 5000, &reply
+        );
         zmsg_destroy(&reply);
         return;
     }
 
     char* c_command = zmsg_popstr (msg);
     if (! streq (c_command, "GET")) {
-        log_error ("%s:\tASSETS: bad command '%s', expected GET", cfg->name, c_command);
+        log_error ("%s:\tASSETS: bad command '%s', expected GET", client_name.c_str(), c_command);
         char* uuid = zmsg_popstr (msg);
         if (uuid)
             zmsg_addstr (reply, uuid);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
-        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
+        mlm_client_sendto (
+            const_cast<mlm_client_t *>(config.getMailboxClient()),
+            mlm_client_sender (const_cast<mlm_client_t *>(config.getMailboxClient())),
+            "ASSETS", NULL, 5000, &reply
+        );
         zstr_free (&c_command);
         zstr_free (&uuid);
         zmsg_destroy(&reply);
@@ -742,7 +1124,7 @@ static void
 
     // if there is no error msg prepared, call SQL
     if (zmsg_size (msg) == 0) {
-        rv = select_assets_by_filter(filters, assets, cfg->test);
+        rv = select_assets_by_filter(filters, assets, config.getTestMode());
     }
 
     zmsg_addstr (reply, uuid); // reply, uuid common frame
@@ -762,9 +1144,14 @@ static void
     }
 
     // send the reply
-    rv = mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSETS", NULL, 5000, &reply);
+    rv = mlm_client_sendto (
+        const_cast<mlm_client_t *>(config.getMailboxClient()),
+        mlm_client_sender (const_cast<mlm_client_t *>(config.getMailboxClient())),
+        "ASSETS", NULL, 5000, &reply
+    );
+
     if (rv == -1) {
-        log_error ("%s:\tASSETS: mlm_client_sendto failed", cfg->name);
+        log_error ("%s:\tASSETS: mlm_client_sendto failed", client_name.c_str());
     }
 
     zstr_free (&uuid);
@@ -773,13 +1160,13 @@ static void
 
 static zmsg_t *
     s_publish_create_or_update_asset_msg (
-        fty_asset_server_t *cfg,
+        const std::string &client_name,
         const std::string &asset_name,
         const char* operation,
         std::string &subject,
+        bool test_mode,
         bool read_only)
 {
-    assert (cfg);
     zhash_t *aux = zhash_new ();
     zhash_autofree (aux);
     uint32_t asset_id = 0;
@@ -818,9 +1205,9 @@ static zmsg_t *
         };
 
     // select basic info
-    int rv = select_asset_element_basic (asset_name, cb1, cfg->test);
+    int rv = select_asset_element_basic (asset_name, cb1, test_mode);
     if ( rv != 0 ) {
-        log_warning ("%s:\tCannot select info about '%s'", cfg->name, asset_name.c_str());
+        log_warning ("%s:\tCannot select info about '%s'", client_name.c_str(), asset_name.c_str());
         zhash_destroy (&aux);
         return NULL;
     }
@@ -838,9 +1225,9 @@ static zmsg_t *
                 zhash_insert (ext, keytag.c_str(), (void*) value.c_str());
             };
     // select ext attributes
-    rv = select_ext_attributes (asset_id, cb2, cfg->test);
+    rv = select_ext_attributes (asset_id, cb2, test_mode);
     if ( rv != 0 ) {
-        log_warning ("%s:\tCannot select ext attributes for '%s'", cfg->name, asset_name.c_str());
+        log_warning ("%s:\tCannot select ext attributes for '%s'", client_name.c_str(), asset_name.c_str());
         zhash_destroy (&aux);
         zhash_destroy (&ext);
         return NULL;
@@ -861,7 +1248,7 @@ static zmsg_t *
             const char *uuid_new = fty_uuid_calculate (uuid, mfr, model, serial);
             zhash_insert (ext, "uuid", (void *) uuid_new);
             zhash_insert (ext_new, "uuid", (void *) uuid_new);
-            process_insert_inventory (asset_name.c_str (), ext_new, true, cfg->test);
+            process_insert_inventory (asset_name.c_str (), ext_new, true, test_mode);
         }
         else {
             if (streq (type, "device")) {
@@ -873,7 +1260,7 @@ static zmsg_t *
                 const char *uuid_new = fty_uuid_generate (uuid);
                 zhash_insert (ext, "uuid", (void *) uuid_new);
                 zhash_insert (ext_new, "uuid", (void *) uuid_new);
-                process_insert_inventory (asset_name.c_str (), ext_new, true, cfg->test);
+                process_insert_inventory (asset_name.c_str (), ext_new, true, test_mode);
             }
         }
         fty_uuid_destroy (&uuid);
@@ -892,7 +1279,7 @@ static zmsg_t *
         zhash_insert (ext, "create_ts", (void *) mbstr);
         zhash_insert (ext_new, "create_ts", (void *) mbstr);
 
-        process_insert_inventory (asset_name.c_str (), ext_new, true, cfg->test);
+        process_insert_inventory (asset_name.c_str (), ext_new, true, test_mode);
 
         zhash_destroy (&ext_new);
     }
@@ -913,11 +1300,11 @@ static zmsg_t *
             }
         };
     // select "physical topology"
-    rv = select_asset_element_super_parent (asset_id, cb3, cfg->test);
+    rv = select_asset_element_super_parent (asset_id, cb3, test_mode);
     if (rv != 0) {
         zhash_destroy (&aux);
         zhash_destroy (&ext);
-        log_error ("%s:\tselect_asset_element_super_parent ('%s') failed.", cfg->name, asset_name.c_str());
+        log_error ("%s:\tselect_asset_element_super_parent ('%s') failed.", client_name.c_str(), asset_name.c_str());
         return NULL;
     }
     // other information like, groups, power chain for now are not included in the message
@@ -941,57 +1328,61 @@ static zmsg_t *
 
 static void
     s_send_create_or_update_asset (
-        fty_asset_server_t *cfg,
+        const FtyAssetServer& config,
         const std::string &asset_name,
         const char* operation,
         bool read_only)
 {
     std::string subject;
-    auto msg = s_publish_create_or_update_asset_msg (cfg, asset_name, operation, subject, read_only);
-    if (NULL == msg || 0 != mlm_client_send (cfg->stream_client, subject.c_str(), &msg)) {
-        log_info ("%s:\tmlm_client_send not sending message for asset '%s'", cfg->name, asset_name.c_str());
+    auto msg = s_publish_create_or_update_asset_msg (config.getAgentName(), asset_name, operation, subject, config.getTestMode(), read_only);
+    if (NULL == msg || 0 != mlm_client_send (const_cast<mlm_client_t *>(config.getStreamClient()), subject.c_str(), &msg)) {
+        log_info ("%s:\tmlm_client_send not sending message for asset '%s'", config.getAgentName().c_str(), asset_name.c_str());
     }
 }
 
 static void
     s_sendto_create_or_update_asset (
-        fty_asset_server_t *cfg,
+        const FtyAssetServer& config,
         const std::string &asset_name,
         const char* operation,
         const char *address,
         const char *uuid)
 {
     std::string subject;
-    auto msg = s_publish_create_or_update_asset_msg(cfg, asset_name, operation, subject, false);
+    auto msg = s_publish_create_or_update_asset_msg(config.getAgentName(), asset_name, operation, subject, config.getTestMode(), false);
     if (NULL == msg) {
         msg = zmsg_new ();
-        log_error ("%s:\tASSET_DETAIL: asset not found", cfg->name);
+        log_error ("%s:\tASSET_DETAIL: asset not found", config.getAgentName().c_str());
         zmsg_addstr (msg, "ERROR");
         zmsg_addstr (msg, "ASSET_NOT_FOUND");
     }
     zmsg_pushstr(msg, uuid);
-    int rv = mlm_client_sendto (cfg->mailbox_client, address, subject.c_str(), NULL, 5000, &msg);
+    int rv = mlm_client_sendto (const_cast<mlm_client_t *>(config.getMailboxClient()), address, subject.c_str(), NULL, 5000, &msg);
     if (rv != 0) {
-        log_error ("%s:\tmlm_client_send failed for asset '%s'", cfg->name, asset_name.c_str());
+        log_error ("%s:\tmlm_client_send failed for asset '%s'", config.getAgentName().c_str(), asset_name.c_str());
     }
 }
 
 static void
-    s_handle_subject_asset_detail (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
+    s_handle_subject_asset_detail (const FtyAssetServer& config, zmsg_t **zmessage_p)
 {
-    if (!cfg || !zmessage_p || !*zmessage_p) return;
+    if (!zmessage_p || !*zmessage_p) return;
     zmsg_t *zmessage = *zmessage_p;
 
     char* c_command = zmsg_popstr (zmessage);
     if (! streq (c_command, "GET")) {
         char* uuid = zmsg_popstr (zmessage);
         zmsg_t *reply = zmsg_new ();
-        log_error ("%s:\tASSET_DETAIL: bad command '%s', expected GET", cfg->name, c_command);
+        log_error ("%s:\tASSET_DETAIL: bad command '%s', expected GET", config.getAgentName().c_str(), c_command);
         if (uuid)
             zmsg_addstr (reply, uuid);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
-        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_DETAIL", NULL, 5000, &reply);
+        mlm_client_sendto (
+            const_cast<mlm_client_t *>(config.getMailboxClient()),
+            mlm_client_sender (const_cast<mlm_client_t *>(config.getMailboxClient())),
+            "ASSET_DETAIL", NULL, 5000, &reply
+        );
         zstr_free (&uuid);
         zstr_free (&c_command);
         zmsg_destroy (&reply);
@@ -1002,284 +1393,18 @@ static void
     // select an asset and publish it through mailbox
     char* uuid = zmsg_popstr (zmessage);
     char *asset_name = zmsg_popstr (zmessage);
-    s_sendto_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, mlm_client_sender (cfg->mailbox_client), uuid);
+    s_sendto_create_or_update_asset (config, asset_name, FTY_PROTO_ASSET_OP_UPDATE, mlm_client_sender(const_cast<mlm_client_t *>(config.getMailboxClient())), uuid);
     zstr_free (&asset_name);
     zstr_free (&uuid);
 }
 
-static messagebus::Message createResponse(
-    const std::string& subject,
-    const std::string& correlationID,
-    const std::string& from,
-    const std::string& to,
-    const std::string& status,
-    const std::string& data
-)
-{
-    messagebus::Message msg;
-
-    msg.metaData().emplace(messagebus::Message::SUBJECT, subject);
-    msg.metaData().emplace(messagebus::Message::FROM, from);
-    msg.metaData().emplace(messagebus::Message::TO, to);
-    msg.metaData().emplace(messagebus::Message::CORRELATION_ID, correlationID);
-    msg.metaData().emplace(messagebus::Message::STATUS, status);
-
-    msg.userData().push_back(data);
-
-    return msg;
-}
-
-static messagebus::Message createResponse(
-    const std::string& subject,
-    const std::string& correlationID,
-    const std::string& from,
-    const std::string& to,
-    const std::string& status,
-    const std::vector<std::string>& data
-)
-{
-    messagebus::Message msg;
-
-    msg.metaData().emplace(messagebus::Message::SUBJECT, subject);
-    msg.metaData().emplace(messagebus::Message::FROM, from);
-    msg.metaData().emplace(messagebus::Message::TO, to);
-    msg.metaData().emplace(messagebus::Message::CORRELATION_ID, correlationID);
-    msg.metaData().emplace(messagebus::Message::STATUS, status);
-
-    for(const auto& e : data)
-    {
-        msg.userData().push_back(e);
-    }
-
-    return msg;
-}
-
-// new generation asset manipulation handler
-static void handleAssetManipulationReq(const messagebus::Message & msg)
-{   
-    // TODO find a way to get configuration
-    // asset manipulation is disabled
-    // if(cfg->limitations.global_configurability == 0)
-    // {
-    //     throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
-    // }
-
-    log_debug("[handle asset manipulation] : message received from %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
-    
-    // TODO get endpoint as param in test mode
-    std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus("inproc://fty_asset_server-test", FTY_ASSET_MAILBOX_NAME));
-    // std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus(FTY_ASSET_ENDPOINT, FTY_ASSET_SENDER_NAME));
-    publisher->connect();
-    // response message
-    messagebus::Message response;
-
-    // Request to add a new asset into the DB   
-    if(msg.metaData().at(messagebus::Message::SUBJECT) == "CREATE")
-    {
-        log_debug("[handle asset manipulation] : subject CREATE");
-
-        try
-        {
-            std::string userData = msg.userData().front();
-
-            fty::Asset asset = fty::Asset::fromJson(userData);
-
-            bool tryActivate = (msg.metaData().at(METADATA_TRY_ACTIVATE) == "true");
-            // TODO implement no error if exist
-            // bool noErrorIfExist = (msg.metaData().at(METADATA_NO_ERROR_IF_EXIST) == "true");
-
-            // TODO get test value
-            fty::Asset createdAsset = createAsset(asset, tryActivate, true/* cfg->test */);
-
-            response = createResponse(
-                "CREATE",
-                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                FTY_ASSET_MAILBOX_NAME,
-                msg.metaData().find(messagebus::Message::FROM)->second,
-                messagebus::STATUS_OK,
-                createdAsset.toJson()
-            );
-
-            // send response
-            log_debug("[handle asset manipulation] : sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-
-            // send notification
-        }
-        catch (std::exception& e)
-        {
-            log_error(e.what());
-
-            // if(!noErrorIfExist)
-            // {
-                // create response (error)
-                response = createResponse(
-                    "CREATE",
-                    msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                    FTY_ASSET_MAILBOX_NAME,
-                    msg.metaData().find(messagebus::Message::FROM)->second,
-                    messagebus::STATUS_KO,
-                    e.what()    // TODO set translatable message
-                );
-
-                // send response
-                publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-            // }
-        }
-    }
-    // Request to update an existing asset into the DB
-    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "UPDATE")
-    {
-        log_debug("[handle asset manipulation] : subject UPDATE");
-
-        try
-        {
-            std::string userData = msg.userData().front();
-
-            fty::Asset asset = fty::Asset::fromJson(userData);
-
-            bool tryActivate = (msg.metaData().at(METADATA_TRY_ACTIVATE) == "true");
-
-            fty::Asset updatedAsset = updateAsset(asset, tryActivate, true/* cfg->test */);
-
-            // create response (ok)
-            response = createResponse(
-                "UPDATE",
-                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                FTY_ASSET_MAILBOX_NAME,
-                msg.metaData().find(messagebus::Message::FROM)->second,
-                messagebus::STATUS_OK,
-                updatedAsset.toJson()
-            );
-
-            // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-
-            // send notification
-        }
-        catch (std::exception& e)
-        {
-            log_error(e.what());
-
-            // create response (error)
-            response = createResponse(
-                "UPDATE",
-                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                FTY_ASSET_MAILBOX_NAME,
-                msg.metaData().find(messagebus::Message::FROM)->second,
-                messagebus::STATUS_KO,
-                e.what()    // TODO set translatable message
-            );
-
-            // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-        }
-    }
-    // Request to delete an existing asset from the DB
-    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "DELETE")
-    {
-        // TODO not implemented yet
-        log_debug("[handle asset manipulation] : subject DELETE");
-    }
-    // Return the status of the requested asset
-    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "GET")
-    {
-        log_debug("[handle asset manipulation] : subject GET");
-
-        try
-        {
-            std::string assetIname = msg.userData().front();
-            fty::Asset asset = getAsset(assetIname, true/* cfg->test */);
-
-            // create response (ok)
-            response = createResponse(
-                "GET",
-                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                FTY_ASSET_MAILBOX_NAME,
-                msg.metaData().find(messagebus::Message::FROM)->second,
-                messagebus::STATUS_OK,
-                asset.toJson()
-            );
-
-            // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-        }
-        catch (std::exception& e)
-        {
-            log_error(e.what());
-
-            // create response (error)
-            response = createResponse(
-                "GET",
-                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                FTY_ASSET_MAILBOX_NAME,
-                msg.metaData().find(messagebus::Message::FROM)->second,
-                messagebus::STATUS_KO,
-                e.what()    // TODO set translatable message
-            );
-
-            // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-        }
-    }
-    // Return a list of all assets in the system
-    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "LIST")
-    {
-        log_debug("[handle asset manipulation] : subject LIST");
-
-        try
-        {
-            std::vector<fty::Asset> assetVector = listAssets(true/* cfg->test */);
-
-            std::vector<std::string> jsonVector;
-            
-            for(const fty::Asset& asset : assetVector)
-            {
-                jsonVector.push_back(asset.toJson());
-            }
-
-            // create response (ok)
-            response = createResponse(
-                "LIST",
-                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                FTY_ASSET_MAILBOX_NAME,
-                msg.metaData().find(messagebus::Message::FROM)->second,
-                messagebus::STATUS_OK,
-                jsonVector
-            );
-
-            // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-        }
-        catch (std::exception& e)
-        {
-            log_error(e.what());
-
-            // create response (error)
-            response = createResponse(
-                "LIST",
-                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                FTY_ASSET_MAILBOX_NAME,
-                msg.metaData().find(messagebus::Message::FROM)->second,
-                messagebus::STATUS_KO,
-                e.what()    // TODO set translatable message
-            );
-
-            // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-        }
-    }
-    else
-    {
-        log_warning("Handle asset manipulation - Unknown subject");
-    }
-}
-
 static void
-    s_handle_subject_asset_manipulation (fty_asset_server_t *cfg, zmsg_t **zmessage_p)
+    s_handle_subject_asset_manipulation (const FtyAssetServer& config, zmsg_t **zmessage_p)
 {
+    const std::string& client_name = config.getAgentName();
+
     //Check request format
-    if (!cfg || !zmessage_p || !*zmessage_p) return;
+    if (!zmessage_p || !*zmessage_p) return;
     zmsg_t *zmessage = *zmessage_p;
     zmsg_t *reply = zmsg_new ();
 
@@ -1294,7 +1419,11 @@ static void
     else {
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, "BAD_COMMAND");
-        mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+        mlm_client_sendto (const_cast<mlm_client_t *>(
+            config.getMailboxClient()),
+            mlm_client_sender (const_cast<mlm_client_t *>(config.getMailboxClient())),
+            "ASSET_MANIPULATION", NULL, 5000, &reply
+        );
         zstr_free (&read_only_s);
         zmsg_destroy (&reply);
         return;
@@ -1302,13 +1431,13 @@ static void
     zstr_free (&read_only_s);
 
     if (!is_fty_proto (zmessage)) {
-        log_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", cfg->name);
+        log_error ("%s:\tASSET_MANIPULATION: receiver message is not fty_proto", client_name.c_str());
         zmsg_destroy (&reply);
         return;
     }
     fty_proto_t *fmsg = fty_proto_decode (zmessage_p);
     if (! fmsg) {
-        log_error ("%s:\tASSET_MANIPULATION: failed to decode message", cfg->name);
+        log_error ("%s:\tASSET_MANIPULATION: failed to decode message", client_name.c_str());
         zmsg_destroy (&reply);
         return;
     }
@@ -1320,46 +1449,38 @@ static void
     {
         // get asset from fty-proto
         fty::Asset asset;
-        asset = ftyProtoToAsset(fmsg, read_only, cfg->test);
+        asset = ftyProtoToAsset(fmsg, read_only, config.getTestMode());
 
         // asset manipulation is disabled
-        if(cfg->limitations.global_configurability == 0)
+        if(config.getGlobalConfigurability() == 0)
         {
             throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
         }
 
         if (streq (operation, "create") || streq (operation, "create-force")) {
             // create-force -> tryActivate = true
-            asset = createAsset(asset, streq(operation, "create-force"), cfg->test);
+            asset = createAsset(asset, streq(operation, "create-force"), config.getTestMode());
 
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, asset.getInternalName().c_str());
             
-            //publish on stream ASSETS
-            if(streq (operation, "create-force")) {
-                s_send_create_or_update_asset (cfg, asset.getInternalName().c_str(), "create", read_only);
-            } else {
-                s_send_create_or_update_asset (cfg, asset.getInternalName().c_str(), operation, read_only);
-            }
+            //publish on stream ASSETS (create and create force both answer with "create")
+            s_send_create_or_update_asset (config, asset.getInternalName().c_str(), "create", read_only);
         }
         else if (streq (operation, "update")) {
             // tryUpdate is not supported in old interface
-            asset = updateAsset(asset, false, cfg->test);
+            asset = updateAsset(asset, false, config.getTestMode());
 
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, asset.getInternalName().c_str());
             
             //publish on stream ASSETS
-            if(streq (operation, "create-force")) {
-                s_send_create_or_update_asset (cfg, asset.getInternalName().c_str(), "create", read_only);
-            } else {
-                s_send_create_or_update_asset (cfg, asset.getInternalName().c_str(), operation, read_only);
-            }
+            s_send_create_or_update_asset (config, asset.getInternalName().c_str(), "update", read_only);
         }
         else
         {
             // unknown op
-            log_error ("%s:\tASSET_MANIPULATION: asset operation %s is not implemented", cfg->name, operation);
+            log_error ("%s:\tASSET_MANIPULATION: asset operation %s is not implemented", client_name.c_str(), operation);
             zmsg_addstr (reply, "ERROR");
             zmsg_addstr (reply, "OPERATION_NOT_IMPLEMENTED");
         }
@@ -1372,7 +1493,11 @@ static void
         zmsg_addstr (reply, e.what());
     }
 
-    mlm_client_sendto (cfg->mailbox_client, mlm_client_sender (cfg->mailbox_client), "ASSET_MANIPULATION", NULL, 5000, &reply);
+    mlm_client_sendto (
+        const_cast<mlm_client_t *>(config.getMailboxClient()),
+        mlm_client_sender (const_cast<mlm_client_t *>(config.getMailboxClient())),
+        "ASSET_MANIPULATION", NULL, 5000, &reply
+    );
 
     fty_proto_destroy (&fmsg);
     zmsg_destroy (&reply);
@@ -1380,36 +1505,33 @@ static void
 
 static void
     s_update_topology(
-        fty_asset_server_t *cfg,
+        const FtyAssetServer& config,
         fty_proto_t *msg)
 {
     assert (msg);
-    assert (cfg);
 
     if ( !streq (fty_proto_operation (msg),FTY_PROTO_ASSET_OP_UPDATE)) {
-        log_info ("%s:\tIgnore: '%s' on '%s'", cfg->name, fty_proto_operation(msg), fty_proto_name (msg));
+        log_info ("%s:\tIgnore: '%s' on '%s'", config.getAgentName().c_str(), fty_proto_operation(msg), fty_proto_name (msg));
         return;
     }
     // select assets, that were affected by the change
     std::set<std::string> empty;
     std::vector <std::string> asset_names;
-    int rv = select_assets_by_container (fty_proto_name (msg), empty, asset_names, cfg->test);
+    int rv = select_assets_by_container (fty_proto_name (msg), empty, asset_names, config.getTestMode());
     if ( rv != 0 ) {
-        log_warning ("%s:\tCannot select assets in container '%s'", cfg->name, fty_proto_name (msg));
+        log_warning ("%s:\tCannot select assets in container '%s'", config.getAgentName().c_str(), fty_proto_name (msg));
         return;
     }
 
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
-        s_send_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, true);
+        s_send_create_or_update_asset (config, asset_name, FTY_PROTO_ASSET_OP_UPDATE, true);
     }
 }
 
 static void
-s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_publish)
+s_repeat_all (const FtyAssetServer& config, const std::set<std::string>& assets_to_publish)
 {
-    assert (cfg);
-
     std::vector <std::string> asset_names;
     std::function<void(const tntdb::Row&)> cb = \
         [&asset_names, &assets_to_publish](const tntdb::Row &row)
@@ -1424,33 +1546,33 @@ s_repeat_all (fty_asset_server_t *cfg, const std::set<std::string>& assets_to_pu
         };
 
     // select all assets
-    int rv = select_assets (cb, cfg->test);
+    int rv = select_assets (cb, config.getTestMode());
     if ( rv != 0 ) {
-        log_warning ("%s:\tCannot list all assets", cfg->name);
+        log_warning ("%s:\tCannot list all assets", config.getAgentName().c_str());
         return;
     }
 
     // For every asset we need to form new message!
     for ( const auto &asset_name : asset_names ) {
-        s_send_create_or_update_asset (cfg, asset_name, FTY_PROTO_ASSET_OP_UPDATE, true);
+        s_send_create_or_update_asset (config, asset_name, FTY_PROTO_ASSET_OP_UPDATE, true);
     }
 }
 
 static void
-s_repeat_all (fty_asset_server_t *cfg)
+s_repeat_all (const FtyAssetServer& config)
 {
-    return s_repeat_all (cfg, {});
+    return s_repeat_all (config, {});
 }
 
 void
-handle_incoming_limitations (fty_asset_server_t *cfg, fty_proto_t *metric)
+handle_incoming_limitations (FtyAssetServer& config, fty_proto_t *metric)
 {
     // subject matches type.name, so checking those should be sufficient
     assert (fty_proto_id(metric) == FTY_PROTO_METRIC);
     if (streq (fty_proto_name(metric), "rackcontroller-0")) {
         if (streq (fty_proto_type(metric), "configurability.global")) {
             log_debug("Setting configurability/global to %s.", fty_proto_value (metric));
-            cfg->limitations.global_configurability = atoi (fty_proto_value (metric));
+            config.setGlobalConfigurability(atoi(fty_proto_value (metric)));
         }
     }
 }
@@ -1461,17 +1583,24 @@ fty_asset_server (zsock_t *pipe, void *args)
     assert (pipe);
     assert (args);
 
-    fty_asset_server_t *cfg = fty_asset_server_new ();
-    assert (cfg);
-    cfg->name = strdup ((char*) args);
-    assert (cfg->name);
+    FtyAssetServer serverConfig;
 
-    zpoller_t *poller = zpoller_new (pipe, mlm_client_msgpipe(cfg->mailbox_client), mlm_client_msgpipe(cfg->stream_client), NULL);
+    serverConfig.setAgentName((char*) args);
+    // new messagebus interfaces (-ng suffix)
+    serverConfig.setAgentNameNg(serverConfig.getAgentName() + "-ng");
+
+    zpoller_t *poller = zpoller_new (
+        pipe,
+        mlm_client_msgpipe(const_cast<mlm_client_t *>(serverConfig.getMailboxClient())),
+        mlm_client_msgpipe(const_cast<mlm_client_t *>(serverConfig.getStreamClient())),
+        NULL
+    );
+
     assert (poller);
 
     // Signal need to be send as it is required by "actor_new"
     zsock_signal (pipe, 0);
-    log_info ("%s:\tStarted", cfg->name);
+    log_info ("%s:\tStarted", serverConfig.getAgentName().c_str());
 
     while (!zsys_interrupted) {
 
@@ -1485,20 +1614,21 @@ fty_asset_server (zsock_t *pipe, void *args)
         if (which == pipe) {
             zmsg_t *msg = zmsg_recv (pipe);
             char *cmd = zmsg_popstr (msg);
-            log_debug ("%s:\tActor command=%s", cfg->name, cmd);
+            log_debug ("%s:\tActor command=%s", serverConfig.getAgentName().c_str(), cmd);
 
             if (streq (cmd, "$TERM")) {
-                log_info ("%s:\tGot $TERM", cfg->name);
+                log_info ("%s:\tGot $TERM", serverConfig.getAgentName().c_str());
                 zstr_free (&cmd);
                 zmsg_destroy (&msg);
                 break; //while
             }
             else if (streq (cmd, "CONNECTSTREAM")) {
-                char* endpoint = zmsg_popstr (msg);
-                char *stream_name = zsys_sprintf ("%s-stream", cfg->name);
-                int rv = mlm_client_connect (cfg->stream_client, endpoint, 1000, stream_name);
+                char* endpoint = zmsg_popstr(msg);
+                serverConfig.setStreamEndpoint(endpoint);
+                char *stream_name = zsys_sprintf ("%s-stream", serverConfig.getAgentName().c_str());
+                int rv = mlm_client_connect (const_cast<mlm_client_t *>(serverConfig.getStreamClient()), serverConfig.getStreamEndpoint().c_str(), 1000, stream_name);
                 if (rv == -1) {
-                    log_error ("%s:\tCan't connect to malamute endpoint '%s'", stream_name, endpoint);
+                    log_error ("%s:\tCan't connect to malamute endpoint '%s'", stream_name, serverConfig.getStreamEndpoint().c_str());
                 }
                 zstr_free (&endpoint);
                 zstr_free (&stream_name);
@@ -1506,10 +1636,10 @@ fty_asset_server (zsock_t *pipe, void *args)
             }
             else if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
-                cfg->test = streq (stream, "ASSETS-TEST");
-                int rv = mlm_client_set_producer (cfg->stream_client, stream);
+                serverConfig.setTestMode(streq(stream, "ASSETS-TEST"));
+                int rv = mlm_client_set_producer (const_cast<mlm_client_t *>(serverConfig.getStreamClient()), stream);
                 if (rv == -1) {
-                    log_error ("%s:\tCan't set producer on stream '%s'", cfg->name, stream);
+                    log_error ("%s:\tCan't set producer on stream '%s'", serverConfig.getAgentName().c_str(), stream);
                 }
                 zstr_free (&stream);
                 zsock_signal (pipe, 0);
@@ -1517,9 +1647,9 @@ fty_asset_server (zsock_t *pipe, void *args)
             else if (streq (cmd, "CONSUMER")) {
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
-                int rv = mlm_client_set_consumer (cfg->stream_client, stream, pattern);
+                int rv = mlm_client_set_consumer (const_cast<mlm_client_t *>(serverConfig.getStreamClient()), stream, pattern);
                 if (rv == -1) {
-                    log_error ("%s:\tCan't set consumer on stream '%s', '%s'", cfg->name, stream, pattern);
+                    log_error ("%s:\tCan't set consumer on stream '%s', '%s'", serverConfig.getAgentName().c_str(), stream, pattern);
                 }
                 zstr_free (&pattern);
                 zstr_free (&stream);
@@ -1527,26 +1657,25 @@ fty_asset_server (zsock_t *pipe, void *args)
             }
             else if (streq (cmd, "CONNECTMAILBOX")) {
                 char* endpoint = zmsg_popstr (msg);
-                int rv = mlm_client_connect (cfg->mailbox_client, endpoint, 1000, cfg->name);
+                serverConfig.setMailboxEndpoint(endpoint);
+                int rv = mlm_client_connect (const_cast<mlm_client_t *>(serverConfig.getMailboxClient()), serverConfig.getMailboxEndpoint().c_str(), 1000, serverConfig.getAgentName().c_str());
                 if (rv == -1) {
-                    log_error ("%s:\tCan't connect to malamute endpoint '%s'", cfg->name, endpoint);
+                    log_error ("%s:\tCan't connect to malamute endpoint '%s'", serverConfig.getAgentName().c_str(), serverConfig.getMailboxEndpoint().c_str());
                 }
 
-                // new messagebus interfaces (-ng suffix)
-                std::string clientNameNg = std::string(cfg->name) + "-ng";
-                cfg->message_bus.reset(messagebus::MlmMessageBus(endpoint, clientNameNg));
-                cfg->message_bus->connect();
-                cfg->message_bus->receive(FTY_ASSET_MAILBOX, &handleAssetManipulationReq);
+                serverConfig.createMailboxClientNg();
+                serverConfig.connectMailboxClientNg();
+                serverConfig.receiveMailboxClientNg(FTY_ASSET_MAILBOX);
 
-                zstr_free (&endpoint);
+                zstr_free(&endpoint);
                 zsock_signal (pipe, 0);
             }
             else if (streq (cmd, "REPEAT_ALL")) {
-                s_repeat_all (cfg);
-                log_debug ("%s:\tREPEAT_ALL end", cfg->name);
+                s_repeat_all (serverConfig);
+                log_debug ("%s:\tREPEAT_ALL end", serverConfig.getAgentName().c_str());
             }
             else {
-                log_info ("%s:\tUnhandled command %s", cfg->name, cmd);
+                log_info ("%s:\tUnhandled command %s", serverConfig.getAgentName().c_str(), cmd);
             }
             zstr_free (&cmd);
             zmsg_destroy (&msg);
@@ -1555,30 +1684,30 @@ fty_asset_server (zsock_t *pipe, void *args)
 
         // This agent is a reactive agent, it reacts only on messages
         // and doesn't do anything if there are no messages
-        else if (which == mlm_client_msgpipe (cfg->mailbox_client)) {
-            zmsg_t *zmessage = mlm_client_recv (cfg->mailbox_client);
+        else if (which == mlm_client_msgpipe (const_cast<mlm_client_t *>(serverConfig.getMailboxClient()))) {
+            zmsg_t *zmessage = mlm_client_recv (const_cast<mlm_client_t *>(serverConfig.getMailboxClient()));
             if (zmessage == NULL) {
                 continue;
             }
-            std::string subject = mlm_client_subject (cfg->mailbox_client);
+            std::string subject = mlm_client_subject (const_cast<mlm_client_t *>(serverConfig.getMailboxClient()));
             if (subject == "TOPOLOGY") {
-                s_handle_subject_topology (cfg, zmessage);
+                s_handle_subject_topology (serverConfig, zmessage);
             }
             else if (subject == "ASSETS_IN_CONTAINER") {
-                s_handle_subject_assets_in_container (cfg, zmessage);
+                s_handle_subject_assets_in_container (serverConfig, zmessage);
             }
             else if (subject == "ASSETS") {
-                s_handle_subject_assets (cfg, zmessage);
+                s_handle_subject_assets (serverConfig, zmessage);
             }
             else if (subject == "ENAME_FROM_INAME") {
-                s_handle_subject_ename_from_iname(cfg, zmessage);
+                s_handle_subject_ename_from_iname(serverConfig, zmessage);
             }
             else if (subject == "REPUBLISH") {
                 zmsg_print (zmessage);
-                log_trace ("REPUBLISH received from '%s'",mlm_client_sender (cfg->mailbox_client));
+                log_trace ("REPUBLISH received from '%s'",mlm_client_sender (const_cast<mlm_client_t *>(serverConfig.getMailboxClient())));
                 char *asset = zmsg_popstr (zmessage);
                 if (!asset || streq (asset, "$all")) {
-                    s_repeat_all (cfg);
+                    s_repeat_all (serverConfig);
                 }
                 else {
                     std::set <std::string> assets_to_publish;
@@ -1587,33 +1716,33 @@ fty_asset_server (zsock_t *pipe, void *args)
                         zstr_free (&asset);
                         asset = zmsg_popstr (zmessage);
                     }
-                    s_repeat_all (cfg, assets_to_publish);
+                    s_repeat_all (serverConfig, assets_to_publish);
                 }
                 zstr_free (&asset);
             }
             else if (subject == "ASSET_MANIPULATION") {
-                s_handle_subject_asset_manipulation (cfg, &zmessage);
+                s_handle_subject_asset_manipulation (serverConfig, &zmessage);
             }
             else if (subject == "ASSET_DETAIL") {
-                s_handle_subject_asset_detail (cfg, &zmessage);
+                s_handle_subject_asset_detail (serverConfig, &zmessage);
             }
             else {
-                log_info ("%s:\tUnexpected subject '%s'", cfg->name, subject.c_str ());
+                log_info ("%s:\tUnexpected subject '%s'", serverConfig.getAgentName().c_str(), subject.c_str ());
             }
             zmsg_destroy (&zmessage);
         }
-        else if (which == mlm_client_msgpipe (cfg->stream_client)) {
-            zmsg_t *zmessage = mlm_client_recv (cfg->stream_client);
+        else if (which == mlm_client_msgpipe (const_cast<mlm_client_t *>(serverConfig.getStreamClient()))) {
+            zmsg_t *zmessage = mlm_client_recv (const_cast<mlm_client_t *>(serverConfig.getStreamClient()));
             if (zmessage == NULL) {
                 continue;
             }
             if ( is_fty_proto (zmessage) ) {
                 fty_proto_t *bmsg = fty_proto_decode (&zmessage);
                 if (fty_proto_id (bmsg) == FTY_PROTO_ASSET) {
-                    s_update_topology (cfg, bmsg);
+                    s_update_topology (serverConfig, bmsg);
                 }
                 else if (fty_proto_id (bmsg) == FTY_PROTO_METRIC) {
-                    handle_incoming_limitations (cfg, bmsg);
+                    handle_incoming_limitations (serverConfig, bmsg);
                 }
                 fty_proto_destroy (&bmsg);
             }
@@ -1624,10 +1753,9 @@ fty_asset_server (zsock_t *pipe, void *args)
         }
     }
 
-    log_info ("%s:\tended", cfg->name);
+    log_info ("%s:\tended", serverConfig.getAgentName().c_str());
     //TODO:  save info to persistence before I die
     zpoller_destroy (&poller);
-    fty_asset_server_destroy (&cfg);
 }
 
 //  --------------------------------------------------------------------------
@@ -1636,10 +1764,8 @@ fty_asset_server (zsock_t *pipe, void *args)
 // stores correlationID : asset JSON for each message received
 std::map<std::string, std::string> assetTestMap;
 
-static void dummyHandler(const messagebus::Message & msg)
+static void test_asset_mailbox_handler(const messagebus::Message & msg)
 {
-    log_debug("Message received from %s", msg.metaData().at(messagebus::Message::FROM).c_str());
-
     try
     {
         std::string msgSubject = msg.metaData().find(messagebus::Message::SUBJECT)->second;
@@ -1687,7 +1813,7 @@ static void dummyHandler(const messagebus::Message & msg)
         }
         else
         {
-            log_error ("fty-asset-server-test:Test #13: FAILED");
+            log_error ("fty-asset-server-test:Invalid subject %s", msgSubject.c_str());
         }
     }
     catch(std::exception& e)
@@ -1704,9 +1830,7 @@ fty_asset_server_test (bool verbose)
     // Test #1:  Simple create/destroy test
     {
         log_debug ("fty-asset-server-test:Test #1");
-        fty_asset_server_t *self = fty_asset_server_new ();
-        assert (self);
-        fty_asset_server_destroy (&self);
+        FtyAssetServer cfg;
         log_info ("fty-asset-server-test:Test #1: OK");
     }
 
@@ -2273,14 +2397,21 @@ fty_asset_server_test (bool verbose)
     }
 
     // Test #13: new generation asset interface
-    { 
+    {
+        static const char* FTY_ASSET_TEST_Q = "FTY.Q.ASSET.TEST";
+        static const char* FTY_ASSET_TEST_PUB = "test-publisher";
+        static const char* FTY_ASSET_TEST_REC = "test-receiver";
+
+        const std::string FTY_ASSET_TEST_MAIL_NAME = std::string(asset_server_test_name) + "-ng";
+
         log_debug ("fty-asset-server-test:Test #13");
 
-        std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus(endpoint, "test-publisher"));
-        std::unique_ptr<messagebus::MessageBus> receiver(messagebus::MlmMessageBus(endpoint, "test-receiver"));
+        std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus(endpoint, FTY_ASSET_TEST_PUB));
+        std::unique_ptr<messagebus::MessageBus> receiver(messagebus::MlmMessageBus(endpoint, FTY_ASSET_TEST_REC));
 
         messagebus::Message msg;
 
+        // test asset
         fty::Asset asset;
         asset.setInternalName("test-asset");
         asset.setAssetStatus(fty::AssetStatus::Active);
@@ -2293,14 +2424,14 @@ fty_asset_server_test (bool verbose)
         publisher->connect();
 
         receiver->connect();
-        receiver->receive("FTY.Q.ASSET.TEST", dummyHandler);
+        receiver->receive(FTY_ASSET_TEST_Q, test_asset_mailbox_handler);
 
         // test create
         msg.metaData().emplace(messagebus::Message::CORRELATION_ID, messagebus::generateUuid());
         msg.metaData().emplace(messagebus::Message::SUBJECT, "CREATE");
-        msg.metaData().emplace(messagebus::Message::FROM, "test-receiver");
-        msg.metaData().emplace(messagebus::Message::TO, "asset_agent_test-ng");
-        msg.metaData().emplace(messagebus::Message::REPLY_TO, "FTY.Q.ASSET.TEST");
+        msg.metaData().emplace(messagebus::Message::FROM, FTY_ASSET_TEST_REC);
+        msg.metaData().emplace(messagebus::Message::TO, FTY_ASSET_TEST_MAIL_NAME);
+        msg.metaData().emplace(messagebus::Message::REPLY_TO, FTY_ASSET_TEST_Q);
         msg.metaData().emplace(METADATA_TRY_ACTIVATE, "true");
         msg.metaData().emplace(METADATA_NO_ERROR_IF_EXIST, "true");
 
@@ -2316,9 +2447,9 @@ fty_asset_server_test (bool verbose)
         msg.metaData().clear();
         msg.metaData().emplace(messagebus::Message::CORRELATION_ID, messagebus::generateUuid());
         msg.metaData().emplace(messagebus::Message::SUBJECT, "UPDATE");
-        msg.metaData().emplace(messagebus::Message::FROM, "test-receiver");
-        msg.metaData().emplace(messagebus::Message::TO, "asset_agent_test-ng");
-        msg.metaData().emplace(messagebus::Message::REPLY_TO, "FTY.Q.ASSET.TEST");
+        msg.metaData().emplace(messagebus::Message::FROM, FTY_ASSET_TEST_REC);
+        msg.metaData().emplace(messagebus::Message::TO, FTY_ASSET_TEST_MAIL_NAME);
+        msg.metaData().emplace(messagebus::Message::REPLY_TO, FTY_ASSET_TEST_Q);
         msg.metaData().emplace(METADATA_TRY_ACTIVATE, "true");
 
         msg.userData().clear();
@@ -2334,9 +2465,9 @@ fty_asset_server_test (bool verbose)
         msg.metaData().clear();
         msg.metaData().emplace(messagebus::Message::CORRELATION_ID, messagebus::generateUuid());
         msg.metaData().emplace(messagebus::Message::SUBJECT, "GET");
-        msg.metaData().emplace(messagebus::Message::FROM, "test-receiver");
-        msg.metaData().emplace(messagebus::Message::TO, "asset_agent_test-ng");
-        msg.metaData().emplace(messagebus::Message::REPLY_TO, "FTY.Q.ASSET.TEST");
+        msg.metaData().emplace(messagebus::Message::FROM, FTY_ASSET_TEST_REC);
+        msg.metaData().emplace(messagebus::Message::TO, FTY_ASSET_TEST_MAIL_NAME);
+        msg.metaData().emplace(messagebus::Message::REPLY_TO, FTY_ASSET_TEST_Q);
         msg.metaData().emplace(METADATA_TRY_ACTIVATE, "true");
 
         msg.userData().clear();
@@ -2347,8 +2478,6 @@ fty_asset_server_test (bool verbose)
         log_info ("fty-asset-server-test:Test #13.3: send GET message");
         publisher->sendRequest(FTY_ASSET_MAILBOX, msg);
         zclock_sleep (200);
-
-        log_info ("fty-asset-server-test:Test #13: OK");
     }
 
     zactor_destroy (&autoupdate_server);

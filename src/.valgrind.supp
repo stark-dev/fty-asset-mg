@@ -12,3 +12,10 @@
    fun:send
    ...
 }
+{
+   <mlm_client>
+   Memcheck:Leak
+   ...
+   fun:mlm_proto_recv
+   ...
+}
