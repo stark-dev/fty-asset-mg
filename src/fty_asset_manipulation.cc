@@ -28,6 +28,8 @@
 
 #define AGENT_ASSET_ACTIVATOR   "etn-licensing-credits"
 
+#define TIME_STR_SIZE 100
+
 #include "dbhelpers.h"
 #include "fty_asset_manipulation.h"
 
@@ -105,6 +107,22 @@ static void activateAsset(const fty::Asset& asset)
     activationAccessor.activate(fa);
 }
 
+/// generate current timestamp string in format yyyy-mm-ddThh:MM:ss+0000
+std::string generateCurrentTimestamp()
+{
+    std::time_t timestamp = std::time(NULL);
+    char timeString[TIME_STR_SIZE];
+    std::strftime(timeString, TIME_STR_SIZE-1, "%FT%T%z", std::localtime(&timestamp));
+
+    return std::string(timeString);
+}
+
+/// generate asset UUID (placeholder)
+std::string generateUUID()
+{
+    return std::string("ffffffff-ffff-ffff-ffff-ffffffffffff");
+}
+
 fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
 {
     fty::Asset createdAsset;
@@ -149,6 +167,12 @@ fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
         createdAsset.setInternalName(assetName);
 
         updateAssetProperty("name", assetName, "id_asset_element", assetIndex);
+
+        // add creation timestamp
+        createdAsset.setExtEntry("create_ts", generateCurrentTimestamp(), true);
+
+        // add UUID
+        createdAsset.setExtEntry("uuid", generateUUID(), true);
 
         // update external properties
         log_debug ("Processing inventory for asset %s", createdAsset.getInternalName().c_str());
