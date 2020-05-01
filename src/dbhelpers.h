@@ -32,7 +32,7 @@
 #include <czmq.h>
 #include <vector>
 #include <tuple>
-#include <string>
+#include <sstream>
 #include <type_traits>
 #include "fty_asset_classes.h"
 
@@ -159,28 +159,28 @@ TypeRet selectAssetProperty(
 
 /// update one field of an asset in the database
 /// UPDATE in asset_table <updateColumn> to <updateValue> where <keyColumn> = <keyValue>
-template<typename TypeKey, typename TypeValue>
+template<typename TypeValue, typename TypeKey>
 void updateAssetProperty(
-    const std::string& keyColumn,
-    const TypeKey& keyValue,
     const std::string& updateColumn,
-    const TypeValue& updateValue
+    const TypeValue& updateValue,
+    const std::string& keyColumn,
+    const TypeKey& keyValue
 )
 {
-    std::stringstream query; 
+    std::stringstream query;
     query << " UPDATE t_bios_asset_element " <<
-             " SET " << updateColumn << " :update_value " <<
-             " WHERE " << keyColumn << " = :key_value";
+             " SET " << updateColumn << " = :updateValue" <<
+             " WHERE " << keyColumn << " = :keyValue";
     
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
     tntdb::Statement statement;
 
     statement = conn.prepareCached (query.str());
 
-    statement.
-        set ("update_value", updateValue).
-        set ("key_value", keyValue).
-        execute();
+    statement
+        .set("updateValue", updateValue)
+        .set("keyValue", keyValue)
+        .execute();
 }
 
 // for test purposes

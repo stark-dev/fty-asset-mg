@@ -34,6 +34,16 @@
 
 namespace fty
 {
+    static const std::string extNotFound;
+
+    static constexpr const char* SI_STATUS   = "status";
+    static constexpr const char* SI_TYPE     = "type";
+    static constexpr const char* SI_SUB_TYPE = "sub_type";
+    static constexpr const char* SI_NAME     = "name";
+    static constexpr const char* SI_PRIORITY = "priority";
+    static constexpr const char* SI_PARENT   = "parent";
+    static constexpr const char* SI_EXT      = "ext";
+
     const std::string assetStatusToString(AssetStatus status)
     {
         std::string retVal;
@@ -115,14 +125,49 @@ namespace fty
 
     const std::string& Asset::getExtEntry(const std::string& key) const
     {
-        return m_ext.at(key).first;
+        auto search = m_ext.find(key);
+
+        if(search != m_ext.end())
+        {
+            return search->second.first;
+        }
+
+        return extNotFound;    
     }
 
     bool Asset::isExtEntryReadOnly(const std::string& key) const
     {
-        return m_ext.at(key).second;
+        auto search = m_ext.find(key);
+
+        if(search != m_ext.end())
+        {
+            return search->second.second;
+        }
+
+        return false;
     }
-    
+
+    // ext param getters
+    const std::string& Asset::getUuid() const
+    {
+        return getExtEntry(EXT_UUID);
+    }
+
+    const std::string& Asset::getManufacturer() const
+    {
+        return getExtEntry(EXT_MANUFACTURER);
+    }
+
+    const std::string& Asset::getModel() const
+    {
+        return getExtEntry(EXT_MODEL);
+    }
+
+    const std::string& Asset::getSerialNo() const
+    {
+        return getExtEntry(EXT_SERIAL_NO);
+    }
+
     // setters
     void Asset::setInternalName(const std::string& internalName)
     {
@@ -169,6 +214,21 @@ namespace fty
         m_ext[key] = std::make_pair(value, readOnly);
     }
 
+    void Asset::dump(std::ostream& os)
+    {
+        os << "iname    : " <<  m_internalName << std::endl;
+        os << "status   : " <<  fty::assetStatusToString(m_assetStatus) << std::endl;
+        os << "type     : " <<  m_assetType << std::endl;
+        os << "subtype  : " <<  m_assetSubtype << std::endl;
+        os << "parent   : " <<  m_parentIname << std::endl;
+        os << "priority : " <<  m_priority << std::endl;
+
+        for(const auto& e : m_ext)
+        {
+            os << "- key: " << e.first << " - value: " << e.second.first << std::endl;
+        }
+    }
+
     bool Asset::operator== (const Asset &asset) const
     {
         return (
@@ -192,13 +252,13 @@ namespace fty
     void operator<<= (cxxtools::SerializationInfo& si, const Asset& asset)
     {
         // basic
-        si.addMember("status") <<= int(asset.getAssetStatus());
-        si.addMember("type") <<= asset.getAssetType();
-        si.addMember("sub_type") <<= asset.getAssetSubtype();
-        si.addMember("name") <<= asset.getInternalName();
-        si.addMember("priority") <<= asset.getPriority();
-        si.addMember("parent") <<= asset.getParentIname();
-        si.addMember("ext") <<= asset.getExt();
+        si.addMember(SI_STATUS) <<= int(asset.getAssetStatus());
+        si.addMember(SI_TYPE) <<= asset.getAssetType();
+        si.addMember(SI_SUB_TYPE) <<= asset.getAssetSubtype();
+        si.addMember(SI_NAME) <<= asset.getInternalName();
+        si.addMember(SI_PRIORITY) <<= asset.getPriority();
+        si.addMember(SI_PARENT) <<= asset.getParentIname();
+        si.addMember(SI_EXT) <<= asset.getExt();
     }
 
     std::string Asset::toJson() const
@@ -238,32 +298,32 @@ namespace fty
         std::string tmpString;
 
         // status
-        si.getMember("status") >>= tmpInt;
+        si.getMember(SI_STATUS) >>= tmpInt;
         asset.setAssetStatus(AssetStatus(tmpInt));
 
         // type
-        si.getMember("type") >>= tmpString;
+        si.getMember(SI_TYPE) >>= tmpString;
         asset.setAssetType(tmpString);
 
         // subtype
-        si.getMember("sub_type") >>= tmpString;
+        si.getMember(SI_SUB_TYPE) >>= tmpString;
         asset.setAssetSubtype(tmpString);
 
         // external name
-        si.getMember("name") >>= tmpString;
+        si.getMember(SI_NAME) >>= tmpString;
         asset.setInternalName(tmpString);
 
         // priority
-        si.getMember("priority") >>= tmpInt;
+        si.getMember(SI_PRIORITY) >>= tmpInt;
         asset.setPriority(tmpInt);
 
         // parend id
-        si.getMember("parent") >>= tmpString;
+        si.getMember(SI_PARENT) >>= tmpString;
         asset.setParentIname(tmpString);
 
         // ext attribute
         Asset::ExtMap tmpMap;
-        si.getMember("ext") >>= tmpMap;
+        si.getMember(SI_EXT) >>= tmpMap;
         asset.setExt(tmpMap);   
     }
 }

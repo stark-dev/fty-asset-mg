@@ -73,7 +73,7 @@ static fty::FullAsset assetToFullAsset(const fty::Asset& asset)
         fty::assetStatusToString(asset.getAssetStatus()),
         asset.getAssetType(),
         asset.getAssetSubtype(),
-        asset.getExtEntry("name"), // asset name is stored in ext structure
+        asset.getExtEntry(fty::EXT_NAME), // asset name is stored in ext structure
         asset.getParentIname(),
         asset.getPriority(),
         auxMap,
@@ -86,13 +86,14 @@ static fty::FullAsset assetToFullAsset(const fty::Asset& asset)
 /// test if asset activation is possible
 static bool canAssetBeActivated(const fty::Asset& asset)
 {
+    log_debug("[asset_manipulation] : checking asset activation");
     mlm::MlmSyncClient client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
     fty::AssetActivator activationAccessor(client);
     
     // TODO remove as soon as fty::Asset activation is supported
     fty::FullAsset fa = assetToFullAsset(asset);
 
-    return (!activationAccessor.isActivable(fa));
+    return activationAccessor.isActivable(fa);
 }
 
 /// perform asset activation
@@ -105,6 +106,7 @@ static void activateAsset(const fty::Asset& asset)
     fty::FullAsset fa = assetToFullAsset(asset);
 
     activationAccessor.activate(fa);
+    log_debug("[asset_manipulation] : asset activated");
 }
 
 /// generate current timestamp string in format yyyy-mm-ddThh:MM:ss+0000
@@ -130,11 +132,12 @@ fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
 
     if(test)
     {
-        log_debug ("[createAsset]: runs in test mode");
+        log_debug("[asset_manipulation] : createAsset test mode");
         test_map_asset_state[asset.getInternalName()] = fty::assetStatusToString(asset.getAssetStatus());
     }
     else
     {
+        log_debug("[asset_manipulation] : creating new asset");
         // check if asset can be activated (if needed)
         if((createdAsset.getAssetStatus() == fty::AssetStatus::Active) && !canAssetBeActivated(createdAsset))
         {
@@ -181,10 +184,11 @@ fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
         // activate asset
         if(createdAsset.getAssetStatus() == fty::AssetStatus::Active)
         {
-            activateAsset(asset);
+            activateAsset(createdAsset);
         }
     }
 
+    log_debug("[asset_manipulation] : created new asset %s", createdAsset.getInternalName().c_str());
     return createdAsset;
 }
 
@@ -230,7 +234,6 @@ fty::Asset updateAsset(const fty::Asset& asset, bool tryActivate, bool test)
             }
         }
 
-        // TODO use update query instead of insert
         // perform update
         updateAssetToDB(updatedAsset);
 
@@ -242,7 +245,8 @@ fty::Asset updateAsset(const fty::Asset& asset, bool tryActivate, bool test)
         log_debug ("Processing inventory for asset %s", updatedAsset.getInternalName().c_str());
         updateAssetExtProperties(updatedAsset);
     }
-
+    
+    log_debug("[asset_manipulation] : updated asset %s", asset.getInternalName().c_str());
     return updatedAsset;
 }
 
@@ -252,7 +256,7 @@ fty::Asset getAsset(const std::string& assetInternalName, bool test)
 
     if(test)
     {
-        log_debug ("[getAsset]: runs in test mode");
+        log_debug ("[asset_manipulation]: getAsset test mode");
         a.setInternalName(assetInternalName);
     }
     else
@@ -269,7 +273,7 @@ std::vector<fty::Asset> listAssets(bool test)
 
     if(test)
     {
-        log_debug ("[listAssets]: runs in test mode");
+        log_debug ("[asset_manipulation]: listAssets test mode");
 
         fty::Asset a;
         
@@ -320,7 +324,8 @@ fty_proto_t * assetToFtyProto(const fty::Asset& asset, const std::string& operat
     // no need to free, as fty_proto_set_aux transfers ownership to caller
     zhash_t *aux = zhash_new();
 
-    zhash_insert(aux, "priority", const_cast<void *>(reinterpret_cast<const void *>(std::to_string(asset.getPriority()).c_str())));
+    std::string priority = std::to_string(asset.getPriority());
+    zhash_insert(aux, "priority", const_cast<void *>(reinterpret_cast<const void *>(priority.c_str())));
     zhash_insert(aux, "type", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetType().c_str())));
     zhash_insert(aux, "subtype", const_cast<void *>(reinterpret_cast<const void *>(asset.getAssetSubtype().c_str())));
     if (test)
@@ -332,7 +337,8 @@ fty_proto_t * assetToFtyProto(const fty::Asset& asset, const std::string& operat
         std::string parentIname = asset.getInternalName();
         if(!parentIname.empty())
         {
-            zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(std::to_string(selectAssetProperty<int>("id_parent", "name", asset.getInternalName())).c_str())));
+            std::string parentId = std::to_string(selectAssetProperty<int>("id_parent", "name", asset.getInternalName()));
+            zhash_insert(aux, "parent", const_cast<void *>(reinterpret_cast<const void *>(parentId.c_str())));
         }
         else
         {
@@ -356,7 +362,7 @@ fty::Asset ftyProtoToAsset(fty_proto_t * proto, bool extAttributeReadOnly, bool 
 {
     if (fty_proto_id(proto) != FTY_PROTO_ASSET)
     {
-        throw std::invalid_argument("Wrong fty-proto type");
+        throw std::invalid_argument("Wrong message type");
     }
 
     fty::Asset asset;

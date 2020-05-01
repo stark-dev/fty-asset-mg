@@ -207,8 +207,16 @@ static constexpr const char* METADATA_NO_ERROR_IF_EXIST = "NO_ERROR_IF_EXIST";
 
 //  Structure of our class
 
+static void destroyMlmClient(mlm_client_t* client)
+{
+    mlm_client_destroy(&client);
+}
+
 class FtyAssetServer
 {
+    using mlmClientPtr = std::unique_ptr<mlm_client_t, decltype(&destroyMlmClient)>;
+    using msgBusPtr    = std::unique_ptr<messagebus::MessageBus>;
+
     public:
         FtyAssetServer();
         ~FtyAssetServer() = default;
@@ -238,24 +246,19 @@ class FtyAssetServer
         void connectMailboxClientNg();
         void receiveMailboxClientNg(const std::string& query);
 
-        static void destroyMlmClient(mlm_client_t* client)
-        {
-            mlm_client_destroy(&client);
-        }
-
     private:
-        bool                          m_testMode = false;
-        std::string                   m_agentName = "asset-agent";
-        std::string                   m_mailboxEndpoint = "ipc://@/malamute";
-        std::string                   m_streamEndpoint = "ipc://@/malamute";
-        LIMITATIONS_STRUCT            m_limitations;
+        bool                m_testMode        = false;
+        std::string         m_agentName       = "asset-agent";
+        std::string         m_mailboxEndpoint = "ipc://@/malamute";
+        std::string         m_streamEndpoint  = "ipc://@/malamute";
+        LIMITATIONS_STRUCT  m_limitations;
 
-        std::unique_ptr<mlm_client_t, decltype(&FtyAssetServer::destroyMlmClient)> m_mailboxClient;
-        std::unique_ptr<mlm_client_t, decltype(&FtyAssetServer::destroyMlmClient)> m_streamClient;
+        mlmClientPtr        m_mailboxClient;
+        mlmClientPtr        m_streamClient;
 
         // new generation interface
-        std::string                   m_agentNameNg = "asset-agent-ng";
-        std::unique_ptr<messagebus::MessageBus> m_mailboxClientNg;
+        std::string         m_agentNameNg     = "asset-agent-ng";
+        msgBusPtr           m_mailboxClientNg;
 
         // topic handlers
         void handleAssetManipulationReq(const messagebus::Message & msg);
@@ -263,8 +266,8 @@ class FtyAssetServer
 
 FtyAssetServer::FtyAssetServer()
     :
-    m_mailboxClient(mlm_client_new(), &FtyAssetServer::destroyMlmClient),
-    m_streamClient(mlm_client_new(), &FtyAssetServer::destroyMlmClient)
+    m_mailboxClient(mlm_client_new(), &destroyMlmClient),
+    m_streamClient(mlm_client_new(), &destroyMlmClient)
 {
     m_limitations.max_active_power_devices = -1;
     m_limitations.global_configurability = 1;
@@ -352,9 +355,6 @@ void FtyAssetServer::handleAssetManipulationReq(const messagebus::Message & msg)
     {
         throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
     }
-    
-    std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-publisher"));
-    publisher->connect();
 
     // response message
     messagebus::Message response;
@@ -377,9 +377,10 @@ void FtyAssetServer::handleAssetManipulationReq(const messagebus::Message & msg)
             noErrorIfExist = (msg.metaData().at(METADATA_NO_ERROR_IF_EXIST) == "true");
         }
     } */
+    const std::string& messageSubject = msg.metaData().at(messagebus::Message::SUBJECT);
 
     // Request to add a new asset into the DB   
-    if(msg.metaData().at(messagebus::Message::SUBJECT) == "CREATE")
+    if(messageSubject == "CREATE")
     {
         log_debug("[handle asset manipulation] : subject CREATE");
 
@@ -402,22 +403,9 @@ void FtyAssetServer::handleAssetManipulationReq(const messagebus::Message & msg)
 
             // send response
             log_debug("[handle asset manipulation] : sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+            m_mailboxClientNg->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
             // TODO send notification
-        }
-        catch (tntdb::Error &e)
-        {
-            log_error(e.what());
-            // create response (error)
-            response = createResponse(
-                "CREATE",
-                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                m_agentNameNg,
-                msg.metaData().find(messagebus::Message::FROM)->second,
-                messagebus::STATUS_KO,
-                TRANSLATE_ME("Database error")
-            );
         }
         catch (std::exception& e)
         {
@@ -433,11 +421,13 @@ void FtyAssetServer::handleAssetManipulationReq(const messagebus::Message & msg)
             );
 
             // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+            log_debug("[handle asset manipulation] : sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+            m_mailboxClientNg->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
         }
+    
     }
     // Request to update an existing asset into the DB
-    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "UPDATE")
+    else if(messageSubject == "UPDATE")
     {
         log_debug("[handle asset manipulation] : subject UPDATE");
 
@@ -460,22 +450,10 @@ void FtyAssetServer::handleAssetManipulationReq(const messagebus::Message & msg)
             );
 
             // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+            log_debug("[handle asset manipulation] : sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+            m_mailboxClientNg->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
             // TODO send notification
-        }
-        catch (tntdb::Error &e)
-        {
-            log_error(e.what());
-            // create response (error)
-            response = createResponse(
-                "UPDATE",
-                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                m_agentNameNg,
-                msg.metaData().find(messagebus::Message::FROM)->second,
-                messagebus::STATUS_KO,
-                TRANSLATE_ME("Database error")
-            );
         }
         catch (std::exception& e)
         {
@@ -491,17 +469,20 @@ void FtyAssetServer::handleAssetManipulationReq(const messagebus::Message & msg)
             );
 
             // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+            log_debug("[handle asset manipulation] : sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+            m_mailboxClientNg->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
         }
+    
     }
     // Request to delete an existing asset from the DB
-    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "DELETE")
+    else if(messageSubject == "DELETE")
     {
         // TODO not implemented yet
         log_debug("[handle asset manipulation] : subject DELETE");
+    
     }
     // Return the status of the requested asset
-    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "GET")
+    else if(messageSubject == "GET")
     {
         log_debug("[handle asset manipulation] : subject GET");
 
@@ -521,20 +502,8 @@ void FtyAssetServer::handleAssetManipulationReq(const messagebus::Message & msg)
             );
 
             // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-        }
-        catch (tntdb::Error &e)
-        {
-            log_error(e.what());
-            // create response (error)
-            response = createResponse(
-                "GET",
-                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                m_agentNameNg,
-                msg.metaData().find(messagebus::Message::FROM)->second,
-                messagebus::STATUS_KO,
-                TRANSLATE_ME("Database error")
-            );
+            log_debug("[handle asset manipulation] : sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+            m_mailboxClientNg->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
         }
         catch (std::exception& e)
         {
@@ -550,11 +519,13 @@ void FtyAssetServer::handleAssetManipulationReq(const messagebus::Message & msg)
             );
 
             // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+            log_debug("[handle asset manipulation] : sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+            m_mailboxClientNg->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
         }
+    
     }
     // Return a list of all assets in the system
-    else if(msg.metaData().at(messagebus::Message::SUBJECT) == "LIST")
+    else if(messageSubject == "LIST")
     {
         log_debug("[handle asset manipulation] : subject LIST");
 
@@ -580,20 +551,8 @@ void FtyAssetServer::handleAssetManipulationReq(const messagebus::Message & msg)
             );
 
             // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-        }
-        catch (tntdb::Error &e)
-        {
-            log_error(e.what());
-            // create response (error)
-            response = createResponse(
-                "LIST",
-                msg.metaData().find(messagebus::Message::CORRELATION_ID)->second,
-                m_agentNameNg,
-                msg.metaData().find(messagebus::Message::FROM)->second,
-                messagebus::STATUS_KO,
-                TRANSLATE_ME("Database error")
-            );
+            log_debug("[handle asset manipulation] : sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+            m_mailboxClientNg->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
         }
         catch (std::exception& e)
         {
@@ -609,7 +568,8 @@ void FtyAssetServer::handleAssetManipulationReq(const messagebus::Message & msg)
             );
 
             // send response
-            publisher->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+            log_debug("[handle asset manipulation] : sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+            m_mailboxClientNg->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
         }
     }
     else
@@ -1435,21 +1395,28 @@ static void
         zmsg_destroy (&reply);
         return;
     }
-    fty_proto_t *fmsg = fty_proto_decode (zmessage_p);
-    if (! fmsg) {
+    fty_proto_t *proto = fty_proto_decode (zmessage_p);
+    if (! proto) {
         log_error ("%s:\tASSET_MANIPULATION: failed to decode message", client_name.c_str());
         zmsg_destroy (&reply);
         return;
     }
 
+    fty_proto_print(proto);
+
     // get operation from message
-    const char *operation = fty_proto_operation (fmsg);
+    const char *operation = fty_proto_operation (proto);
     
     try
     {
         // get asset from fty-proto
         fty::Asset asset;
-        asset = ftyProtoToAsset(fmsg, read_only, config.getTestMode());
+        
+        asset = ftyProtoToAsset(proto, read_only, config.getTestMode());
+
+        std::stringstream d;
+        asset.dump(d);
+        log_debug("%s", d.str().c_str());
 
         // asset manipulation is disabled
         if(config.getGlobalConfigurability() == 0)
@@ -1488,7 +1455,7 @@ static void
     catch(const std::exception& e)
     {
         log_error (e.what());
-        fty_proto_print (fmsg);
+        fty_proto_print (proto);
         zmsg_addstr (reply, "ERROR");
         zmsg_addstr (reply, e.what());
     }
@@ -1499,7 +1466,7 @@ static void
         "ASSET_MANIPULATION", NULL, 5000, &reply
     );
 
-    fty_proto_destroy (&fmsg);
+    fty_proto_destroy (&proto);
     zmsg_destroy (&reply);
 }
 

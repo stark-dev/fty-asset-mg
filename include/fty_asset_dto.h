@@ -23,7 +23,6 @@
 
 #include <map>
 #include <string>
-
 #include <fty_common.h>
 
 #include <cxxtools/serializationinfo.h>
@@ -40,6 +39,15 @@ namespace fty
 
     const std::string assetStatusToString(AssetStatus status);
     AssetStatus stringToAssetStatus(const std::string& str);
+
+    // extended properties
+    static constexpr const char *EXT_UUID                             = "uuid";
+    static constexpr const char *EXT_CREATE_TS                        = "create_ts";
+    static constexpr const char *EXT_CREATE_USER                      = "create_user";
+    static constexpr const char *EXT_NAME                             = "name";
+    static constexpr const char *EXT_MODEL                            = "model";
+    static constexpr const char *EXT_MANUFACTURER                     = "manufacturer";
+    static constexpr const char *EXT_SERIAL_NO                        = "serial_no";
 
     // WARNING keep consistent with DB table t_bios_asset_element_type
     static constexpr const char *TYPE_UNKNOWN                         = "unknown";         // 0
@@ -138,8 +146,13 @@ namespace fty
         int                  getPriority() const;
         const std::string&   getAssetTag() const;
         const Asset::ExtMap& getExt() const;
+        // ext param getters (return empty string if key not found)
         const std::string&   getExtEntry(const std::string& key) const;
         bool                 isExtEntryReadOnly(const std::string& key) const;
+        const std::string&   getUuid() const;
+        const std::string&   getManufacturer() const;
+        const std::string&   getModel() const;
+        const std::string&   getSerialNo() const;
 
         // setters
         void setInternalName(const std::string& internalName);
@@ -151,6 +164,9 @@ namespace fty
         void setAssetTag(const std::string& assetTag);
         void setExt(const Asset::ExtMap& map);
         void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false);
+
+        // dump
+        void dump(std::ostream& os);
 
         // overload equality and inequality check
         bool operator== (const Asset &asset) const;

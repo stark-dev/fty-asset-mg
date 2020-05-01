@@ -26,6 +26,7 @@
 @end
 */
 
+
 #include "fty_asset_classes.h"
 #include <cxxtools/jsonserializer.h>
 
@@ -415,53 +416,53 @@ long insertAssetToDB(const fty::Asset& asset)
 {
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
     tntdb::Statement statement;
-
+    
     // if parent iname is empty, set parent id to NULL
+    const char* query_parent_null =
+        "INSERT INTO t_bios_asset_element " \
+        "(name, id_type, id_subtype, id_parent, status, priority, asset_tag) " \
+        "VALUES (" \
+        ":name, " \
+        "(SELECT id_asset_element_type from t_bios_asset_element_type where name = :type), " \
+        "(SELECT id_asset_device_type from t_bios_asset_device_type where name = :subtype), " \
+        "NULL, " \
+        ":status, " \
+        ":priority, " \
+        ":asset_tag)";
+    
+    const char* query_with_parent =
+        "INSERT INTO t_bios_asset_element " \
+        "(name, id_type, id_subtype, id_parent, status, priority, asset_tag) " \
+        "VALUES (" \
+        ":name, " \
+        "(SELECT id_asset_element_type from t_bios_asset_element_type where name = :type), " \
+        "(SELECT id_asset_device_type from t_bios_asset_device_type where name = :subtype), " \
+        "(SELECT id_asset_element from (SELECT * FROM t_bios_asset_element) AS e where e.name = :parent), " \
+        ":status, " \
+        ":priority, " \
+        ":asset_tag)";
+
     if(asset.getParentIname().empty())
     {
-        statement = conn.prepareCached (
-            " INSERT INTO t_bios_asset_element "
-            " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
-            " VALUES ("
-            " :name, "
-            " (SELECT id_asset_element_type from t_bios_asset_element_type where name = ':type'), "
-            " (SELECT id_asset_device_type from t_bios_asset_device_type where name = ':subtype'), "
-            " NULL, "
-            " :status, "
-            " :priority, "
-            " :asset_tag) "
-        );
+        statement = conn.prepareCached(query_parent_null);
     }
     else
     {
-        statement = conn.prepareCached (
-            " INSERT INTO t_bios_asset_element "
-            " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
-            " VALUES ("
-            " :name, "
-            " (SELECT id_asset_element_type from t_bios_asset_element_type where name = ':type'), "
-            " (SELECT id_asset_device_type from t_bios_asset_device_type where name = ':subtype'), "
-            " (SELECT id_asset_element from (SELECT * FROM t_bios_asset_element) AS e where e.name = ':id_parent'), "
-            " :status, "
-            " :priority, "
-            " :asset_tag) "
-        );
+        statement = conn.prepareCached(query_with_parent);
+        statement.set("parent", asset.getParentIname());
     }
-
-    statement.set ("name", asset.getInternalName());
-    statement.set ("type", asset.getAssetType());
-    statement.set ("subtype", asset.getAssetSubtype());
-    statement.set ("status", fty::assetStatusToString(asset.getAssetStatus()));
-    statement.set ("priority", asset.getPriority());
-    statement.set ("asset_tag", asset.getAssetTag());
-
-    if(!asset.getParentIname().empty()) statement.set ("id_parent", asset.getParentIname());
-
+    statement.set("name", asset.getInternalName());
+    statement.set("type", asset.getAssetType());
+    statement.set("subtype", asset.getAssetSubtype());
+    statement.set("status", fty::assetStatusToString(asset.getAssetStatus()));
+    statement.set("priority", asset.getPriority());
+    asset.getAssetTag().empty() ? statement.setNull("asset_tag") : statement.set("asset_tag", asset.getAssetTag());
+    
     statement.execute();
 
     // TODO get id of last inserted element (race condition may occur, use a select statement instead)
     long assetIndex = conn.lastInsertId();
-    log_debug("[t_bios_asset_element]: inserted asset with ID %ld", assetIndex);
+    log_debug("[dbhelpers]: inserted asset with ID %ld", assetIndex);
 
     return assetIndex;
 }
@@ -472,64 +473,60 @@ long updateAssetToDB(const fty::Asset& asset)
     tntdb::Statement statement;
 
     // if parent iname is empty, set parent id to NULL
+    const char* query_parent_null =
+        "UPDATE t_bios_asset_element SET " \
+        "id_type = (SELECT id_asset_element_type from t_bios_asset_element_type where name = :type), " \
+        "id_subtype = (SELECT id_asset_device_type from t_bios_asset_device_type where name = :subtype), " \
+        "id_parent = NULL, " \
+        "status = :status, " \
+        "priority = :priority, " \
+        "asset_tag = :asset_tag "\
+        "WHERE name = :name";
+    
+    const char* query_with_parent =
+        "UPDATE t_bios_asset_element SET " \
+        "id_type = (SELECT id_asset_element_type from t_bios_asset_element_type where name = :type), " \
+        "id_subtype = (SELECT id_asset_device_type from t_bios_asset_device_type where name = :subtype), " \
+        "id_parent = (SELECT id_asset_element from (SELECT * FROM t_bios_asset_element) AS e where e.name = :parent), " \
+        "status = :status, " \
+        "priority = :priority, " \
+        "asset_tag = :asset_tag "\
+        "WHERE name = :name";
+    
     if(asset.getParentIname().empty())
     {
-        statement = conn.prepareCached (
-            " INSERT INTO t_bios_asset_element "
-            " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
-            " VALUES ("
-            " :name, "
-            " (SELECT id_asset_element_type from t_bios_asset_element_type where name = ':type'), "
-            " (SELECT id_asset_device_type from t_bios_asset_device_type where name = ':subtype'), "
-            " NULL, "
-            " :status, "
-            " :priority, "
-            " :asset_tag) "
-            " ON DUPLICATE KEY UPDATE name = :name "
-        );
+        statement = conn.prepareCached(query_parent_null);
     }
     else
     {
-        statement = conn.prepareCached (
-            " INSERT INTO t_bios_asset_element "
-            " (name, id_type, id_subtype, id_parent, status, priority, asset_tag) "
-            " VALUES ("
-            " :name, "
-            " (SELECT id_asset_element_type from t_bios_asset_element_type where name = ':type'), "
-            " (SELECT id_asset_device_type from t_bios_asset_device_type where name = ':subtype'), "
-            " (SELECT id_asset_element from (SELECT * FROM t_bios_asset_element) AS e where e.name = ':id_parent'), "
-            " :status, "
-            " :priority, "
-            " :asset_tag) "
-            " ON DUPLICATE KEY UPDATE name = :name "
-        );
+        statement = conn.prepareCached(query_with_parent);
+        statement.set("parent", asset.getParentIname());
     }
-
-    statement.set ("name", asset.getInternalName());
-    statement.set ("type", asset.getAssetType());
-    statement.set ("subtype", asset.getAssetSubtype());
-    statement.set ("status", fty::assetStatusToString(asset.getAssetStatus()));
-    statement.set ("priority", asset.getPriority());
-    statement.set ("asset_tag", asset.getAssetTag());
-
-    if(!asset.getParentIname().empty()) statement.set ("id_parent", asset.getParentIname());
-
+    statement.set("name", asset.getInternalName());
+    statement.set("type", asset.getAssetType());
+    statement.set("subtype", asset.getAssetSubtype());
+    statement.set("status", fty::assetStatusToString(asset.getAssetStatus()));
+    statement.set("priority", asset.getPriority());
+    asset.getAssetTag().empty() ? statement.setNull("asset_tag") : statement.set("asset_tag", asset.getAssetTag());
+    
     statement.execute();
 
-    // TODO get id of last inserted element (race condition may occur, use a select statement instead)
-    long assetIndex = conn.lastInsertId();
-    log_debug("[t_bios_asset_element]: updated asset with ID %ld", assetIndex);
+    long assetIndex = selectAssetProperty<long>("id_asset_element", "name", asset.getInternalName());
+    log_debug("[dbhelpers]: updated asset with ID %ld", assetIndex);
 
     return assetIndex;
 }
 
 void updateAssetExtProperties(const fty::Asset& asset)
 {
+    long assetIndex = selectAssetProperty<long>("id_asset_element", "name", asset.getInternalName());
+
+    // WARNING the update query works until (keytag, id_asset_element) are declared as UNIQUE INDEX
     constexpr const char* insertExtProperties = 
         " INSERT INTO t_bios_asset_ext_attributes " \
         " (keytag, value, id_asset_element, read_only) " \
         " VALUES " \
-        " ( :keytag, :value, (SELECT id_asset_element FROM t_bios_asset_element WHERE name=:device_name), :readonly )" \
+        " ( :keytag, :value, :asset_id, :readonly )" \
         " ON DUPLICATE KEY" \
         " UPDATE " \
         " value = VALUES (value)," \
@@ -543,15 +540,13 @@ void updateAssetExtProperties(const fty::Asset& asset)
 
     tntdb::Statement st = conn.prepareCached(insertExtProperties);
 
-    const std::string& deviceName = asset.getInternalName();
-
     for (const auto& property : asset.getExt())
     {
         bool readOnly = (property.first == "uuid" ? true : property.second.second);
 
         st.set ("keytag", property.first).
             set ("value", property.second.first).
-            set ("device_name", deviceName).
+            set ("asset_id", assetIndex).
             set ("readonly", readOnly).
             execute ();
     }
@@ -609,17 +604,15 @@ static fty::Asset readAssetFromRow(tntdb::Connection& conn, const tntdb::Row& ro
         set ("asset_id", assetId).
         select();
     
-    for (tntdb::Result::const_iterator ext_it = result.begin(); ext_it != result.end(); ++ext_it)
+    for(const auto& row : result)
     {
         std::string keytag;
         std::string value;
         bool readOnly = false;
 
-        tntdb::Row ext_row = *ext_it;
-
-        ext_row.reader().get(keytag)
-                    .get(value)
-                    .get(readOnly);
+        row.reader().get(keytag)
+            .get(value)
+            .get(readOnly);
         
         asset.setExtEntry(keytag, value, readOnly);
     }
@@ -662,9 +655,9 @@ std::vector<fty::Asset> getAllAssetsFromDB()
 
     tntdb::Statement statement = conn.prepareCached(selectAll);
     tntdb::Result result = statement.select();
-    for (tntdb::Result::const_iterator it = result.begin(); it != result.end(); ++it)
+    for (const auto& row : result)
     {
-        fty::Asset asset = readAssetFromRow(conn, *it);
+        fty::Asset asset = readAssetFromRow(conn, row);
         assetVector.push_back(asset);
     }
 
