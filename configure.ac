@@ -749,6 +749,151 @@ dnl END of PKG_CHECK_MODULES and/or direct tests for libmagic
 dnl END of enabled attempts to search for libmagic
 
 
+was_openssl_check_lib_detected=no
+
+search_openssl="yes"
+
+AC_ARG_WITH([openssl],
+    [
+        AS_HELP_STRING([--with-openssl],
+        [yes or no. Optionally specify openssl prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
+    ],
+    [
+        search_openssl="yes"
+    ],
+    [
+        search_openssl="yes"
+    ])
+AS_CASE([x"${with_openssl}"],
+    [xyes], [search_openssl="yes"],
+    [xno],  [search_openssl="no"])
+
+dnl We do not abort right now, because the maintainer/developer may have
+dnl something particular in mind, e.g. to build just parts of a project.
+AS_IF([test x"${search_openssl}" = xno],
+    [AC_MSG_WARN([Required dependency on openssl was explicitly disabled during configuration by '--with-openssl=no'; subsequent full build of fty-asset may fail])])
+
+AS_IF([test x"${search_openssl}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
+    found_pkgconfig=""
+    PKG_CHECK_MODULES([openssl], [openssl >= 0.0.0],
+    [
+        was_openssl_check_lib_detected=pkgcfg
+        found_pkgconfig="openssl"
+    ],
+    [
+        AC_MSG_WARN([Attribute 'test' is not set on zproject dependency 'openssl' - please ensure it is set])
+    ])
+
+dnl END of PKG_CHECK_MODULES and/or direct tests for openssl
+    AS_CASE(["x${was_openssl_check_lib_detected}"],
+        [xpkgcfg], [
+                PKGCFG_NAMES_PRIVATE="$PKGCFG_NAMES_PRIVATE ${found_pkgconfig}"
+                CFLAGS="${openssl_CFLAGS} ${CFLAGS}"
+                LIBS="${openssl_LIBS} ${LIBS}"
+            ],
+        [xyes], [
+                CFLAGS="${openssl_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${openssl_synthetic_libs} ${LDFLAGS}"
+                LIBS="${openssl_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([openssl_CFLAGS],[${openssl_synthetic_cflags}])
+                AC_SUBST([openssl_LIBS],[${openssl_synthetic_libs}])
+            ],
+        [xno], [
+            AC_MSG_ERROR([Cannot find pkg-config metadata for openssl 0.0.0 or higher])
+    ])
+])
+dnl END of enabled attempts to search for openssl
+
+
+was_uuid_check_lib_detected=no
+
+search_uuid="yes"
+
+AC_ARG_WITH([uuid],
+    [
+        AS_HELP_STRING([--with-uuid],
+        [yes or no. Optionally specify uuid prefix (directory where its include/ and lib/ are located), but that is only used if pkgconfig metadata is not found first])
+    ],
+    [
+        search_uuid="yes"
+    ],
+    [
+        search_uuid="yes"
+    ])
+AS_CASE([x"${with_uuid}"],
+    [xyes], [search_uuid="yes"],
+    [xno],  [search_uuid="no"])
+
+dnl We do not abort right now, because the maintainer/developer may have
+dnl something particular in mind, e.g. to build just parts of a project.
+AS_IF([test x"${search_uuid}" = xno],
+    [AC_MSG_WARN([Required dependency on uuid was explicitly disabled during configuration by '--with-uuid=no'; subsequent full build of fty-asset may fail])])
+
+AS_IF([test x"${search_uuid}" = xyes], [
+    # Archive previously detected and supplied flags
+    PRE_SEARCH_CFLAGS="${CFLAGS}"
+    PRE_SEARCH_LIBS="${LIBS}"
+
+    found_pkgconfig=""
+    PKG_CHECK_MODULES([uuid], [uuid >= 0.0.0],
+    [
+        was_uuid_check_lib_detected=pkgcfg
+        found_pkgconfig="uuid"
+    ],
+    [
+        AC_MSG_NOTICE([Package uuid not found; falling back to defined compilability tests])
+
+        uuid_synthetic_cflags=""
+        uuid_synthetic_libs="-luuid"
+
+        if test -n "${with_uuid}" && test x"${with_uuid}" != xyes && test x"${with_uuid}" != xno; then
+            if test -r "${with_uuid}/include/uuid/uuid.h"; then
+                uuid_synthetic_cflags="-I${with_uuid}/include"
+                uuid_synthetic_libs="-L${with_uuid}/lib -luuid"
+            else
+            AC_MSG_ERROR([Header file ${with_uuid}/include/uuid/uuid.h was not found. Please check uuid prefix])
+            fi
+        else
+            AC_CHECK_HEADER([uuid/uuid.h], [],
+            AC_MSG_ERROR([Header file uuid/uuid.h was not found in default search paths])
+                )
+        fi
+
+        AC_CHECK_LIB([uuid], [uuid_generate],
+            [
+                was_uuid_check_lib_detected=yes
+                PKGCFG_LIBS_PRIVATE="$PKGCFG_LIBS_PRIVATE -luuid"
+            ],
+            [AC_MSG_ERROR([cannot link with -luuid, install uuid])])
+    ])
+
+dnl END of PKG_CHECK_MODULES and/or direct tests for uuid
+    AS_CASE(["x${was_uuid_check_lib_detected}"],
+        [xpkgcfg], [
+                PKGCFG_NAMES_PRIVATE="$PKGCFG_NAMES_PRIVATE ${found_pkgconfig}"
+                CFLAGS="${uuid_CFLAGS} ${CFLAGS}"
+                LIBS="${uuid_LIBS} ${LIBS}"
+            ],
+        [xyes], [
+                CFLAGS="${uuid_synthetic_cflags} ${CFLAGS}"
+                LDFLAGS="${uuid_synthetic_libs} ${LDFLAGS}"
+                LIBS="${uuid_synthetic_libs} ${LIBS}"
+
+                AC_SUBST([uuid_CFLAGS],[${uuid_synthetic_cflags}])
+                AC_SUBST([uuid_LIBS],[${uuid_synthetic_libs}])
+            ],
+        [xno], [
+            AC_MSG_ERROR([Cannot find pkg-config metadata for uuid 0.0.0 or higher])
+    ])
+])
+dnl END of enabled attempts to search for uuid
+
+
 was_fty_common_logging_check_lib_detected=no
 
 search_libfty_common_logging="yes"

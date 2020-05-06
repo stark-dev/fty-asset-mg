@@ -32,14 +32,21 @@
 
 #include "dbhelpers.h"
 #include "fty_asset_manipulation.h"
+#include <stdlib.h>
 
 #include <string>
 
 #include <tntdb/row.h>
 #include <tntdb/connect.h>
 
+#include <openssl/ssl.h>
+#include <uuid/uuid.h>
+
 #include <ftyproto.h>
 #include <zhash.h>
+
+// needed for UUID gen
+#define EATON_NS "\x93\x3d\x6c\x80\xde\xa9\x8c\x6b\xd1\x11\x8b\x3b\x46\xa1\x81\xf1"
 
 /// create asset name from type/subtype and integer ID
 static std::string createAssetName(const std::string& type, const std::string& subtype, long index)
@@ -119,10 +126,45 @@ std::string generateCurrentTimestamp()
     return std::string(timeString);
 }
 
-/// generate asset UUID (placeholder)
-std::string generateUUID()
+/// generate asset UUID (if manufacture, model and serial are known -> EATON namespace UUID, otherwise random)
+std::string generateUUID(const std::string& manufacturer, const std::string& model, const std::string& serial)
 {
-    return std::string("ffffffff-ffff-ffff-ffff-ffffffffffff");
+    std::string uuid;
+
+    if(!manufacturer.empty() && !model.empty() && !serial.empty())
+    {
+        log_debug("[asset_manufacturer] generate full UUID");
+
+        std::string src = std::string(EATON_NS) + manufacturer + model + serial;
+        // hash must be zeroed first
+        unsigned char *hash = (unsigned char *)calloc (SHA_DIGEST_LENGTH, sizeof(unsigned char));
+
+        SHA1((unsigned char*)src.c_str(), src.length(), hash);
+
+        hash[6] &= 0x0F;
+        hash[6] |= 0x50;
+        hash[8] &= 0x3F;
+        hash[8] |= 0x80;
+
+        char uuid_char[37];
+        uuid_unparse_lower(hash, uuid_char);
+
+        uuid = uuid_char;
+    }
+    else
+    {
+        log_debug("[asset_manufacturer] generate random UUID");
+
+        uuid_t u;
+        uuid_generate_random(u);
+
+        char uuid_char[37];
+        uuid_unparse_lower(u, uuid_char);
+
+        uuid = uuid_char;
+    }
+    
+    return uuid;
 }
 
 fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
@@ -172,10 +214,10 @@ fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test)
         updateAssetProperty("name", assetName, "id_asset_element", assetIndex);
 
         // add creation timestamp
-        createdAsset.setExtEntry("create_ts", generateCurrentTimestamp(), true);
+        createdAsset.setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
 
         // add UUID
-        createdAsset.setExtEntry("uuid", generateUUID(), true);
+        createdAsset.setExtEntry(fty::EXT_UUID, generateUUID(asset.getManufacturer(), asset.getModel(), asset.getSerialNo()), true);
 
         // update external properties
         log_debug ("Processing inventory for asset %s", createdAsset.getInternalName().c_str());

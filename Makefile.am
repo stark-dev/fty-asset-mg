@@ -19,6 +19,8 @@ AM_CPPFLAGS = \
     ${tntdb_CFLAGS} \
     ${malamute_CFLAGS} \
     ${magic_CFLAGS} \
+    ${openssl_CFLAGS} \
+    ${uuid_CFLAGS} \
     ${fty_common_logging_CFLAGS} \
     ${fty_proto_CFLAGS} \
     ${fty_common_db_CFLAGS} \
@@ -28,7 +30,7 @@ AM_CPPFLAGS = \
     -D__STDC_FORMAT_MACROS \
     -I$(srcdir)/include
 
-project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${malamute_LIBS} ${magic_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${fty_common_db_LIBS} ${fty_common_mlm_LIBS} ${fty_common_messagebus_LIBS} ${fty_asset_activator_LIBS}
+project_libs = ${libsodium_LIBS} ${libzmq_LIBS} ${czmq_LIBS} ${cxxtools_LIBS} ${tntdb_LIBS} ${malamute_LIBS} ${magic_LIBS} ${openssl_LIBS} ${uuid_LIBS} ${fty_common_logging_LIBS} ${fty_proto_LIBS} ${fty_common_db_LIBS} ${fty_common_mlm_LIBS} ${fty_common_messagebus_LIBS} ${fty_asset_activator_LIBS}
 
 SUBDIRS = doc
 SUBDIRS += include
@@ -56,6 +58,8 @@ EXTRA_DIST += \
     Findtntdb.cmake \
     Findmalamute.cmake \
     Findmagic.cmake \
+    Findopenssl.cmake \
+    Finduuid.cmake \
     Findfty_common_logging.cmake \
     Findfty_proto.cmake \
     Findfty_common_db.cmake \

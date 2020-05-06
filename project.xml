@@ -80,6 +80,16 @@
         repository = "https://github.com/42ity/libmagic.git"
         test = "magic_close"
         redhat_name = "file-devel" />
+    
+    <use project = "openssl"
+        header = "openssl/sha.h"
+        debian_name = "libssl-dev"
+        />
+    
+    <use project = "uuid"
+        header = "uuid/uuid.h"
+        debian_name = "libuuid"
+        />
 
     <!-- Note: pure C projects should use fty-log/fty_logger.h, C++ use fty_log.h -->
     <use project = "fty-common-logging" libname = "libfty_common_logging"
