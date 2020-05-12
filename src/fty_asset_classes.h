@@ -27,7 +27,7 @@
 #define FTY_ASSET_CLASSES_H_INCLUDED
 
 //  Platform definitions, must come first
-#include "platform.h"
+//#include "platform.h"
 
 //  External API
 #include "../include/fty-asset.h"

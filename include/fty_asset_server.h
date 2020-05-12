@@ -45,4 +45,26 @@ FTY_ASSET_EXPORT void
 }
 #endif
 
+static constexpr const char* FTY_ASSET_MAILBOX = "FTY.Q.ASSET.QUERY";
+// new interface mailbox subjects
+static constexpr const char* FTY_ASSET_SUBJECT_CREATE = "CREATE";
+static constexpr const char* FTY_ASSET_SUBJECT_UPDATE = "UPDATE";
+static constexpr const char* FTY_ASSET_SUBJECT_DELETE = "DELETE";
+static constexpr const char* FTY_ASSET_SUBJECT_GET    = "GET";
+static constexpr const char* FTY_ASSET_SUBJECT_LIST   = "LIST";
+
+// new interface topics
+static constexpr const char* FTY_ASSET_TOPIC_CREATED = "FTY.T.ASSET.CREATED";
+static constexpr const char* FTY_ASSET_TOPIC_UPDATED = "FTY.T.ASSET.UPDATED";
+static constexpr const char* FTY_ASSET_TOPIC_DELETED = "FTY.T.ASSET.DELETED";
+
+// new interface topic subjects
+static constexpr const char* FTY_ASSET_SUBJECT_CREATED = "CREATED";
+static constexpr const char* FTY_ASSET_SUBJECT_UPDATED = "UPDATED";
+static constexpr const char* FTY_ASSET_SUBJECT_DELETED = "DELETED";
+
+
+static constexpr const char* METADATA_TRY_ACTIVATE      = "TRY_ACTIVATE";
+static constexpr const char* METADATA_NO_ERROR_IF_EXIST = "NO_ERROR_IF_EXIST";
+
 #endif
