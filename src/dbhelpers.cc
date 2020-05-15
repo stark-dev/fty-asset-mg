@@ -585,6 +585,7 @@ static fty::Asset readAssetFromRow(tntdb::Connection& conn, const tntdb::Row& ro
         parentIname = selectAssetProperty<std::string>("name", "id_asset_element", parentId);
     }
 
+    asset.setId(assetId);
     asset.setInternalName(assetName);
     asset.setAssetType(assetType);
     asset.setAssetSubtype(assetSubtype);
@@ -615,6 +616,44 @@ static fty::Asset readAssetFromRow(tntdb::Connection& conn, const tntdb::Row& ro
             .get(readOnly);
         
         asset.setExtEntry(keytag, value, readOnly);
+    }
+
+    // Linked assets
+    {
+        auto sql = conn.prepareCached(
+            " SELECT l.id_asset_element_dest, e.name " \
+            " FROM v_bios_asset_link as l" \
+            "   INNER JOIN t_bios_asset_element as e ON l.id_asset_element_dest = e.id_asset_element"
+            " WHERE l.id_asset_element_src = :asset_id "\
+        );
+        tntdb::Result res = sql.set("asset_id", assetId).select();
+
+        std::vector<std::string> links;
+        for(const auto& row : result)
+        {
+            links.push_back(row.getValue("name").getString());
+        }
+
+        asset.setLinkedAssets(links);
+    }
+
+    // Children
+    {
+        auto sql = conn.prepareCached(
+            " SELECT name " \
+            " FROM t_bios_asset_element" \
+            " WHERE id_parent = :asset_id "\
+        );
+
+        tntdb::Result res = sql.set("asset_id", assetId).select();
+
+        std::vector<std::string> children;
+        for(const auto& row : result)
+        {
+            children.push_back(row.getValue("name").getString());
+        }
+
+        asset.setChildren(children);
     }
 
     return asset;

@@ -136,6 +136,7 @@ public:
     using ExtMap = std::map<std::string, std::pair<std::string, bool>>;
 
     // getters
+    uint32_t             getId() const;
     const std::string&   getInternalName() const;
     AssetStatus          getAssetStatus() const;
     const std::string&   getAssetType() const;
@@ -151,8 +152,11 @@ public:
     const std::string& getManufacturer() const;
     const std::string& getModel() const;
     const std::string& getSerialNo() const;
+    const std::vector<std::string>& getLinkedAssets() const;
+    const std::vector<std::string>& getChildren() const;
 
     // setters
+    void setId(uint32_t id);
     void setInternalName(const std::string& internalName);
     void setAssetStatus(AssetStatus assetStatus);
     void setAssetType(const std::string& assetType);
@@ -162,7 +166,8 @@ public:
     void setAssetTag(const std::string& assetTag);
     void setExt(const Asset::ExtMap& map);
     void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false);
-
+    void setLinkedAssets(const std::vector<std::string>& assets);
+    void setChildren(const std::vector<std::string>& assets);
     // dump
     void dump(std::ostream& os);
 
@@ -175,6 +180,7 @@ public:
     static Asset fromJson(const std::string& json);
 
 private:
+    uint32_t m_id = 0;
     // internal name = <subtype>-<id>)
     std::string m_internalName;
 
@@ -190,6 +196,8 @@ private:
     std::string m_assetTag;
     // ext map storage (asset-specific values with readonly attribute)
     ExtMap m_ext;
+    std::vector<std::string> m_linkedAssets;
+    std::vector<std::string> m_children;
 };
 
 void operator<<=(cxxtools::SerializationInfo& si, const Asset& asset);

@@ -75,6 +75,12 @@ AssetStatus stringToAssetStatus(const std::string& str)
 }
 
 // getters
+
+uint32_t Asset::getId() const
+{
+    return m_id;
+}
+
 const std::string& Asset::getInternalName() const
 {
     return m_internalName;
@@ -160,7 +166,23 @@ const std::string& Asset::getSerialNo() const
     return getExtEntry(EXT_SERIAL_NO);
 }
 
+const std::vector<std::string>& Asset::getLinkedAssets() const
+{
+    return m_linkedAssets;
+}
+
+const std::vector<std::string>& Asset::getChildren() const
+{
+    return m_children;
+}
+
 // setters
+
+void Asset::setId(uint32_t id)
+{
+    m_id = id;
+}
+
 void Asset::setInternalName(const std::string& internalName)
 {
     m_internalName = internalName;
@@ -204,6 +226,16 @@ void Asset::setExt(const Asset::ExtMap& map)
 void Asset::setExtEntry(const std::string& key, const std::string& value, bool readOnly)
 {
     m_ext[key] = std::make_pair(value, readOnly);
+}
+
+void Asset::setLinkedAssets(const std::vector<std::string>& assets)
+{
+    m_linkedAssets = assets;
+}
+
+void Asset::setChildren(const std::vector<std::string>& assets)
+{
+    m_children = assets;
 }
 
 void Asset::dump(std::ostream& os)
