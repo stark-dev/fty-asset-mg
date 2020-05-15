@@ -76,6 +76,11 @@ raven_target(shared ${PROJECT_NAME}
 
         src/actions/delete.cc
         src/actions/delete.h
+
+        src/asset/asset.cc
+        src/asset/asset.h
+        src/asset/asset-db.cc
+        src/asset/asset-db.h
     FLAGS
         -Wno-unused-parameter
         -Wno-ignored-qualifiers
@@ -100,13 +105,15 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
 
 raven_target(exe ${PROJECT_NAME}-test
     SOURCES
-        src/fty_asset_selftest.cc
+        src/test/main.cc
     INCLUDE_DIRS include
     USES
         cxxtools
         libczmq
         tntdb
         ${PROJECT_NAME}
+        mariadbd
+        libfty_common_db
 )
 
 ##############################################################################################################
