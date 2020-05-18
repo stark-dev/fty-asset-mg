@@ -33,14 +33,6 @@
 
 namespace fty {
 
-static constexpr const char* SI_STATUS   = "status";
-static constexpr const char* SI_TYPE     = "type";
-static constexpr const char* SI_SUB_TYPE = "sub_type";
-static constexpr const char* SI_NAME     = "name";
-static constexpr const char* SI_PRIORITY = "priority";
-static constexpr const char* SI_PARENT   = "parent";
-static constexpr const char* SI_EXT      = "ext";
-
 const std::string assetStatusToString(AssetStatus status)
 {
     std::string retVal;
@@ -265,84 +257,6 @@ bool Asset::operator!=(const Asset& asset) const
     return !(*this == asset);
 }
 
-// serialization and deserialization operators
-void operator<<=(cxxtools::SerializationInfo& si, const Asset& asset)
-{
-    // basic
-    si.addMember(SI_STATUS) <<= int(asset.getAssetStatus());
-    si.addMember(SI_TYPE) <<= asset.getAssetType();
-    si.addMember(SI_SUB_TYPE) <<= asset.getAssetSubtype();
-    si.addMember(SI_NAME) <<= asset.getInternalName();
-    si.addMember(SI_PRIORITY) <<= asset.getPriority();
-    si.addMember(SI_PARENT) <<= asset.getParentIname();
-    si.addMember(SI_EXT) <<= asset.getExt();
-}
-
-std::string Asset::toJson() const
-{
-    std::ostringstream output;
-
-    cxxtools::SerializationInfo si;
-    cxxtools::JsonSerializer    serializer(output);
-
-    si <<= *this;
-    serializer.serialize(si);
-
-    std::string json = output.str();
-
-    return json;
-}
-
-Asset Asset::fromJson(const std::string& json)
-{
-    Asset a;
-
-    std::istringstream input(json);
-
-    cxxtools::SerializationInfo si;
-    cxxtools::JsonDeserializer  deserializer(input);
-
-    deserializer.deserialize(si);
-
-    si >>= a;
-
-    return a;
-}
-
-void operator>>=(const cxxtools::SerializationInfo& si, Asset& asset)
-{
-    int         tmpInt;
-    std::string tmpString;
-
-    // status
-    si.getMember(SI_STATUS) >>= tmpInt;
-    asset.setAssetStatus(AssetStatus(tmpInt));
-
-    // type
-    si.getMember(SI_TYPE) >>= tmpString;
-    asset.setAssetType(tmpString);
-
-    // subtype
-    si.getMember(SI_SUB_TYPE) >>= tmpString;
-    asset.setAssetSubtype(tmpString);
-
-    // external name
-    si.getMember(SI_NAME) >>= tmpString;
-    asset.setInternalName(tmpString);
-
-    // priority
-    si.getMember(SI_PRIORITY) >>= tmpInt;
-    asset.setPriority(tmpInt);
-
-    // parend id
-    si.getMember(SI_PARENT) >>= tmpString;
-    asset.setParentIname(tmpString);
-
-    // ext attribute
-    Asset::ExtMap tmpMap;
-    si.getMember(SI_EXT) >>= tmpMap;
-    asset.setExt(tmpMap);
-}
 } // namespace fty
 
 //  --------------------------------------------------------------------------
@@ -543,44 +457,6 @@ void fty_asset_dto_test(bool verbose)
 
             if (asset != asset2) {
                 throw std::runtime_error("Inequality check failed");
-            }
-
-            printf(" *<=  Test #%s > OK\n", testNumber.c_str());
-            testsResults.emplace_back(" Test #" + testNumber + " " + testName, true);
-        } catch (const std::exception& e) {
-            printf(" *<=  Test #%s > Failed\n", testNumber.c_str());
-            printf("Error: %s\n", e.what());
-            testsResults.emplace_back(" Test #" + testNumber + " " + testName, false);
-        }
-    }
-
-    // JSON serialization/deserialization
-    testNumber = "3.1";
-    testName   = "JSON serialization and deserialization";
-    printf(
-        "\n----------------------------------------------------------------"
-        "-------\n");
-    {
-        printf(" *=>  Test #%s %s\n", testNumber.c_str(), testName.c_str());
-
-        try {
-            using namespace fty;
-
-            Asset asset;
-            asset.setInternalName("dc-0");
-            asset.setAssetStatus(AssetStatus::Nonactive);
-            asset.setAssetType(TYPE_DEVICE);
-            asset.setAssetSubtype(SUB_UPS);
-            asset.setParentIname("abc123");
-            asset.setExtEntry("testKey", "testValue");
-            asset.setPriority(4);
-
-            std::string jsonStr = asset.toJson();
-
-            Asset asset2 = Asset::fromJson(jsonStr);
-
-            if (asset != asset2) {
-                throw std::runtime_error("Assets do not match");
             }
 
             printf(" *<=  Test #%s > OK\n", testNumber.c_str());

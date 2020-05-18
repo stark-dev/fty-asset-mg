@@ -1,5 +1,4 @@
 #include "asset-server.h"
-#include "actions/delete.h"
 #include "fty_asset_classes.h"
 #include <fty_common_messagebus.h>
 #include <malamute.h>
@@ -196,7 +195,7 @@ void AssetServer::sendNotification(const messagebus::Message& msg)
         // REMOVE as soon as old interface is not needed anymore
         // old interface
         fty::Asset asset;
-        asset = fty::Asset::fromJson(msg.userData().back());
+        asset = fty::conversion::fromJson(msg.userData().back());
         send_create_or_update_asset(
             *this, asset.getInternalName(), "create", false /* read_only is not used */);
     } else if (subject == FTY_ASSET_SUBJECT_UPDATED) {
@@ -205,7 +204,7 @@ void AssetServer::sendNotification(const messagebus::Message& msg)
         // REMOVE as soon as old interface is not needed anymore
         // old interface
         fty::Asset asset;
-        asset = fty::Asset::fromJson(msg.userData().back()); // old interface replies only with updated asset
+        asset = fty::conversion::fromJson(msg.userData().back()); // old interface replies only with updated asset
         send_create_or_update_asset(
             *this, asset.getInternalName(), "update", false /* read_only is not used */);
     } else if (subject == FTY_ASSET_SUBJECT_DELETED) {
@@ -221,13 +220,13 @@ void AssetServer::createAsset(const messagebus::Message& msg)
 
     try {
         std::string userData     = msg.userData().front();
-        fty::Asset  asset        = fty::Asset::fromJson(userData);
+        fty::Asset  asset        = fty::conversion::fromJson(userData);
         fty::Asset  createdAsset = ::createAsset(asset, tryActivate, m_testMode);
 
         auto response = createMessage(FTY_ASSET_SUBJECT_CREATE,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
             msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK,
-            createdAsset.toJson());
+            fty::conversion::toJson(createdAsset));
 
         // send response
         log_debug("[handle asset manipulation] : sending response to %s",
@@ -236,7 +235,7 @@ void AssetServer::createAsset(const messagebus::Message& msg)
 
         // send notification
         messagebus::Message notification = createMessage(
-            FTY_ASSET_SUBJECT_CREATED, "", m_agentNameNg, "", messagebus::STATUS_OK, createdAsset.toJson());
+            FTY_ASSET_SUBJECT_CREATED, "", m_agentNameNg, "", messagebus::STATUS_OK, fty::conversion::toJson(createdAsset));
         sendNotification(notification);
     } catch (std::exception& e) {
         log_error(e.what());
@@ -261,22 +260,22 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
 
     try {
         std::string userData       = msg.userData().front();
-        fty::Asset  requestedAsset = fty::Asset::fromJson(userData);
+        fty::Asset  requestedAsset = fty::conversion::fromJson(userData);
 
         // data vector (contains asset before and after update)
         std::vector<std::string> assetJsonVector;
         // before update
-        assetJsonVector.push_back(getAssetFromDB(requestedAsset.getInternalName()).toJson());
+        assetJsonVector.push_back(fty::conversion::toJson(getAssetFromDB(requestedAsset.getInternalName())));
 
         fty::Asset updatedAsset = ::updateAsset(requestedAsset, tryActivate, m_testMode);
         // after update
-        assetJsonVector.push_back(updatedAsset.toJson());
+        assetJsonVector.push_back(fty::conversion::toJson(updatedAsset));
 
         // create response (ok)
         auto response = createMessage(FTY_ASSET_SUBJECT_UPDATE,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
             msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK,
-            updatedAsset.toJson());
+            fty::conversion::toJson(updatedAsset));
 
         // send response
         log_debug("[handle asset manipulation] : sending response to %s",
@@ -317,18 +316,16 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
         si.getMember("id").getValue(assetIname);
         fty::Asset asset = ::getAsset(assetIname, m_testMode);
 
-        fty::deleteAsset(asset, value(msg.metaData(), "RECURSIVE") == "YES");
+        // fty::deleteAsset(asset, value(msg.metaData(), "RECURSIVE") == "YES");
 
         response = createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
             value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
-            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK,
-            "");
+            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK, "");
 
     } catch (const std::exception& e) {
         response = createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
             value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
-            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_KO,
-            e.what());
+            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_KO, e.what());
     }
 
     m_assetMsgQueue->sendReply(value(msg.metaData(), messagebus::Message::REPLY_TO), response);
@@ -345,7 +342,7 @@ void AssetServer::getAsset(const messagebus::Message& msg)
         // create response (ok)
         auto response = createMessage(FTY_ASSET_SUBJECT_GET,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK, asset.toJson());
+            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK, fty::conversion::toJson(asset));
 
         // send response
         log_debug("[handle asset manipulation] : sending response to %s",
@@ -376,7 +373,7 @@ void AssetServer::listAsset(const messagebus::Message& msg)
         std::vector<std::string> jsonVector;
 
         for (const fty::Asset& asset : assetVector) {
-            jsonVector.push_back(asset.toJson());
+            jsonVector.push_back(fty::conversion::toJson(asset));
         }
 
         // create response (ok)

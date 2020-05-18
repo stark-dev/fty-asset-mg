@@ -1393,7 +1393,7 @@ static void test_asset_mailbox_handler(const messagebus::Message & msg)
         else if(msgSubject == FTY_ASSET_SUBJECT_GET)
         {
             std::string assetJson = msg.userData().front();
-            fty::Asset a = fty::Asset::fromJson(assetJson);
+            fty::Asset a = fty::conversion::fromJson(assetJson);
 
             std::string assetName = a.getInternalName();
 
@@ -2030,9 +2030,9 @@ fty_asset_server_test (bool /*verbose*/)
         msg.metaData().emplace(METADATA_TRY_ACTIVATE, "true");
         msg.metaData().emplace(METADATA_NO_ERROR_IF_EXIST, "true");
 
-        msg.userData().push_back(asset.toJson());
+        msg.userData().push_back(fty::conversion::toJson(asset));
 
-        assetTestMap.emplace(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, asset.toJson());
+        assetTestMap.emplace(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, fty::conversion::toJson(asset));
 
         log_info ("fty-asset-server-test:Test #13.1: send CREATE message");
         publisher->sendRequest(FTY_ASSET_MAILBOX, msg);
@@ -2048,9 +2048,9 @@ fty_asset_server_test (bool /*verbose*/)
         msg.metaData().emplace(METADATA_TRY_ACTIVATE, "true");
 
         msg.userData().clear();
-        msg.userData().push_back(asset.toJson());
+        msg.userData().push_back(fty::conversion::toJson(asset));
 
-        assetTestMap.emplace(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, asset.toJson());
+        assetTestMap.emplace(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, fty::conversion::toJson(asset));
 
         log_info ("fty-asset-server-test:Test #13.2: send UPDATE message");
         publisher->sendRequest(FTY_ASSET_MAILBOX, msg);

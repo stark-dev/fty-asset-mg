@@ -148,12 +148,12 @@ public:
     const std::string&   getAssetTag() const;
     const Asset::ExtMap& getExt() const;
     // ext param getters (return empty string if key not found)
-    const std::string& getExtEntry(const std::string& key) const;
-    bool               isExtEntryReadOnly(const std::string& key) const;
-    const std::string& getUuid() const;
-    const std::string& getManufacturer() const;
-    const std::string& getModel() const;
-    const std::string& getSerialNo() const;
+    const std::string&              getExtEntry(const std::string& key) const;
+    bool                            isExtEntryReadOnly(const std::string& key) const;
+    const std::string&              getUuid() const;
+    const std::string&              getManufacturer() const;
+    const std::string&              getModel() const;
+    const std::string&              getSerialNo() const;
     const std::vector<std::string>& getLinkedAssets() const;
     const std::vector<std::string>& getChildren() const;
 
@@ -177,10 +177,6 @@ public:
     bool operator==(const Asset& asset) const;
     bool operator!=(const Asset& asset) const;
 
-    // conversion to/from JSON
-    std::string  toJson() const;
-    static Asset fromJson(const std::string& json);
-
 private:
     uint32_t m_id = 0;
     // internal name = <subtype>-<id>)
@@ -197,13 +193,11 @@ private:
     // asset tag
     std::string m_assetTag;
     // ext map storage (asset-specific values with readonly attribute)
-    ExtMap m_ext;
+    ExtMap                   m_ext;
     std::vector<std::string> m_linkedAssets;
     std::vector<std::string> m_children;
 };
 
-void operator<<=(cxxtools::SerializationInfo& si, const Asset& asset);
-void operator>>=(const cxxtools::SerializationInfo& si, Asset& asset);
 } // namespace fty
 
 //  Self test of this class

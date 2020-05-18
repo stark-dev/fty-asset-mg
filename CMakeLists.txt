@@ -74,13 +74,15 @@ raven_target(shared ${PROJECT_NAME}
         src/topology/db/topology2.cc
         src/topology/db/topology2.h
 
-        src/actions/delete.cc
-        src/actions/delete.h
-
         src/asset/asset.cc
         src/asset/asset.h
         src/asset/asset-db.cc
         src/asset/asset-db.h
+
+        src/asset/conversion/json.cc
+        src/asset/conversion/fty-proto.cc
+        src/asset/conversion/full-asset.cc
+
     FLAGS
         -Wno-unused-parameter
         -Wno-ignored-qualifiers
