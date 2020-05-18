@@ -5,6 +5,7 @@
 #include <mariadb/mysql.h>
 #include <tntdb.h>
 #include <unistd.h>
+#include "src/asset/asset.h"
 
 class TestDB
 {
@@ -43,7 +44,9 @@ public:
         clearStrList(serverOptions);
         clearStrList(serverGroups);
         m_oldUrl = DBConn::url;
-        DBConn::url = "mysql:unix_socket=" + socket();
+        m_rcon = mysql_real_connect(m_con, nullptr, nullptr, nullptr, nullptr, 0, socket().c_str(), 0);
+        mysql_query(m_rcon, "create database test;");
+        DBConn::url = "mysql:unix_socket=" + socket() + ";db=test";
     }
 
     ~TestDB()
@@ -60,6 +63,11 @@ public:
     std::string socket() const
     {
         return "/tmp/" + m_name + ".sock";
+    }
+
+    MYSQL* rcon()
+    {
+        return m_rcon;
     }
 
 private:
@@ -92,14 +100,15 @@ private:
     MYSQL*      m_con;
     std::string m_name;
     std::string m_oldUrl;
+    MYSQL*      m_rcon;
 };
 
 TEST_CASE("Create db")
 {
     TestDB db("asset");
     auto   conn = tntdb::connectCached(DBConn::url);
-    conn.execute("create database assets_test;");
-    conn.execute("use assets_test;");
+    //conn.execute("create database assets_test;");
+    //conn.execute("use assets_test;");
 
     conn.execute(R"(
         CREATE TABLE t_bios_asset_element_type (
@@ -145,7 +154,8 @@ TEST_CASE("Create db")
             ("feed"),
             ("sts"),
             ("switch"),
-            ("storage");
+            ("storage"),
+            ("router");
      )");
 
     conn.execute(R"(
@@ -302,4 +312,41 @@ TEST_CASE("Create db")
                 ON DELETE RESTRICT
         );
     )");
+
+    SECTION("Create asset")
+    {
+        fty::AssetImpl asset;
+        asset.setInternalName("router");
+        asset.setPriority(1);
+        asset.setAssetType("device");
+        asset.setAssetSubtype("router");
+        asset.setAssetStatus(fty::AssetStatus::Active);
+        asset.setExtEntry("name", "Router 1");
+
+        CHECK_NOTHROW(asset.save());
+
+        fty::AssetImpl asset2;
+        asset2.setInternalName("router");
+        asset2.setPriority(1);
+        asset2.setAssetType("device");
+        asset2.setAssetSubtype("router");
+        asset2.setAssetStatus(fty::AssetStatus::Active);
+        asset2.setExtEntry("name", "Router 2");
+
+        CHECK_NOTHROW(asset2.save());
+
+        asset.setPriority(2);
+        asset.save();
+
+        std::string sql = R"(UPDATE             t_bios_asset_element         SET             id_type = (SELECT id_asset_element_type FROM t_bios_asset_element_type WHERE name = "device"),             id_subtype = (SELECT id_asset_device_type FROM t_bios_asset_device_type WHERE name = "router"),             id_parent = (SELECT id_asset_element from (SELECT * FROM t_bios_asset_element) AS e where e.name = "datacenter-6"),             status = "active",             priority = 2,             asset_tag = ""         WHERE             id_asset_element = 1;)";
+        mysql_autocommit(db.rcon(), 0);
+        mysql_query(db.rcon(), sql.c_str());
+        mysql_commit(db.rcon());
+
+        //conn.beginTransaction();
+        tntdb::Transaction trans(conn);
+        conn.execute(sql);
+        trans.commit();
+        //conn.commitTransaction();
+    }
 }

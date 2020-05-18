@@ -241,15 +241,15 @@ void AssetImpl::DB::commitTransaction()
     m_conn.commitTransaction();
 }
 
-void AssetImpl::DB::save(Asset& asset)
+void AssetImpl::DB::update(Asset& asset)
 {
-    m_conn.prepareCached(R"(
+    int affected = m_conn.prepareCached(R"(
         UPDATE
             t_bios_asset_element
         SET
-            id_type = (SELECT id_asset_element_type from t_bios_asset_element_type where name = :type),
-            id_subtype = (SELECT id_asset_device_type from t_bios_asset_device_type where name = :subtype),
-            id_parent = (SELECT id_asset_element from (SELECT * FROM t_bios_asset_element) AS e where e.name = :parent),
+           id_type = (SELECT id_asset_element_type FROM t_bios_asset_element_type WHERE name = :type),
+           id_subtype = (SELECT id_asset_device_type FROM t_bios_asset_device_type WHERE name = :subtype),
+           id_parent = (SELECT id_asset_element from (SELECT * FROM t_bios_asset_element) AS e where e.name = :parent),
             status = :status,
             priority = :priority,
             asset_tag = :assetTag
@@ -261,7 +261,52 @@ void AssetImpl::DB::save(Asset& asset)
     .set("parent", asset.getParentIname())
     .set("status", assetStatusToString(asset.getAssetStatus()))
     .set("priority", asset.getPriority())
-    .set("assetTag", asset.getAssetTag());
+    .set("assetTag", asset.getAssetTag())
+    .set("assetId", asset.getId())
+    .execute();
+
+    if (affected == 0) {
+        throw std::runtime_error(TRANSLATE_ME("updating not existing asset %d", asset.getId()));
+    }
+}
+
+void AssetImpl::DB::insert(Asset& asset)
+{
+    m_conn.prepareCached(R"(
+        INSERT INTO
+            t_bios_asset_element
+            (name, id_type, id_subtype, id_parent, status, priority, asset_tag)
+        VALUES (
+            CONCAT(:name, "-", COALESCE((SELECT MAX(e.id_asset_element)+1 FROM t_bios_asset_element as e), '1')),
+            (SELECT id_asset_element_type FROM t_bios_asset_element_type WHERE name = :type),
+            (SELECT id_asset_device_type FROM t_bios_asset_device_type WHERE name = :subtype),
+            (SELECT p.id_asset_element FROM t_bios_asset_element AS p WHERE p.name = :parent),
+            :status,
+            :priority,
+            :asset_tag
+        )
+    )")
+    .set("name", asset.getInternalName())
+    .set("type", asset.getAssetType())
+    .set("subtype", asset.getAssetSubtype())
+    .set("parent", asset.getParentIname())
+    .set("status", assetStatusToString(asset.getAssetStatus()))
+    .set("priority", asset.getPriority())
+    .set("assetTag", asset.getAssetTag())
+    .set("assetId", asset.getId())
+    .execute();
+
+    asset.setId(m_conn.lastInsertId());
+}
+
+std::string AssetImpl::DB::unameById(uint32_t id)
+{
+    return m_conn.prepareCached(R"(
+        SELECT name FROM t_bios_asset_element WHERE id_asset_element = :assetId
+    )")
+    .set("assetId", id)
+    .selectRow()
+    .getString("name");
 }
 
 } // namespace fty

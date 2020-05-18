@@ -6,7 +6,9 @@ namespace fty {
 class AssetImpl: public Asset
 {
 public:
+    AssetImpl();
     AssetImpl(const std::string& nameId);
+    ~AssetImpl() override;
 
     void remove(bool recursive = false);
     bool hasLogicalAsset() const;

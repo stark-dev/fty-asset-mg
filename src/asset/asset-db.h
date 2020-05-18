@@ -26,8 +26,10 @@ public:
     void rollbackTransaction();
     void commitTransaction();
 
-    void save(Asset& asset);
+    void update(Asset& asset);
+    void insert(Asset& asset);
 
+    std::string unameById(uint32_t id);
 private:
     mutable tntdb::Connection m_conn;
 };

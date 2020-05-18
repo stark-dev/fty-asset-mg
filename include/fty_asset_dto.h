@@ -135,6 +135,8 @@ class Asset
 public:
     using ExtMap = std::map<std::string, std::pair<std::string, bool>>;
 
+    virtual ~Asset() = default;
+
     // getters
     uint32_t             getId() const;
     const std::string&   getInternalName() const;

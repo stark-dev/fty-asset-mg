@@ -1,5 +1,6 @@
 #include "asset.h"
 #include "asset-db.h"
+#include <fty_common_db_dbpath.h>
 
 namespace fty {
 
@@ -27,13 +28,22 @@ bool isAnyOf(const T& val, const T1& other, const Vals&... args)
 
 //============================================================================================================
 
-AssetImpl::AssetImpl(const std::string& nameId):
-    m_db(new DB)
+AssetImpl::AssetImpl()
+    : m_db(new DB)
+{
+}
+
+AssetImpl::AssetImpl(const std::string& nameId)
+    : m_db(new DB)
 {
     m_db->loadAsset(nameId, *this);
     m_db->loadExtMap(*this);
     m_db->loadChildren(*this);
     m_db->loadLinkedAssets(*this);
+}
+
+AssetImpl::~AssetImpl()
+{
 }
 
 bool AssetImpl::hasLogicalAsset() const
@@ -56,12 +66,11 @@ void AssetImpl::remove(bool recursive)
     }
 
     if (!recursive && !getChildren().empty()) {
-        throw std::runtime_error(
-            TRANSLATE_ME("can't delete the asset because it has at least one child"));
+        throw std::runtime_error(TRANSLATE_ME("can't delete the asset because it has at least one child"));
     }
 
     if (recursive) {
-        for(const std::string& id: getChildren()) {
+        for (const std::string& id : getChildren()) {
             AssetImpl asset(id);
             asset.remove(recursive);
         }
@@ -96,7 +105,23 @@ void AssetImpl::remove(bool recursive)
 
 void AssetImpl::save()
 {
-    m_db->save(*this);
+    //m_db->beginTransaction();
+    try {
+        if (getId()) {
+            std::cerr << "UPDATE\n";
+            m_db->update(*this);
+        } else {
+            setInternalName(getAssetType() == TYPE_DEVICE ? getAssetSubtype() : getAssetType());
+            m_db->insert(*this);
+            setInternalName(m_db->unameById(getId()));
+        }
+    } catch (const std::exception& e) {
+        m_db->rollbackTransaction();
+        throw e.what();
+    }
+    //m_db->commitTransaction();
+
+    std::cerr << "new uname " << getInternalName() << "\n";
 }
 
 std::vector<std::string> AssetImpl::list()
@@ -104,5 +129,4 @@ std::vector<std::string> AssetImpl::list()
     return {};
 }
 
-}
-
+} // namespace fty
