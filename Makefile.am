@@ -97,7 +97,7 @@ EXTRA_DIST += \
     src/asset/asset.h \
     src/asset/asset-db.h \
     src/asset/conversion/json.h \
-    src/asset/conversion/fty-proto.h \
+    src/asset/conversion/proto.h \
     src/asset/conversion/full-asset.h \
     src/topology/dbtypes.h \
     src/topology/cleanup.h \

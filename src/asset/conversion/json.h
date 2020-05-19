@@ -21,7 +21,11 @@
 
 #pragma once
 
-#include "include/fty_asset_dto.h"
+#include <string>
+// fwd declaration
+namespace fty {
+class Asset;
+}
 
 namespace fty { namespace conversion {
     std::string toJson(const Asset& asset);

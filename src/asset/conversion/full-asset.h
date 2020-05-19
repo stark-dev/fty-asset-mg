@@ -21,9 +21,11 @@
 
 #pragma once
 
-#include "include/fty_asset_dto.h"
-#include <fty_common_asset.h>
-#include <fty_proto.h>
+// fwd declaration
+namespace fty {
+class Asset;
+class FullAsset;
+} // namespace fty
 
 namespace fty { namespace conversion {
     fty::FullAsset toFullAsset(const Asset& asset);

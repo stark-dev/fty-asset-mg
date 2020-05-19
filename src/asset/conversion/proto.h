@@ -1,5 +1,5 @@
 /*  =========================================================================
-    asset_conversion_fty_proto - asset/conversion/fty-proto
+    asset_conversion_proto - asset/conversion/proto
 
     Copyright (C) 2016 - 2020 Eaton
 
@@ -21,10 +21,15 @@
 
 #pragma once
 
-#include <fty_asset_dto.h>
-#include <fty_proto.h>
+#include <string>
+
+// fwd declaration
+typedef struct _fty_proto_t fty_proto_t;
+namespace fty {
+class Asset;
+}
 
 namespace fty { namespace conversion {
     fty_proto_t* assetToFtyProto(const fty::Asset& asset, const std::string& operation, bool test);
-    fty::Asset ftyProtoToAsset(fty_proto_t* proto, bool extAttributeReadOnly, bool test);
+    fty::Asset   ftyProtoToAsset(fty_proto_t* proto, bool extAttributeReadOnly, bool test);
 }} // namespace fty::conversion

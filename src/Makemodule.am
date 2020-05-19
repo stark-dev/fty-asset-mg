@@ -41,7 +41,7 @@ src_libfty_asset_la_SOURCES = \
     src/asset/asset.cc \
     src/asset/asset-db.cc \
     src/asset/conversion/json.cc \
-    src/asset/conversion/fty-proto.cc \
+    src/asset/conversion/proto.cc \
     src/asset/conversion/full-asset.cc \
     src/platform.h
 
@@ -380,11 +380,11 @@ check-asset_conversion_json-verbose: src/fty_asset_selftest $(top_builddir)/$(SE
 	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t asset_conversion_json
 	$(MAKE) check-empty-selftest-rw
 
-check-asset_conversion_fty_proto: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
-	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t asset_conversion_fty_proto
+check-asset_conversion_proto: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -t asset_conversion_proto
 	$(MAKE) check-empty-selftest-rw
-check-asset_conversion_fty_proto-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
-	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t asset_conversion_fty_proto
+check-asset_conversion_proto-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+	$(LIBTOOL) --mode=execute $(builddir)/src/fty_asset_selftest -v -t asset_conversion_proto
 	$(MAKE) check-empty-selftest-rw
 
 check-asset_conversion_full_asset: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
@@ -804,19 +804,19 @@ memcheck-asset_conversion_json-verbose: src/fty_asset_selftest $(top_builddir)/$
 		$(VALGRIND_OPTIONS) \
 		$(builddir)/src/fty_asset_selftest -v -t asset_conversion_json
 	$(MAKE) check-empty-selftest-rw
-memcheck-asset_conversion_fty_proto: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+memcheck-asset_conversion_proto: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
 		--leak-check=full --show-reachable=yes --error-exitcode=1 \
 		--suppressions=$(srcdir)/src/.valgrind.supp \
 		$(VALGRIND_OPTIONS) \
-		$(builddir)/src/fty_asset_selftest -t asset_conversion_fty_proto
+		$(builddir)/src/fty_asset_selftest -t asset_conversion_proto
 	$(MAKE) check-empty-selftest-rw
-memcheck-asset_conversion_fty_proto-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+memcheck-asset_conversion_proto-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
 		--leak-check=full --show-reachable=yes --error-exitcode=1 \
 		--suppressions=$(srcdir)/src/.valgrind.supp \
 		$(VALGRIND_OPTIONS) \
-		$(builddir)/src/fty_asset_selftest -v -t asset_conversion_fty_proto
+		$(builddir)/src/fty_asset_selftest -v -t asset_conversion_proto
 	$(MAKE) check-empty-selftest-rw
 memcheck-asset_conversion_full_asset: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute valgrind --tool=memcheck \
@@ -1126,15 +1126,15 @@ callcheck-asset_conversion_json-verbose: src/fty_asset_selftest $(top_builddir)/
 		$(VALGRIND_OPTIONS) \
 		$(builddir)/src/fty_asset_selftest -v -t asset_conversion_json
 	$(MAKE) check-empty-selftest-rw
-callcheck-asset_conversion_fty_proto: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+callcheck-asset_conversion_proto: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
 		$(VALGRIND_OPTIONS) \
-		$(builddir)/src/fty_asset_selftest -t asset_conversion_fty_proto
+		$(builddir)/src/fty_asset_selftest -t asset_conversion_proto
 	$(MAKE) check-empty-selftest-rw
-callcheck-asset_conversion_fty_proto-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+callcheck-asset_conversion_proto-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
 		$(VALGRIND_OPTIONS) \
-		$(builddir)/src/fty_asset_selftest -v -t asset_conversion_fty_proto
+		$(builddir)/src/fty_asset_selftest -v -t asset_conversion_proto
 	$(MAKE) check-empty-selftest-rw
 callcheck-asset_conversion_full_asset: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute valgrind --tool=callgrind \
@@ -1382,13 +1382,13 @@ debug-asset_conversion_json-verbose: src/fty_asset_selftest $(top_builddir)/$(SE
 	$(LIBTOOL) --mode=execute gdb -q \
 		--args $(builddir)/src/fty_asset_selftest -v -t asset_conversion_json
 	$(MAKE) check-empty-selftest-rw
-debug-asset_conversion_fty_proto: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+debug-asset_conversion_proto: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute gdb -q \
-		--args $(builddir)/src/fty_asset_selftest -t asset_conversion_fty_proto
+		--args $(builddir)/src/fty_asset_selftest -t asset_conversion_proto
 	$(MAKE) check-empty-selftest-rw
-debug-asset_conversion_fty_proto-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
+debug-asset_conversion_proto-verbose: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute gdb -q \
-		--args $(builddir)/src/fty_asset_selftest -v -t asset_conversion_fty_proto
+		--args $(builddir)/src/fty_asset_selftest -v -t asset_conversion_proto
 	$(MAKE) check-empty-selftest-rw
 debug-asset_conversion_full_asset: src/fty_asset_selftest $(top_builddir)/$(SELFTEST_DIR_RW) $(top_builddir)/$(SELFTEST_DIR_RO)
 	$(LIBTOOL) --mode=execute gdb -q \

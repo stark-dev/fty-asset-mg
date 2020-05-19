@@ -20,6 +20,8 @@
 */
 
 #include "full-asset.h"
+#include "include/fty_asset_dto.h"
+#include <fty_common_asset.h>
 
 fty::FullAsset toFullAsset(const fty::Asset& asset)
 {

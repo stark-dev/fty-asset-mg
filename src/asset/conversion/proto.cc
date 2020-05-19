@@ -1,5 +1,5 @@
 /*  =========================================================================
-    asset_conversion_fty_proto - asset/conversion/fty-proto
+    asset_conversion_proto - asset/conversion/proto
 
     Copyright (C) 2016 - 2020 Eaton
 
@@ -19,8 +19,10 @@
     =========================================================================
 */
 
-#include "fty-proto.h"
+#include "proto.h"
+#include "include/fty_asset_dto.h"
 #include "src/dbhelpers.h"
+#include <fty_proto.h>
 
 namespace fty { namespace conversion {
     // for fty-proto conversion helpers
