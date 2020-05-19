@@ -6,6 +6,8 @@ find_package(raven-cmake PATHS ${CMAKE_BINARY_DIR})
 
 project(fty-asset VERSION 1.0.0)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 ##############################################################################################################
 
 raven_target(shared ${PROJECT_NAME}
@@ -83,12 +85,13 @@ raven_target(shared ${PROJECT_NAME}
         src/asset/conversion/json.cc
         src/asset/conversion/proto.h
         src/asset/conversion/proto.cc
-        src/asset/conversion/full-asset.h
         src/asset/conversion/full-asset.cc
+        src/asset/conversion/full-asset.h
 
     FLAGS
         -Wno-unused-parameter
         -Wno-ignored-qualifiers
+        #-fsanitize=undefined
     INCLUDE_DIRS include
     USES
         libczmq
@@ -104,6 +107,7 @@ raven_target(shared ${PROJECT_NAME}
         tntdb
         libmlm
         uuid
+        ubsan
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
@@ -120,6 +124,8 @@ raven_target(exe ${PROJECT_NAME}-test
         mariadbd
         libfty_common_db
 )
+
+set_property(TARGET ${PROJECT_NAME}-test PROPERTY CXX_STANDARD 11)
 
 ##############################################################################################################
 

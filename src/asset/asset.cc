@@ -105,7 +105,7 @@ void AssetImpl::remove(bool recursive)
 
 void AssetImpl::save()
 {
-    //m_db->beginTransaction();
+    m_db->beginTransaction();
     try {
         if (getId()) {
             std::cerr << "UPDATE\n";
@@ -119,7 +119,7 @@ void AssetImpl::save()
         m_db->rollbackTransaction();
         throw e.what();
     }
-    //m_db->commitTransaction();
+    m_db->commitTransaction();
 
     std::cerr << "new uname " << getInternalName() << "\n";
 }

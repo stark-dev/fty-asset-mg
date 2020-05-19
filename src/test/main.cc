@@ -44,8 +44,8 @@ public:
         clearStrList(serverOptions);
         clearStrList(serverGroups);
         m_oldUrl = DBConn::url;
-        m_rcon = mysql_real_connect(m_con, nullptr, nullptr, nullptr, nullptr, 0, socket().c_str(), 0);
-        mysql_query(m_rcon, "create database test;");
+        mysql_real_connect(m_con, nullptr, nullptr, nullptr, nullptr, 0, socket().c_str(), 0);
+        mysql_query(m_con, "create database test;");
         DBConn::url = "mysql:unix_socket=" + socket() + ";db=test";
     }
 
@@ -53,6 +53,7 @@ public:
     {
         mysql_close(m_con);
         DBConn::url = m_oldUrl;
+        mysql_library_end();
     }
 
     void removeDir(const std::string& path)
@@ -63,11 +64,6 @@ public:
     std::string socket() const
     {
         return "/tmp/" + m_name + ".sock";
-    }
-
-    MYSQL* rcon()
-    {
-        return m_rcon;
     }
 
 private:
@@ -100,7 +96,6 @@ private:
     MYSQL*      m_con;
     std::string m_name;
     std::string m_oldUrl;
-    MYSQL*      m_rcon;
 };
 
 TEST_CASE("Create db")
@@ -336,17 +331,6 @@ TEST_CASE("Create db")
         CHECK_NOTHROW(asset2.save());
 
         asset.setPriority(2);
-        asset.save();
-
-        std::string sql = R"(UPDATE             t_bios_asset_element         SET             id_type = (SELECT id_asset_element_type FROM t_bios_asset_element_type WHERE name = "device"),             id_subtype = (SELECT id_asset_device_type FROM t_bios_asset_device_type WHERE name = "router"),             id_parent = (SELECT id_asset_element from (SELECT * FROM t_bios_asset_element) AS e where e.name = "datacenter-6"),             status = "active",             priority = 2,             asset_tag = ""         WHERE             id_asset_element = 1;)";
-        mysql_autocommit(db.rcon(), 0);
-        mysql_query(db.rcon(), sql.c_str());
-        mysql_commit(db.rcon());
-
-        //conn.beginTransaction();
-        tntdb::Transaction trans(conn);
-        conn.execute(sql);
-        trans.commit();
-        //conn.commitTransaction();
+        CHECK_NOTHROW(asset.save());
     }
 }
