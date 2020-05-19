@@ -79,8 +79,11 @@ raven_target(shared ${PROJECT_NAME}
         src/asset/asset-db.cc
         src/asset/asset-db.h
 
+        src/asset/conversion/json.h
         src/asset/conversion/json.cc
-        src/asset/conversion/fty-proto.cc
+        src/asset/conversion/proto.h
+        src/asset/conversion/proto.cc
+        src/asset/conversion/full-asset.h
         src/asset/conversion/full-asset.cc
 
     FLAGS
