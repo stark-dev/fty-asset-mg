@@ -82,8 +82,8 @@
     Note: in REQ message certain asset information are encoded as follows
 
       'ext' field
-          Power Links - key: "power_link.<device_name>", value: "<first_outlet_num>/<second_outlet_num>", i.e. 1 --> 2 == "1/2"
-          Groups - key: "group", value: "<group_name_1>/.../<group_name_N>"
+          Power Links - key: "power_link.<device_name>", value: "<first_outlet_num>/<second_outlet_num>", i.e.
+1 --> 2 == "1/2" Groups - key: "group", value: "<group_name_1>/.../<group_name_N>"
 
 
     ------------------------------------------------------------------------
@@ -190,15 +190,15 @@
 @end
 */
 
+#include "asset-server.h"
 #include "fty_asset_classes.h"
-#include <string>
-#include <tntdb/connect.h>
+#include <fty_common_db_uptime.h>
+#include <fty_common_messagebus.h>
 #include <functional>
 #include <malamute.h>
 #include <mlm_client.h>
-#include <fty_common_db_uptime.h>
-#include <fty_common_messagebus.h>
-#include "asset-server.h"
+#include <string>
+#include <tntdb/connect.h>
 
 
 // =============================================================================
@@ -206,6 +206,7 @@
 // bmsg request asset-agent TOPOLOGY REQUEST <uuid> POWER <assetID>
 // =============================================================================
 
+// clang-format off
 static void
     s_process_TopologyPower(
         const std::string& client_name,
@@ -1370,11 +1371,11 @@ static void test_asset_mailbox_handler(const messagebus::Message & msg)
 
             if(assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second == assetJson)
             {
-                log_info ("fty-asset-server-test:Test #13.1: OK");
+                log_info ("fty-asset-server-test:Test #15.1: OK");
             }
             else
             {
-                log_error ("fty-asset-server-test:Test #13.1: FAILED");
+                log_error ("fty-asset-server-test:Test #15.1: FAILED");
             }
         }
         else if(msgSubject == FTY_ASSET_SUBJECT_UPDATE)
@@ -1383,11 +1384,11 @@ static void test_asset_mailbox_handler(const messagebus::Message & msg)
 
             if(assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second == assetJson)
             {
-                log_info ("fty-asset-server-test:Test #13.2: OK");
+                log_info ("fty-asset-server-test:Test #15.2: OK");
             }
             else
             {
-                log_error ("fty-asset-server-test:Test #13.2: FAILED");
+                log_error ("fty-asset-server-test:Test #15.2: FAILED");
             }
         }
         else if(msgSubject == FTY_ASSET_SUBJECT_GET)
@@ -1399,11 +1400,11 @@ static void test_asset_mailbox_handler(const messagebus::Message & msg)
 
             if(assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second == assetName)
             {
-                log_info ("fty-asset-server-test:Test #13.3: OK");
+                log_info ("fty-asset-server-test:Test #15.3: OK");
             }
             else
             {
-                log_error ("fty-asset-server-test:Test #13.3: FAILED");
+                log_error ("fty-asset-server-test:Test #15.3: FAILED");
             }
         }
         else
@@ -1991,7 +1992,59 @@ fty_asset_server_test (bool /*verbose*/)
         */
     }
 
-    // Test #13: new generation asset interface
+    // Test #13: asset conversion to json
+    {
+        log_debug ("fty-asset-server-test:Test #13");
+
+        fty::Asset asset;
+        asset.setInternalName("dc-0");
+        asset.setAssetStatus(fty::AssetStatus::Nonactive);
+        asset.setAssetType(fty::TYPE_DEVICE);
+        asset.setAssetSubtype(fty::SUB_UPS);
+        asset.setParentIname("abc123");
+        asset.setExtEntry("testKey", "testValue");
+        asset.setPriority(4);
+
+        std::string jsonStr = fty::conversion::toJson(asset);
+
+        fty::Asset asset2 = fty::conversion::fromJson(jsonStr);
+
+        assert (asset == asset2);
+
+        log_debug ("fty-asset-server-test:Test #13 OK");
+    }
+
+    // Test #14: asset conversion to fty-proto
+    {
+        log_debug ("fty-asset-server-test:Test #14");
+
+        fty::Asset asset;
+        asset.setInternalName("dc-0");
+        asset.setAssetStatus(fty::AssetStatus::Nonactive);
+        asset.setAssetType(fty::TYPE_DEVICE);
+        asset.setAssetSubtype(fty::SUB_UPS);
+        asset.setParentIname("test-parent");
+        asset.setExtEntry("testKey","testValue");
+        asset.setPriority(4);
+
+        fty_proto_t * p = fty::conversion::toFtyProto(asset, "UPDATE", true);
+
+        fty::Asset asset2;
+
+        asset2 = fty::conversion::fromFtyProto(p, false, true);
+        fty_proto_destroy(&p);
+
+        std::stringstream s;
+        asset.dump(s);
+        asset2.dump(s);
+        std::cout << s.str();
+
+        assert (asset == asset2);
+
+        log_debug ("fty-asset-server-test:Test #14 OK");
+    }
+
+    // Test #15: new generation asset interface
     {
         static const char* FTY_ASSET_TEST_Q = "FTY.Q.ASSET.TEST";
         static const char* FTY_ASSET_TEST_PUB = "test-publisher";
@@ -1999,7 +2052,7 @@ fty_asset_server_test (bool /*verbose*/)
 
         const std::string FTY_ASSET_TEST_MAIL_NAME = std::string(asset_server_test_name) + "-ng";
 
-        log_debug ("fty-asset-server-test:Test #13");
+        log_debug ("fty-asset-server-test:Test #15");
 
         std::unique_ptr<messagebus::MessageBus> publisher(messagebus::MlmMessageBus(endpoint, FTY_ASSET_TEST_PUB));
         std::unique_ptr<messagebus::MessageBus> receiver(messagebus::MlmMessageBus(endpoint, FTY_ASSET_TEST_REC));
@@ -2034,7 +2087,7 @@ fty_asset_server_test (bool /*verbose*/)
 
         assetTestMap.emplace(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, fty::conversion::toJson(asset));
 
-        log_info ("fty-asset-server-test:Test #13.1: send CREATE message");
+        log_info ("fty-asset-server-test:Test #15.1: send CREATE message");
         publisher->sendRequest(FTY_ASSET_MAILBOX, msg);
         zclock_sleep (200);
 
@@ -2052,7 +2105,7 @@ fty_asset_server_test (bool /*verbose*/)
 
         assetTestMap.emplace(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, fty::conversion::toJson(asset));
 
-        log_info ("fty-asset-server-test:Test #13.2: send UPDATE message");
+        log_info ("fty-asset-server-test:Test #15.2: send UPDATE message");
         publisher->sendRequest(FTY_ASSET_MAILBOX, msg);
         zclock_sleep (200);
 
@@ -2070,7 +2123,7 @@ fty_asset_server_test (bool /*verbose*/)
 
         assetTestMap.emplace(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, "test-asset");
 
-        log_info ("fty-asset-server-test:Test #13.3: send GET message");
+        log_info ("fty-asset-server-test:Test #15.3: send GET message");
         publisher->sendRequest(FTY_ASSET_MAILBOX, msg);
         zclock_sleep (200);
     }

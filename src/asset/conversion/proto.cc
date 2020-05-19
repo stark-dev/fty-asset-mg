@@ -50,7 +50,7 @@ namespace fty { namespace conversion {
     }
 
     // fty-proto/Asset conversion
-    fty_proto_t* assetToFtyProto(const fty::Asset& asset, const std::string& operation, bool test)
+    fty_proto_t* toFtyProto(const fty::Asset& asset, const std::string& operation, bool test)
     {
         fty_proto_t* proto = fty_proto_new(FTY_PROTO_ASSET);
 
@@ -76,9 +76,8 @@ namespace fty { namespace conversion {
                 zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>("0")));
             }
         }
-        zhash_insert(aux, "status",
-            const_cast<void*>(
-                reinterpret_cast<const void*>(assetStatusToString(asset.getAssetStatus()).c_str())));
+        std::string assetStatus = assetStatusToString(asset.getAssetStatus());
+        zhash_insert(aux, "status", const_cast<void*>(reinterpret_cast<const void*>(assetStatus.c_str())));
 
         // no need to free, as fty_proto_set_ext transfers ownership to caller
         zhash_t* ext = extMapToZhash(asset.getExt());
@@ -91,7 +90,7 @@ namespace fty { namespace conversion {
         return proto;
     }
 
-    fty::Asset ftyProtoToAsset(fty_proto_t* proto, bool extAttributeReadOnly, bool test)
+    fty::Asset fromFtyProto(fty_proto_t* proto, bool extAttributeReadOnly, bool test)
     {
         if (fty_proto_id(proto) != FTY_PROTO_ASSET) {
             throw std::invalid_argument("Wrong message type");
@@ -99,11 +98,13 @@ namespace fty { namespace conversion {
 
         fty::Asset asset;
         asset.setInternalName(fty_proto_name(proto));
-        asset.setAssetStatus(fty::stringToAssetStatus(fty_proto_aux_string(proto, "status", "active")));
+
+        std::string assetStatus(fty_proto_aux_string(proto, "status", "active"));
+        asset.setAssetStatus(fty::stringToAssetStatus(assetStatus));
         asset.setAssetType(fty_proto_aux_string(proto, "type", ""));
         asset.setAssetSubtype(fty_proto_aux_string(proto, "subtype", ""));
         if (test) {
-            asset.setParentIname("");
+            asset.setParentIname("test-parent");
         } else {
             int parentId = fty_proto_aux_number(proto, "parent", 0);
             if (parentId != 0) {

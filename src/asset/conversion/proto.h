@@ -30,6 +30,6 @@ class Asset;
 }
 
 namespace fty { namespace conversion {
-    fty_proto_t* assetToFtyProto(const fty::Asset& asset, const std::string& operation, bool test);
-    fty::Asset   ftyProtoToAsset(fty_proto_t* proto, bool extAttributeReadOnly, bool test);
+    fty_proto_t* toFtyProto(const fty::Asset& asset, const std::string& operation, bool test);
+    fty::Asset   fromFtyProto(fty_proto_t* proto, bool extAttributeReadOnly, bool test);
 }} // namespace fty::conversion
