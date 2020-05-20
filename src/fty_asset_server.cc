@@ -1394,7 +1394,8 @@ static void test_asset_mailbox_handler(const messagebus::Message & msg)
         else if(msgSubject == FTY_ASSET_SUBJECT_GET)
         {
             std::string assetJson = msg.userData().front();
-            fty::Asset a = fty::conversion::fromJson(assetJson);
+            fty::Asset a;
+            fty::conversion::fromJson(assetJson, a);
 
             std::string assetName = a.getInternalName();
 
@@ -2007,7 +2008,8 @@ fty_asset_server_test (bool /*verbose*/)
 
         std::string jsonStr = fty::conversion::toJson(asset);
 
-        fty::Asset asset2 = fty::conversion::fromJson(jsonStr);
+        fty::Asset asset2;
+        fty::conversion::fromJson(jsonStr, asset2);
 
         assert (asset == asset2);
 
