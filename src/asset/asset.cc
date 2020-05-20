@@ -216,7 +216,8 @@ bool AssetImpl::activate()
 
 std::vector<std::string> AssetImpl::list()
 {
-    return {};
+    AssetImpl::DB db;
+    return db.listAllAssets();
 }
 
 void AssetImpl::reload()
