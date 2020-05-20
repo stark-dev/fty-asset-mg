@@ -83,6 +83,20 @@ TEST_CASE("Assets")
 
     SECTION("Delete linked")
     {
+        fty::AssetImpl asset;
+        asset.setPriority(1);
+        asset.setAssetType("device");
+        asset.setAssetSubtype("switch");
+        asset.setAssetStatus(fty::AssetStatus::Active);
+        REQUIRE_NOTHROW(asset.save());
+
+        fty::AssetImpl src;
+        src.setPriority(1);
+        src.setAssetType("device");
+        src.setAssetSubtype("server");
+        src.setAssetStatus(fty::AssetStatus::Active);
+        src.setLinkedAssets({asset.getInternalName()});
+        REQUIRE_NOTHROW(src.save());
     }
 }
 

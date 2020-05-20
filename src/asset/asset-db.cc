@@ -198,6 +198,22 @@ void AssetImpl::DB::removeAsset(Asset& asset)
     // clang-format on
 }
 
+void AssetImpl::DB::removeExtMap(Asset& asset)
+{
+    assert(asset.getId());
+
+    // clang-format off
+    m_conn.prepareCached(R"(
+        DELETE FROM
+            t_bios_asset_ext_attributes
+        WHERE
+            id_asset_element = :assetId
+    )")
+    .set("assetId", asset.getId())
+    .execute();
+    // clang-format on
+}
+
 void AssetImpl::DB::clearGroup(Asset& asset)
 {
     assert(asset.getId());
@@ -317,6 +333,140 @@ std::string AssetImpl::DB::unameById(uint32_t id)
     .selectRow()
     .getString("name");
     // clang-format on
+}
+
+void AssetImpl::DB::saveLinkedAssets(Asset& asset)
+{
+    // clang-format off
+    auto res = m_conn.prepareCached(R"(
+        SELECT
+            e.id_asset_element AS destId,
+            e.name             AS destName
+        FROM t_bios_asset_link
+        INNER JOIN
+            t_bios_asset_element AS e
+            ON e.id_asset_element = id_asset_device_dest
+        WHERE
+             id_asset_device_src = : assetId
+    )")
+    .set("assetId", asset.getId())
+    .select();
+    // clang-format on
+
+    using Existing = std::pair<uint32_t, std::string>;
+
+    std::vector<Existing> existing;
+    for (const auto& row : res) {
+        existing.emplace_back(row.getUnsigned32("destId"), row.getString("destName"));
+    }
+
+    for (const std::string& dest : asset.getLinkedAssets()) {
+        auto found = std::find_if(existing.begin(), existing.end(), [&](const Existing& e) {
+            return e.second == dest;
+        });
+
+        if (found == existing.end()) {
+            // clang-format off
+            m_conn.prepareCached(R"(
+                INSERT INTO t_bios_asset_link
+                    (id_asset_device_src, id_asset_device_dest, id_asset_link_type)
+                VALUES (:assetId, (SELECT id_asset_element FROM t_bios_asset_element WHERE name = :dest), 1)
+            )")
+            .set("assetId", asset.getId())
+            .set("dest", dest)
+            .execute();
+            // clang-format on
+        } else {
+            existing.erase(found);
+        }
+    }
+
+    for (const auto& toRem : existing) {
+        // clang-format off
+        m_conn.prepareCached(R"(
+            DELETE FROM t_bios_asset_link
+            WHERE id_asset_device_src := assetId
+                AND id_asset_device_dest := destId
+        )")
+        .set("assetId", asset.getId())
+        .set("destId", toRem.first)
+        .execute();
+        // clang-format on
+    }
+}
+
+void AssetImpl::DB::saveExtMap(Asset& asset)
+{
+    // clang-format off
+    auto res = m_conn.prepareCached(R"(
+        SELECT
+            id_asset_ext_attribute AS id,
+            keytag                 AS akey,
+            value                  AS avalue,
+            read_only              AS readOnly
+        FROM t_bios_asset_ext_attributes
+        WHERE
+             id_asset_element = : assetId
+    )")
+    .set("assetId", asset.getId())
+    .select();
+    // clang-format on
+
+    using Existing = std::tuple<uint32_t, std::string, std::string, bool>;
+
+    std::vector<Existing> existing;
+    for (const auto& row : res) {
+        existing.emplace_back(
+            row.getUnsigned32("id"), row.getString("akey"), row.getString("avalue"), row.getBool("readOnly"));
+    }
+
+    for (const auto& it : asset.getExt()) {
+        auto found = std::find_if(existing.begin(), existing.end(), [&](const Existing& e) {
+            return std::get<1>(e) == it.first;
+        });
+
+        if (found == existing.end()) {
+            // clang-format off
+            m_conn.prepareCached(R"(
+                INSERT INTO t_bios_asset_ext_attributes (keytag, value, id_asset_element, read_only)
+                VALUES (:key, :value, :assetId, :readOnly)
+            )")
+            .set("key", it.first)
+            .set("value", it.second.first)
+            .set("readOnly", it.second.second)
+            .set("assetId", asset.getId())
+            .execute();
+            // clang-format on
+        } else {
+            if (std::get<2>(*found) != it.second.first || std::get<3>(*found) != it.second.second) {
+                // clang-format off
+                m_conn.prepareCached(R"(
+                    UPDATE t_bios_asset_ext_attributes
+                    SET
+                        value = :value,
+                        read_only = :readOnly
+                    WHERE id_asset_ext_attribute = :extId
+                )")
+                .set("value", it.second.first)
+                .set("readOnly", it.second.second)
+                .set("extId", std::get<0>(*found))
+                .execute();
+                // clang-format on
+            }
+            existing.erase(found);
+        }
+    }
+
+    for(const auto& toRem: existing) {
+        // clang-format off
+        m_conn.prepareCached(R"(
+            DELETE FROM t_bios_asset_ext_attributes
+            WHERE id_asset_ext_attribute = :extId
+        )")
+        .set("extId", std::get<0>(toRem))
+        .execute();
+        // clang-format on
+    }
 }
 
 } // namespace fty

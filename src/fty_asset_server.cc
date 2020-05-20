@@ -1036,7 +1036,7 @@ static void
         // get asset from fty-proto
         fty::Asset asset;
         
-        asset = ftyProtoToAsset(proto, read_only, config.getTestMode());
+        //asset = ftyProtoToAsset(proto, read_only, config.getTestMode());
 
         std::stringstream d;
         asset.dump(d);
@@ -1050,7 +1050,7 @@ static void
 
         if (streq (operation, "create") || streq (operation, "create-force")) {
             // create-force -> tryActivate = true
-            asset = createAsset(asset, streq(operation, "create-force"), config.getTestMode());
+            //asset = createAsset(asset, streq(operation, "create-force"), config.getTestMode());
 
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, asset.getInternalName().c_str());
@@ -1060,7 +1060,7 @@ static void
         }
         else if (streq (operation, "update")) {
             // tryUpdate is not supported in old interface
-            asset = updateAsset(asset, false, config.getTestMode());
+            //asset = updateAsset(asset, false, config.getTestMode());
 
             zmsg_addstr (reply, "OK");
             zmsg_addstr (reply, asset.getInternalName().c_str());

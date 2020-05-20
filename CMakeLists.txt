@@ -92,7 +92,9 @@ raven_target(shared ${PROJECT_NAME}
         -Wno-unused-parameter
         -Wno-ignored-qualifiers
         #-fsanitize=undefined
-    INCLUDE_DIRS include
+    INCLUDE_DIRS
+        include
+        src
     USES
         libczmq
         log4cplus

@@ -36,7 +36,7 @@ bool isAnyOf(const T& val, const T1& other, const Vals&... args)
 #define TIME_STR_SIZE 100
 
 /// generate current timestamp string in format yyyy-mm-ddThh:MM:ss+0000
-std::string generateCurrentTimestamp()
+static std::string generateCurrentTimestamp()
 {
     std::time_t timestamp = std::time(NULL);
     char        timeString[TIME_STR_SIZE];
@@ -45,16 +45,16 @@ std::string generateCurrentTimestamp()
     return std::string(timeString);
 }
 
-#define EATON_NS "\x93\x3d\x6c\x80\xde\xa9\x8c\x6b\xd1\x11\x8b\x3b\x46\xa1\x81\xf1"
 /// generate asset UUID (if manufacture, model and serial are known -> EATON namespace UUID, otherwise random)
-std::string generateUUID(const std::string& manufacturer, const std::string& model, const std::string& serial)
+static std::string generateUUID(const std::string& manufacturer, const std::string& model, const std::string& serial)
 {
+    static std::string ns = "\x93\x3d\x6c\x80\xde\xa9\x8c\x6b\xd1\x11\x8b\x3b\x46\xa1\x81\xf1";
     std::string uuid;
 
     if (!manufacturer.empty() && !model.empty() && !serial.empty()) {
         log_debug("generate full UUID");
 
-        std::string src = std::string(EATON_NS) + manufacturer + model + serial;
+        std::string src = ns + manufacturer + model + serial;
         // hash must be zeroed first
         unsigned char* hash = (unsigned char*)calloc(SHA_DIGEST_LENGTH, sizeof(unsigned char));
 
@@ -140,18 +140,22 @@ void AssetImpl::remove(bool recursive)
             if (m_db->isLastDataCenter(*this)) {
                 throw std::runtime_error(TRANSLATE_ME("will not allow last datacenter to be deleted"));
             }
+            m_db->removeExtMap(*this);
             m_db->removeFromGroups(*this);
             m_db->removeFromRelations(*this);
             m_db->removeAsset(*this);
         } else if (isAnyOf(getAssetType(), TYPE_GROUP)) {
             m_db->clearGroup(*this);
+            m_db->removeExtMap(*this);
             m_db->removeAsset(*this);
         } else if (isAnyOf(getAssetType(), TYPE_DEVICE)) {
             m_db->removeFromGroups(*this);
             m_db->unlinkFrom(*this);
             m_db->removeFromRelations(*this);
+            m_db->removeExtMap(*this);
             m_db->removeAsset(*this);
         } else {
+            m_db->removeExtMap(*this);
             m_db->removeAsset(*this);
         }
     } catch (const std::exception& e) {
@@ -165,8 +169,7 @@ void AssetImpl::save()
 {
     m_db->beginTransaction();
     try {
-        if (getId()) { // update
-            std::cerr << "UPDATE\n";
+        if (getId()) {
             m_db->update(*this);
         } else { // create
             setInternalName(getAssetType() == TYPE_DEVICE ? getAssetSubtype() : getAssetType());
@@ -178,13 +181,13 @@ void AssetImpl::save()
             m_db->insert(*this);
             setInternalName(m_db->unameById(getId()));
         }
+        m_db->saveLinkedAssets(*this);
+        m_db->saveExtMap(*this);
     } catch (const std::exception& e) {
         m_db->rollbackTransaction();
         throw e.what();
     }
     m_db->commitTransaction();
-
-    std::cerr << "new uname " << getInternalName() << "\n";
 }
 
 bool AssetImpl::activate()

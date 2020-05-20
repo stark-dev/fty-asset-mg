@@ -21,7 +21,10 @@
 
 #include "full-asset.h"
 #include "include/fty_asset_dto.h"
+typedef struct _fty_proto_t fty_proto_t;
 #include <fty_common_asset.h>
+
+namespace fty { namespace conversion {
 
 fty::FullAsset toFullAsset(const fty::Asset& asset)
 {
@@ -40,3 +43,5 @@ fty::FullAsset toFullAsset(const fty::Asset& asset)
 
     return fa;
 }
+
+}}
