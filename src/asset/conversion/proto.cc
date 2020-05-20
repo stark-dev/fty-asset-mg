@@ -56,6 +56,7 @@ namespace fty { namespace conversion {
 
         // no need to free, as fty_proto_set_aux transfers ownership to caller
         zhash_t* aux = zhash_new();
+        zhash_autofree(aux);
 
         std::string priority = std::to_string(asset.getPriority());
         zhash_insert(aux, "priority", const_cast<void*>(reinterpret_cast<const void*>(priority.c_str())));
@@ -76,8 +77,9 @@ namespace fty { namespace conversion {
                 zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>("0")));
             }
         }
-        std::string assetStatus = assetStatusToString(asset.getAssetStatus());
-        zhash_insert(aux, "status", const_cast<void*>(reinterpret_cast<const void*>(assetStatus.c_str())));
+        zhash_insert(aux, "status",
+            const_cast<void*>(
+                reinterpret_cast<const void*>(assetStatusToString(asset.getAssetStatus()).c_str())));
 
         // no need to free, as fty_proto_set_ext transfers ownership to caller
         zhash_t* ext = extMapToZhash(asset.getExt());

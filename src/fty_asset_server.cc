@@ -2034,11 +2034,6 @@ fty_asset_server_test (bool /*verbose*/)
         asset2 = fty::conversion::fromFtyProto(p, false, true);
         fty_proto_destroy(&p);
 
-        std::stringstream s;
-        asset.dump(s);
-        asset2.dump(s);
-        std::cout << s.str();
-
         assert (asset == asset2);
 
         log_debug ("fty-asset-server-test:Test #14 OK");
