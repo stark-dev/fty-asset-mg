@@ -46,10 +46,11 @@ static std::string generateCurrentTimestamp()
 }
 
 /// generate asset UUID (if manufacture, model and serial are known -> EATON namespace UUID, otherwise random)
-static std::string generateUUID(const std::string& manufacturer, const std::string& model, const std::string& serial)
+static std::string generateUUID(
+    const std::string& manufacturer, const std::string& model, const std::string& serial)
 {
     static std::string ns = "\x93\x3d\x6c\x80\xde\xa9\x8c\x6b\xd1\x11\x8b\x3b\x46\xa1\x81\xf1";
-    std::string uuid;
+    std::string        uuid;
 
     if (!manufacturer.empty() && !model.empty() && !serial.empty()) {
         log_debug("generate full UUID");

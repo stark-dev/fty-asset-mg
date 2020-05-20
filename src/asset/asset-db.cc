@@ -457,7 +457,7 @@ void AssetImpl::DB::saveExtMap(Asset& asset)
         }
     }
 
-    for(const auto& toRem: existing) {
+    for (const auto& toRem : existing) {
         // clang-format off
         m_conn.prepareCached(R"(
             DELETE FROM t_bios_asset_ext_attributes
@@ -467,6 +467,26 @@ void AssetImpl::DB::saveExtMap(Asset& asset)
         .execute();
         // clang-format on
     }
+}
+
+std::vector<std::string> AssetImpl::DB::listAllAssets()
+{
+    std::vector<std::string> assetList;
+
+    // clang-format off
+    auto res = m_conn.prepareCached(R"(
+        SELECT
+            name          AS name
+        FROM t_bios_asset_element
+    )")
+    .select();
+    // clang-format on
+
+    for (const auto& row : res) {
+        assetList.emplace_back(row.getString("name"));
+    }
+
+    return assetList;
 }
 
 } // namespace fty

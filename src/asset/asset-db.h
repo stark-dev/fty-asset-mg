@@ -30,9 +30,12 @@ public:
     void update(Asset& asset);
     void insert(Asset& asset);
 
-    void saveLinkedAssets(Asset& asset);
-    void saveExtMap(Asset& asset);
+    void        saveLinkedAssets(Asset& asset);
+    void        saveExtMap(Asset& asset);
     std::string unameById(uint32_t id);
+
+    std::vector<std::string> listAllAssets();
+
 private:
     mutable tntdb::Connection m_conn;
 };
