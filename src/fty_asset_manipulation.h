@@ -25,17 +25,10 @@
 
 typedef struct _fty_proto_t fty_proto_t;
 
-// insert and update asset into db
-fty::Asset createAsset(const fty::Asset& asset, bool tryActivate, bool test = false);
-fty::Asset updateAsset(const fty::Asset& asset, bool tryActivate, bool test = false);
 // get asset
 fty::Asset getAsset(const std::string& assetInternalName, bool test = false);
 // list assets
 std::vector<fty::Asset> listAssets(bool test = false);
-
-// fty::Asset/fty-proto conversion
-fty_proto_t * assetToFtyProto(const fty::Asset& asset, const std::string& operation, bool test = false);
-fty::Asset ftyProtoToAsset(fty_proto_t * proto, bool extAttributeReadOnly = false, bool test = false);
 
 // for test purposes
 extern std::map<std::string, std::string> test_map_asset_state;
