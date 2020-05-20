@@ -81,6 +81,31 @@ TEST_CASE("Assets")
         REQUIRE_THROWS_WITH(fty::AssetImpl{child.getInternalName()}, Catch::Matchers::Contains("not found"));
     }
 
+    SECTION("Delete parent recursive")
+    {
+        fty::AssetImpl parent;
+        parent.setPriority(1);
+        parent.setAssetType("device");
+        parent.setAssetSubtype("switch");
+        parent.setAssetStatus(fty::AssetStatus::Active);
+        REQUIRE_NOTHROW(parent.save());
+
+        fty::AssetImpl child;
+        child.setPriority(1);
+        child.setAssetType("device");
+        child.setAssetSubtype("server");
+        child.setAssetStatus(fty::AssetStatus::Active);
+        child.setParentIname(parent.getInternalName());
+        REQUIRE_NOTHROW(child.save());
+
+        REQUIRE_NOTHROW(parent.reload());
+
+        REQUIRE_NOTHROW(parent.remove(true));
+
+        REQUIRE_THROWS_WITH(fty::AssetImpl{parent.getInternalName()}, Catch::Matchers::Contains("not found"));
+        REQUIRE_THROWS_WITH(fty::AssetImpl{child.getInternalName()}, Catch::Matchers::Contains("not found"));
+    }
+
     SECTION("Delete linked")
     {
         fty::AssetImpl asset;
@@ -97,6 +122,8 @@ TEST_CASE("Assets")
         src.setAssetStatus(fty::AssetStatus::Active);
         src.setLinkedAssets({asset.getInternalName()});
         REQUIRE_NOTHROW(src.save());
+
+        REQUIRE_THROWS_WITH(src.remove(), Catch::Matchers::Contains("can't delete the asset because it is linked to others"));
     }
 }
 

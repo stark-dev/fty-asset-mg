@@ -33,14 +33,14 @@ bool isAnyOf(const T& val, const T1& other, const Vals&... args)
 }
 
 //============================================================================================================
-#define TIME_STR_SIZE 100
 
 /// generate current timestamp string in format yyyy-mm-ddThh:MM:ss+0000
 static std::string generateCurrentTimestamp()
 {
+    static constexpr int tmpSize = 100;
     std::time_t timestamp = std::time(NULL);
-    char        timeString[TIME_STR_SIZE];
-    std::strftime(timeString, TIME_STR_SIZE - 1, "%FT%T%z", std::localtime(&timestamp));
+    char        timeString[tmpSize];
+    std::strftime(timeString, tmpSize - 1, "%FT%T%z", std::localtime(&timestamp));
 
     return std::string(timeString);
 }
@@ -226,6 +226,11 @@ void AssetImpl::reload()
     m_db->loadExtMap(*this);
     m_db->loadChildren(*this);
     m_db->loadLinkedAssets(*this);
+}
+
+void AssetImpl::massDelete(const std::vector<std::string>& assets)
+{
+
 }
 
 } // namespace fty

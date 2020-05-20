@@ -32,12 +32,10 @@ extern "C" {
 //  @interface
 //  Asset server, that takes care about distribution of
 //                                      asset information across the system
-FTY_ASSET_EXPORT void
-    fty_asset_server (zsock_t *pipe, void *args);
+FTY_ASSET_EXPORT void fty_asset_server(zsock_t* pipe, void* args);
 
 //  Self test of this class
-FTY_ASSET_EXPORT void
-    fty_asset_server_test (bool verbose);
+FTY_ASSET_EXPORT void fty_asset_server_test(bool verbose);
 
 //  @end
 
@@ -47,11 +45,12 @@ FTY_ASSET_EXPORT void
 
 static constexpr const char* FTY_ASSET_MAILBOX = "FTY.Q.ASSET.QUERY";
 // new interface mailbox subjects
-static constexpr const char* FTY_ASSET_SUBJECT_CREATE = "CREATE";
-static constexpr const char* FTY_ASSET_SUBJECT_UPDATE = "UPDATE";
-static constexpr const char* FTY_ASSET_SUBJECT_DELETE = "DELETE";
-static constexpr const char* FTY_ASSET_SUBJECT_GET    = "GET";
-static constexpr const char* FTY_ASSET_SUBJECT_LIST   = "LIST";
+static constexpr const char* FTY_ASSET_SUBJECT_CREATE      = "CREATE";
+static constexpr const char* FTY_ASSET_SUBJECT_UPDATE      = "UPDATE";
+static constexpr const char* FTY_ASSET_SUBJECT_DELETE      = "DELETE";
+static constexpr const char* FTY_ASSET_SUBJECT_DELETE_LIST = "DELETE_LIST";
+static constexpr const char* FTY_ASSET_SUBJECT_GET         = "GET";
+static constexpr const char* FTY_ASSET_SUBJECT_LIST        = "LIST";
 
 // new interface topics
 static constexpr const char* FTY_ASSET_TOPIC_CREATED = "FTY.T.ASSET.CREATED";

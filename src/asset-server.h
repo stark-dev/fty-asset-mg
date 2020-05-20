@@ -112,6 +112,7 @@ private:
     void deleteAsset(const messagebus::Message& msg);
     void getAsset(const messagebus::Message& msg);
     void listAsset(const messagebus::Message& msg);
+    void deleteAssetList(const messagebus::Message& msg);
 
 private:
     static void destroyMlmClient(mlm_client_t* client);

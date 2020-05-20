@@ -17,6 +17,7 @@ public:
     bool activate();
 
     static std::vector<std::string> list();
+    static void massDelete(const std::vector<std::string>& assets);
 
     using Asset::operator==;
 

@@ -167,11 +167,12 @@ void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
 
     // clang-format off
     static std::map<std::string, std::function<void(const messagebus::Message&)>> procMap = {
-        { FTY_ASSET_SUBJECT_CREATE, [&](const messagebus::Message& msg){ createAsset(msg); } },
-        { FTY_ASSET_SUBJECT_UPDATE, [&](const messagebus::Message& msg){ updateAsset(msg); } },
-        { FTY_ASSET_SUBJECT_DELETE, [&](const messagebus::Message& msg){ deleteAsset(msg); } },
-        { FTY_ASSET_SUBJECT_GET,    [&](const messagebus::Message& msg){ getAsset(msg); } },
-        { FTY_ASSET_SUBJECT_LIST,   [&](const messagebus::Message& msg){ listAsset(msg); } },
+        { FTY_ASSET_SUBJECT_CREATE,      [&](const messagebus::Message& msg){ createAsset(msg); } },
+        { FTY_ASSET_SUBJECT_UPDATE,      [&](const messagebus::Message& msg){ updateAsset(msg); } },
+        { FTY_ASSET_SUBJECT_DELETE,      [&](const messagebus::Message& msg){ deleteAsset(msg); } },
+        { FTY_ASSET_SUBJECT_DELETE_LIST, [&](const messagebus::Message& msg){ deleteAssetList(msg); } },
+        { FTY_ASSET_SUBJECT_GET,         [&](const messagebus::Message& msg){ getAsset(msg); } },
+        { FTY_ASSET_SUBJECT_LIST,        [&](const messagebus::Message& msg){ listAsset(msg); } },
     };
     // clang-format on
 
@@ -347,9 +348,9 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
 
         std::string assetIname;
         si.getMember("id").getValue(assetIname);
-        fty::Asset asset = ::getAsset(assetIname, m_testMode);
 
-        // fty::deleteAsset(asset, value(msg.metaData(), "RECURSIVE") == "YES");
+        fty::AssetImpl asset(assetIname);
+        asset.remove(value(msg.metaData(), "RECURSIVE") == "YES");
 
         response = createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
             value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
@@ -362,6 +363,25 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
     }
 
     m_assetMsgQueue->sendReply(value(msg.metaData(), messagebus::Message::REPLY_TO), response);
+}
+
+void AssetServer::deleteAssetList(const messagebus::Message& msg)
+{
+    std::istringstream input(msg.userData().front());
+
+    cxxtools::SerializationInfo si;
+    cxxtools::JsonDeserializer  deserializer(input);
+
+    deserializer.deserialize(si);
+
+    std::vector<std::string> assetInames;
+    for (const auto& el: si.getMember("id")) {
+        std::string elId;
+        el.getValue(elId);
+        assetInames.push_back(elId);
+    }
+
+    AssetImpl::massDelete(assetInames);
 }
 
 void AssetServer::getAsset(const messagebus::Message& msg)
