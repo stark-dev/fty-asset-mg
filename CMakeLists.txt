@@ -114,6 +114,8 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 11)
 
 raven_target(exe ${PROJECT_NAME}-test
     SOURCES
+        src/test/db.h
+        src/test/testdb.h
         src/test/main.cc
     INCLUDE_DIRS include
     USES

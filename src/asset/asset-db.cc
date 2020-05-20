@@ -18,7 +18,7 @@ void AssetImpl::DB::loadAsset(const std::string& nameId, Asset& asset)
             a.name             AS name,
             e.name             AS type,
             d.name             AS subType,
-            p.name             AS parentId,
+            p.name             AS parentName,
             a.status           AS status,
             a.priority         AS priority,
             a.asset_tag        AS tag
@@ -38,10 +38,14 @@ void AssetImpl::DB::loadAsset(const std::string& nameId, Asset& asset)
     asset.setInternalName(row.getString("name"));
     asset.setAssetType(row.getString("type"));
     asset.setAssetSubtype(row.getString("subType"));
-    asset.setParentIname(row.getString("parentId"));
+    if (!row.isNull("parentName")) {
+        asset.setParentIname(row.getString("parentName"));
+    }
     asset.setAssetStatus(stringToAssetStatus(row.getString("status")));
     asset.setPriority(row.getInt("priority"));
-    asset.setAssetTag(row.getString("tag"));
+    if (!row.isNull("tag")) {
+        asset.setAssetTag(row.getString("tag"));
+    }
 }
 
 void AssetImpl::DB::loadExtMap(Asset& asset)
@@ -243,6 +247,7 @@ void AssetImpl::DB::commitTransaction()
 
 void AssetImpl::DB::update(Asset& asset)
 {
+    // clang-format off
     int affected = m_conn.prepareCached(R"(
         UPDATE
             t_bios_asset_element
@@ -256,14 +261,15 @@ void AssetImpl::DB::update(Asset& asset)
         WHERE
             id_asset_element = :assetId
     )")
-    .set("type", asset.getAssetType())
-    .set("subtype", asset.getAssetSubtype())
-    .set("parent", asset.getParentIname())
-    .set("status", assetStatusToString(asset.getAssetStatus()))
-    .set("priority", asset.getPriority())
-    .set("assetTag", asset.getAssetTag())
-    .set("assetId", asset.getId())
-    .execute();
+   .set("type", asset.getAssetType())
+   .set("subtype", asset.getAssetSubtype())
+   .set("parent", asset.getParentIname())
+   .set("status", assetStatusToString(asset.getAssetStatus()))
+   .set("priority", asset.getPriority())
+   .set("assetTag", asset.getAssetTag())
+   .set("assetId", asset.getId())
+   .execute();
+    // clang-format on
 
     if (affected == 0) {
         throw std::runtime_error(TRANSLATE_ME("updating not existing asset %d", asset.getId()));
@@ -272,6 +278,7 @@ void AssetImpl::DB::update(Asset& asset)
 
 void AssetImpl::DB::insert(Asset& asset)
 {
+    // clang-format off
     m_conn.prepareCached(R"(
         INSERT INTO
             t_bios_asset_element
@@ -295,18 +302,21 @@ void AssetImpl::DB::insert(Asset& asset)
     .set("assetTag", asset.getAssetTag())
     .set("assetId", asset.getId())
     .execute();
+    // clang-format on
 
     asset.setId(m_conn.lastInsertId());
 }
 
 std::string AssetImpl::DB::unameById(uint32_t id)
 {
+    // clang-format off
     return m_conn.prepareCached(R"(
         SELECT name FROM t_bios_asset_element WHERE id_asset_element = :assetId
     )")
     .set("assetId", id)
     .selectRow()
     .getString("name");
+    // clang-format on
 }
 
 } // namespace fty

@@ -129,4 +129,12 @@ std::vector<std::string> AssetImpl::list()
     return {};
 }
 
+void AssetImpl::reload()
+{
+    m_db->loadAsset(getInternalName(), *this);
+    m_db->loadExtMap(*this);
+    m_db->loadChildren(*this);
+    m_db->loadLinkedAssets(*this);
+}
+
 } // namespace fty
