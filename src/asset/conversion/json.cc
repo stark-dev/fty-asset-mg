@@ -98,10 +98,8 @@ namespace fty { namespace conversion {
         return json;
     }
 
-    Asset fromJson(const std::string& json)
+    void fromJson(const std::string& json, fty::Asset& asset)
     {
-        Asset a;
-
         std::istringstream input(json);
 
         cxxtools::SerializationInfo si;
@@ -109,9 +107,7 @@ namespace fty { namespace conversion {
 
         deserializer.deserialize(si);
 
-        si >>= a;
-
-        return a;
+        si >>= asset;
     }
 
 }} // namespace fty::conversion

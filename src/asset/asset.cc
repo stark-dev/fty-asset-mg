@@ -161,7 +161,7 @@ void AssetImpl::remove(bool recursive)
     m_db->commitTransaction();
 }
 
-void AssetImpl::save(bool tryActivate = false)
+void AssetImpl::save()
 {
     m_db->beginTransaction();
     try {
@@ -174,17 +174,6 @@ void AssetImpl::save(bool tryActivate = false)
             setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
             // set uuid
             setExtEntry(fty::EXT_UUID, generateUUID(getManufacturer(), getModel(), getSerialNo()), true);
-            // try to activate asset
-            if (!activate()) {
-                // if tryActivate is true, insert anyway with status nonactive, abort otherwise
-                if (tryActivate) {
-                    setAssetStatus(fty::AssetStatus::Nonactive);
-                } else {
-                    throw std::runtime_error(
-                        "Licensing limitation hit - maximum amount of active power devices allowed in "
-                        "license reached.");
-                }
-            }
 
             m_db->insert(*this);
             setInternalName(m_db->unameById(getId()));

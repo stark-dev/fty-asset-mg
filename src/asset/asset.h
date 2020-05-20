@@ -12,7 +12,7 @@ public:
 
     void remove(bool recursive = false);
     bool hasLogicalAsset() const;
-    void save(bool test = false);
+    void save();
     void reload();
     bool activate();
 

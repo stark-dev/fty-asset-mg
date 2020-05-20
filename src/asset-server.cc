@@ -195,7 +195,7 @@ void AssetServer::sendNotification(const messagebus::Message& msg)
         // REMOVE as soon as old interface is not needed anymore
         // old interface
         fty::Asset asset;
-        asset = fty::conversion::fromJson(msg.userData().back());
+        fty::conversion::fromJson(msg.userData().back(), asset);
         send_create_or_update_asset(
             *this, asset.getInternalName(), "create", false /* read_only is not used */);
     } else if (subject == FTY_ASSET_SUBJECT_UPDATED) {
@@ -204,7 +204,8 @@ void AssetServer::sendNotification(const messagebus::Message& msg)
         // REMOVE as soon as old interface is not needed anymore
         // old interface
         fty::Asset asset;
-        asset = fty::conversion::fromJson(msg.userData().back()); // old interface replies only with updated asset
+        fty::conversion::fromJson(
+            msg.userData().back(), asset); // old interface replies only with updated asset
         send_create_or_update_asset(
             *this, asset.getInternalName(), "update", false /* read_only is not used */);
     } else if (subject == FTY_ASSET_SUBJECT_DELETED) {
@@ -219,14 +220,28 @@ void AssetServer::createAsset(const messagebus::Message& msg)
     bool tryActivate = value(msg.metaData(), METADATA_TRY_ACTIVATE) == "true";
 
     try {
-        std::string userData     = msg.userData().front();
-        fty::Asset  asset        = fty::conversion::fromJson(userData);
-        fty::Asset  createdAsset = ::createAsset(asset, tryActivate, m_testMode);
+        std::string    userData = msg.userData().front();
+        fty::AssetImpl asset;
+        fty::conversion::fromJson(userData, asset);
+
+        // activate asset
+        if (!asset.activate()) {
+            if (tryActivate) {
+                asset.setAssetStatus(fty::AssetStatus::Nonactive);
+            } else {
+                throw std::runtime_error(
+                    "Licensing limitation hit - maximum amount of active power devices allowed in "
+                    "license reached.");
+            }
+        }
+
+        // store asset to db
+        asset.save();
 
         auto response = createMessage(FTY_ASSET_SUBJECT_CREATE,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
             msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK,
-            fty::conversion::toJson(createdAsset));
+            fty::conversion::toJson(asset));
 
         // send response
         log_debug("[handle asset manipulation] : sending response to %s",
@@ -234,8 +249,8 @@ void AssetServer::createAsset(const messagebus::Message& msg)
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
         // send notification
-        messagebus::Message notification = createMessage(
-            FTY_ASSET_SUBJECT_CREATED, "", m_agentNameNg, "", messagebus::STATUS_OK, fty::conversion::toJson(createdAsset));
+        messagebus::Message notification = createMessage(FTY_ASSET_SUBJECT_CREATED, "", m_agentNameNg, "",
+            messagebus::STATUS_OK, fty::conversion::toJson(asset));
         sendNotification(notification);
     } catch (std::exception& e) {
         log_error(e.what());
@@ -259,23 +274,41 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
     bool tryActivate = value(msg.metaData(), METADATA_TRY_ACTIVATE) == "true";
 
     try {
-        std::string userData       = msg.userData().front();
-        fty::Asset  requestedAsset = fty::conversion::fromJson(userData);
+        std::string    userData = msg.userData().front();
+        fty::AssetImpl asset;
+
+        fty::conversion::fromJson(userData, asset);
+
+        fty::AssetImpl currentAsset(asset.getInternalName());
 
         // data vector (contains asset before and after update)
         std::vector<std::string> assetJsonVector;
         // before update
-        assetJsonVector.push_back(fty::conversion::toJson(getAssetFromDB(requestedAsset.getInternalName())));
+        assetJsonVector.push_back(fty::conversion::toJson(currentAsset));
 
-        fty::Asset updatedAsset = ::updateAsset(requestedAsset, tryActivate, m_testMode);
+        // if status changes from nonactive to active, request activation
+        if (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
+            asset.getAssetStatus() == fty::AssetStatus::Active) {
+            if (!asset.activate()) {
+                if (tryActivate) {
+                    asset.setAssetStatus(fty::AssetStatus::Nonactive);
+                } else {
+                    throw std::runtime_error(
+                        "Licensing limitation hit - maximum amount of active power devices allowed in "
+                        "license reached.");
+                }
+            }
+        }
+
+        asset.save();
         // after update
-        assetJsonVector.push_back(fty::conversion::toJson(updatedAsset));
+        assetJsonVector.push_back(fty::conversion::toJson(asset));
 
         // create response (ok)
         auto response = createMessage(FTY_ASSET_SUBJECT_UPDATE,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
             msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK,
-            fty::conversion::toJson(updatedAsset));
+            fty::conversion::toJson(asset));
 
         // send response
         log_debug("[handle asset manipulation] : sending response to %s",
@@ -336,13 +369,14 @@ void AssetServer::getAsset(const messagebus::Message& msg)
     log_debug("[handle asset manipulation] : subject GET");
 
     try {
-        std::string assetIname = msg.userData().front();
-        fty::Asset  asset      = ::getAsset(assetIname, m_testMode);
+        std::string    assetIname = msg.userData().front();
+        fty::AssetImpl asset(assetIname);
 
         // create response (ok)
         auto response = createMessage(FTY_ASSET_SUBJECT_GET,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK, fty::conversion::toJson(asset));
+            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK,
+            fty::conversion::toJson(asset));
 
         // send response
         log_debug("[handle asset manipulation] : sending response to %s",
@@ -368,18 +402,12 @@ void AssetServer::listAsset(const messagebus::Message& msg)
     log_debug("[handle asset manipulation] : subject LIST");
 
     try {
-        std::vector<fty::Asset> assetVector = listAssets(m_testMode);
-
-        std::vector<std::string> jsonVector;
-
-        for (const fty::Asset& asset : assetVector) {
-            jsonVector.push_back(fty::conversion::toJson(asset));
-        }
+        std::vector<std::string> assetList = fty::AssetImpl::list();
 
         // create response (ok)
         auto response = createMessage(FTY_ASSET_SUBJECT_LIST,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK, jsonVector);
+            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK, assetList);
 
         // send response
         log_debug("[handle asset manipulation] : sending response to %s",
