@@ -155,6 +155,7 @@
     <class name = "asset-server" state = "stable" private = "1" selftest = "0" >asset-server</class>
     <class name = "asset/asset" state = "stable" private = "1" selftest = "0" >asset/asset</class>
     <class name = "asset/asset-db" state = "stable" private = "1" selftest = "0" >asset/asset-db</class>
+    <class name = "asset/asset-db-test" state = "stable" private = "1" selftest = "0" >asset/asset-db-test</class>
     <class name = "asset/conversion/json" state = "stable" private = "1" selftest = "0" >asset/conversion/json</class>
     <class name = "asset/conversion/proto" state = "stable" private = "1" selftest = "0" >asset/conversion/proto</class>
     <class name = "asset/conversion/full-asset" state = "stable" private = "1" selftest = "0" >asset/conversion/full-asset</class>

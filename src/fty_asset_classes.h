@@ -135,6 +135,10 @@ typedef struct _asset_asset_t asset_asset_t;
 typedef struct _asset_asset_db_t asset_asset_db_t;
 #define ASSET_ASSET_DB_T_DEFINED
 #endif
+#ifndef ASSET_ASSET_DB_TEST_T_DEFINED
+typedef struct _asset_asset_db_test_t asset_asset_db_test_t;
+#define ASSET_ASSET_DB_TEST_T_DEFINED
+#endif
 #ifndef ASSET_CONVERSION_JSON_T_DEFINED
 typedef struct _asset_conversion_json_t asset_conversion_json_t;
 #define ASSET_CONVERSION_JSON_T_DEFINED
@@ -177,6 +181,7 @@ typedef struct _asset_conversion_full_asset_t asset_conversion_full_asset_t;
 #include "asset-server.h"
 #include "asset/asset.h"
 #include "asset/asset-db.h"
+#include "asset/asset-db-test.h"
 #include "asset/conversion/json.h"
 #include "asset/conversion/proto.h"
 #include "asset/conversion/full-asset.h"

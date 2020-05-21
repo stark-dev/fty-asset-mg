@@ -1,5 +1,27 @@
+/*  =========================================================================
+    asset-server - asset-server
+
+    Copyright (C) 2014 - 2020 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    =========================================================================
+*/
+
 #include "asset-server.h"
-#include "fty_asset_classes.h"
+#include "asset/conversion/json.h"
+#include "include/fty_asset_dto.h"
 #include <fty_common_messagebus.h>
 #include <malamute.h>
 #include <mlm_client.h>
@@ -39,11 +61,11 @@ void AssetServer::destroyMlmClient(mlm_client_t* client)
 
 
 AssetServer::AssetServer()
-    : m_mailboxClient(mlm_client_new(), &destroyMlmClient)
+    : m_maxActivePowerDevices(-1)
+    , m_globalConfigurability(1)
+    , m_mailboxClient(mlm_client_new(), &destroyMlmClient)
     , m_streamClient(mlm_client_new(), &destroyMlmClient)
 {
-    m_limitations.max_active_power_devices = -1;
-    m_limitations.global_configurability   = 1;
 }
 
 void AssetServer::createMailboxClientNg()
@@ -101,7 +123,7 @@ void AssetServer::connectPublisherClientNg()
 }
 
 // create response (data is a single string)
-static messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
+messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
     const std::string& from, const std::string& to, const std::string& status, const std::string& data)
 {
     messagebus::Message msg;
@@ -128,7 +150,7 @@ static messagebus::Message createMessage(const std::string& subject, const std::
 }
 
 // create response (data is a vector of strings)
-static messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
+messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
     const std::string& from, const std::string& to, const std::string& status,
     const std::vector<std::string>& data)
 {
@@ -161,7 +183,7 @@ static messagebus::Message createMessage(const std::string& subject, const std::
 void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
 {
     // asset manipulation is disabled
-    if (m_limitations.global_configurability == 0) {
+    if (getGlobalConfigurability() == 0) {
         throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
     }
 
@@ -186,7 +208,7 @@ void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
 }
 
 // sends create/update/delete notification on both new and old interface
-void AssetServer::sendNotification(const messagebus::Message& msg)
+void AssetServer::sendNotification(const messagebus::Message& msg) const
 {
     const std::string& subject = msg.metaData().at(messagebus::Message::SUBJECT);
 
@@ -216,7 +238,7 @@ void AssetServer::sendNotification(const messagebus::Message& msg)
 
 void AssetServer::createAsset(const messagebus::Message& msg)
 {
-    log_debug("[handle asset manipulation] : subject CREATE");
+    log_debug("subject CREATE");
 
     bool tryActivate = value(msg.metaData(), METADATA_TRY_ACTIVATE) == "true";
 
@@ -237,7 +259,9 @@ void AssetServer::createAsset(const messagebus::Message& msg)
         }
 
         // store asset to db
-        asset.save();
+        if (!getTestMode()) {
+            asset.save();
+        }
 
         auto response = createMessage(FTY_ASSET_SUBJECT_CREATE,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
@@ -245,8 +269,7 @@ void AssetServer::createAsset(const messagebus::Message& msg)
             fty::conversion::toJson(asset));
 
         // send response
-        log_debug("[handle asset manipulation] : sending response to %s",
-            msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
         // send notification
@@ -262,15 +285,14 @@ void AssetServer::createAsset(const messagebus::Message& msg)
             TRANSLATE_ME(e.what()));
 
         // send response
-        log_debug("[handle asset manipulation] : sending response to %s",
-            msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
     }
 }
 
 void AssetServer::updateAsset(const messagebus::Message& msg)
 {
-    log_debug("[handle asset manipulation] : subject UPDATE");
+    log_debug("subject UPDATE");
 
     bool tryActivate = value(msg.metaData(), METADATA_TRY_ACTIVATE) == "true";
 
@@ -301,7 +323,9 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
             }
         }
 
-        asset.save();
+        if (!getTestMode()) {
+            asset.save();
+        }
         // after update
         assetJsonVector.push_back(fty::conversion::toJson(asset));
 
@@ -312,8 +336,7 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
             fty::conversion::toJson(asset));
 
         // send response
-        log_debug("[handle asset manipulation] : sending response to %s",
-            msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
         // send notification
@@ -329,8 +352,7 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
             TRANSLATE_ME(e.what()));
 
         // send response
-        log_debug("[handle asset manipulation] : sending response to %s",
-            msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
     }
 }
@@ -339,17 +361,10 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
 {
     messagebus::Message response;
     try {
-        std::istringstream input(msg.userData().front());
+        fty::AssetImpl asset;
+        fty::conversion::fromJson(msg.userData().front(), asset);
 
-        cxxtools::SerializationInfo si;
-        cxxtools::JsonDeserializer  deserializer(input);
-
-        deserializer.deserialize(si);
-
-        std::string assetIname;
-        si.getMember("id").getValue(assetIname);
-
-        fty::AssetImpl asset(assetIname);
+        asset.reload();
         asset.remove(value(msg.metaData(), "RECURSIVE") == "YES");
 
         response = createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
@@ -375,7 +390,7 @@ void AssetServer::deleteAssetList(const messagebus::Message& msg)
     deserializer.deserialize(si);
 
     std::vector<std::string> assetInames;
-    for (const auto& el: si.getMember("id")) {
+    for (const auto& el : si.getMember("id")) {
         std::string elId;
         el.getValue(elId);
         assetInames.push_back(elId);
@@ -386,7 +401,7 @@ void AssetServer::deleteAssetList(const messagebus::Message& msg)
 
 void AssetServer::getAsset(const messagebus::Message& msg)
 {
-    log_debug("[handle asset manipulation] : subject GET");
+    log_debug("subject GET");
 
     try {
         std::string    assetIname = msg.userData().front();
@@ -399,8 +414,7 @@ void AssetServer::getAsset(const messagebus::Message& msg)
             fty::conversion::toJson(asset));
 
         // send response
-        log_debug("[handle asset manipulation] : sending response to %s",
-            msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
     } catch (std::exception& e) {
         log_error(e.what());
@@ -411,15 +425,14 @@ void AssetServer::getAsset(const messagebus::Message& msg)
             TRANSLATE_ME(e.what()));
 
         // send response
-        log_debug("[handle asset manipulation] : sending response to %s",
-            msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
     }
 }
 
 void AssetServer::listAsset(const messagebus::Message& msg)
 {
-    log_debug("[handle asset manipulation] : subject LIST");
+    log_debug("subject LIST");
 
     try {
         std::vector<std::string> assetList = fty::AssetImpl::list();
@@ -430,8 +443,7 @@ void AssetServer::listAsset(const messagebus::Message& msg)
             msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK, assetList);
 
         // send response
-        log_debug("[handle asset manipulation] : sending response to %s",
-            msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
     } catch (std::exception& e) {
         log_error(e.what());
@@ -442,8 +454,7 @@ void AssetServer::listAsset(const messagebus::Message& msg)
             TRANSLATE_ME(e.what()));
 
         // send response
-        log_debug("[handle asset manipulation] : sending response to %s",
-            msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
     }
 }

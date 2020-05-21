@@ -25,19 +25,4 @@
 //  Include the project library file
 #include "fty_asset_library.h"
 
-//  Add your own public definitions here, if you need them
-
-typedef struct _LIMITATIONS_STRUCT
-{
-    int max_active_power_devices;
-    int global_configurability;
-
-} LIMITATIONS_STRUCT;
-
-//! Constants for licensing-related errors
-enum licensing_err {
-    LICENSING_POWER_DEVICES_COUNT_REACHED,
-    LICENSING_GLOBAL_CONFIGURABILITY_DISABLED
-};
-
 #endif

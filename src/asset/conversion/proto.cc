@@ -92,13 +92,11 @@ namespace fty { namespace conversion {
         return proto;
     }
 
-    fty::Asset fromFtyProto(fty_proto_t* proto, bool extAttributeReadOnly, bool test)
+    void fromFtyProto(fty_proto_t* proto, fty::Asset& asset, bool extAttributeReadOnly, bool test)
     {
         if (fty_proto_id(proto) != FTY_PROTO_ASSET) {
             throw std::invalid_argument("Wrong message type");
         }
-
-        fty::Asset asset;
         asset.setInternalName(fty_proto_name(proto));
 
         std::string assetStatus(fty_proto_aux_string(proto, "status", "active"));
@@ -119,8 +117,6 @@ namespace fty { namespace conversion {
 
         zhash_t* ext = fty_proto_ext(proto);
         asset.setExt(zhashToExtMap(ext, extAttributeReadOnly));
-
-        return asset;
     }
 
 }} // namespace fty::conversion

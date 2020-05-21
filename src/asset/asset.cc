@@ -1,8 +1,31 @@
+/*  =========================================================================
+    asset - asset
+
+    Copyright (C) 2014 - 2020 Eaton
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    =========================================================================
+*/
+
 #include "asset.h"
+#include "asset-db-test.h"
 #include "asset-db.h"
 #include "asset/conversion/full-asset.h"
 #include <fty_asset_activator.h>
 #include <fty_common_db_dbpath.h>
+#include <memory>
 #include <time.h>
 #include <uuid/uuid.h>
 
@@ -37,9 +60,9 @@ bool isAnyOf(const T& val, const T1& other, const Vals&... args)
 /// generate current timestamp string in format yyyy-mm-ddThh:MM:ss+0000
 static std::string generateCurrentTimestamp()
 {
-    static constexpr int tmpSize = 100;
-    std::time_t timestamp = std::time(NULL);
-    char        timeString[tmpSize];
+    static constexpr int tmpSize   = 100;
+    std::time_t          timestamp = std::time(NULL);
+    char                 timeString[tmpSize];
     std::strftime(timeString, tmpSize - 1, "%FT%T%z", std::localtime(&timestamp));
 
     return std::string(timeString);
@@ -88,13 +111,16 @@ static std::string generateUUID(
 //============================================================================================================
 
 AssetImpl::AssetImpl()
-    : m_db(new DB)
+    : m_db(g_testMode ? new DBTest : new DB)
 {
+    m_db->init();
 }
 
 AssetImpl::AssetImpl(const std::string& nameId)
-    : m_db(new DB)
+    : m_db(g_testMode ? new DBTest : new DB)
 {
+    m_db->init();
+
     m_db->loadAsset(nameId, *this);
     m_db->loadExtMap(*this);
     m_db->loadChildren(*this);
@@ -193,6 +219,10 @@ void AssetImpl::save()
 
 bool AssetImpl::activate()
 {
+    if (g_testMode) {
+        return true;
+    }
+
     mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
     fty::AssetActivator activationAccessor(client);
 
@@ -216,8 +246,13 @@ bool AssetImpl::activate()
 
 std::vector<std::string> AssetImpl::list()
 {
-    AssetImpl::DB db;
-    return db.listAllAssets();
+    std::unique_ptr<AssetImpl::DB> db;
+    if (g_testMode) {
+        db = std::unique_ptr<AssetImpl::DB>(new DBTest);
+    } else {
+        db = std::unique_ptr<AssetImpl::DB>(new DB);
+    }
+    return db->listAllAssets();
 }
 
 void AssetImpl::reload()
@@ -230,7 +265,6 @@ void AssetImpl::reload()
 
 void AssetImpl::massDelete(const std::vector<std::string>& assets)
 {
-
 }
 
 } // namespace fty
