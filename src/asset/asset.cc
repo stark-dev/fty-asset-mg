@@ -22,7 +22,7 @@
 #include "asset.h"
 #include "asset-db-test.h"
 #include "asset-db.h"
-#include "asset/conversion/full-asset.h"
+#include "conversion/full-asset.h"
 #include <fty_asset_activator.h>
 #include <fty_common_db_dbpath.h>
 #include <memory>
