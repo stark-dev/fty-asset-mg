@@ -384,6 +384,8 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
 
 void AssetServer::deleteAsset(const messagebus::Message& msg)
 {
+    log_debug("subject DELETE");
+
     messagebus::Message response;
     try {
 
@@ -411,6 +413,8 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
 
 void AssetServer::deleteAssetList(const messagebus::Message& msg)
 {
+    log_debug("subject DELETE_LIST");
+
     std::istringstream input(msg.userData().front());
 
     cxxtools::SerializationInfo si;

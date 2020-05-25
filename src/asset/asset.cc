@@ -255,6 +255,7 @@ std::vector<std::string> AssetImpl::list()
         db = std::unique_ptr<AssetImpl::DB>(new DBTest);
     } else {
         db = std::unique_ptr<AssetImpl::DB>(new DB);
+        db->init();
     }
     return db->listAllAssets();
 }
