@@ -37,7 +37,8 @@ public:
     bool hasLogicalAsset() const;
     void save();
     void reload();
-    bool activate();
+    bool isActivable();
+    void activate();
 
     static std::vector<std::string> list();
     static void                     massDelete(const std::vector<std::string>& assets);

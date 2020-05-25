@@ -20,10 +20,30 @@
 */
 
 #include "asset-db.h"
+#include <cstdlib>
 #include <fty_common_db_dbpath.h>
+#include <string>
 #include <tntdb.h>
 
 namespace fty {
+
+// static helpers
+
+// generate asset name
+static std::string createAssetName(const std::string& type, const std::string& subtype, long index)
+{
+    std::string assetName;
+
+    if (type == fty::TYPE_DEVICE) {
+        assetName = subtype + "-" + std::to_string(index);
+    } else {
+        assetName = type + "-" + std::to_string(index);
+    }
+
+    return assetName;
+}
+
+// AssetImpl::DB
 
 AssetImpl::DB::DB()
 {
@@ -319,6 +339,13 @@ void AssetImpl::DB::update(Asset& asset)
 
 void AssetImpl::DB::insert(Asset& asset)
 {
+    // temporary asset name
+    std::string assetName =
+        (asset.getAssetType() == TYPE_DEVICE ? asset.getAssetSubtype() : asset.getAssetType()) + "-@@-" +
+        std::to_string(rand());
+
+    asset.setInternalName(assetName);
+
     // clang-format off
     m_conn.prepareCached(R"(
         INSERT INTO
@@ -338,7 +365,7 @@ void AssetImpl::DB::insert(Asset& asset)
     .set("type", asset.getAssetType())
     .set("subtype", asset.getAssetSubtype())
     .set("parent", asset.getParentIname())
-    .set("status", assetStatusToString(asset.getAssetStatus()))
+    .set("status", assetStatusToString(fty::AssetStatus::Nonactive))    // always insert as non active, update after activation
     .set("priority", asset.getPriority())
     .set("assetTag", asset.getAssetTag())
     .set("assetId", asset.getId())
@@ -346,6 +373,27 @@ void AssetImpl::DB::insert(Asset& asset)
     // clang-format on
 
     asset.setId(m_conn.lastInsertId());
+
+    // generate new asset name
+    asset.setInternalName(createAssetName(asset.getAssetType(), asset.getAssetSubtype(), asset.getId()));
+
+    // clang-format off
+    int affected = m_conn.prepareCached(R"(
+        UPDATE
+            t_bios_asset_element
+        SET
+            name = :name
+        WHERE
+            id_asset_element = :assetId
+    )")
+   .set("name", asset.getInternalName())
+   .set("assetId", asset.getId())
+   .execute();
+    // clang-format on
+
+    if (affected == 0) {
+        throw std::runtime_error(TRANSLATE_ME("Asset name update failed"));
+    }
 }
 
 std::string AssetImpl::DB::unameById(uint32_t id)

@@ -199,14 +199,12 @@ void AssetImpl::save()
         if (getId()) {
             m_db->update(*this);
         } else { // create
-            setInternalName(getAssetType() == TYPE_DEVICE ? getAssetSubtype() : getAssetType());
             // set creation timestamp
             setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
             // set uuid
             setExtEntry(fty::EXT_UUID, generateUUID(getManufacturer(), getModel(), getSerialNo()), true);
 
             m_db->insert(*this);
-            setInternalName(m_db->unameById(getId()));
         }
         m_db->saveLinkedAssets(*this);
         m_db->saveExtMap(*this);
@@ -217,7 +215,7 @@ void AssetImpl::save()
     m_db->commitTransaction();
 }
 
-bool AssetImpl::activate()
+bool AssetImpl::isActivable()
 {
     if (g_testMode) {
         return true;
@@ -230,17 +228,23 @@ bool AssetImpl::activate()
     fty::FullAsset fa = fty::conversion::toFullAsset(*this);
 
     std::cerr << "checking asset activation\n";
-    bool isActivable = activationAccessor.isActivable(fa);
+    return activationAccessor.isActivable(fa);
+}
 
-    if (isActivable) {
+void AssetImpl::activate()
+{
+    if (!g_testMode) {
+        mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
+        fty::AssetActivator activationAccessor(client);
+
+        // TODO remove as soon as fty::Asset activation is supported
+        fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+
         activationAccessor.activate(fa);
         std::cerr << "asset activated\n";
 
         setAssetStatus(fty::AssetStatus::Active);
-
-        return true;
-    } else {
-        return false;
+        m_db->update(*this);
     }
 }
 

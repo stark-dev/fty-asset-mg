@@ -959,8 +959,9 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
         fty::conversion::fromFtyProto(proto, asset, read_only, server.getTestMode());
 
         if (streq(operation, "create") || streq(operation, "create-force")) {
+            bool requestActivation = (asset.getAssetStatus() == fty::AssetStatus::Active);
             // create-force -> tryActivate = true
-            if (!asset.activate()) {
+            if (!asset.isActivable()) {
                 if (streq(operation, "create-force")) {
                     asset.setAssetStatus(fty::AssetStatus::Nonactive);
                 } else {
@@ -969,7 +970,18 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
                         "license reached.");
                 }
             }
+            // store asset to db
             asset.save();
+            // activate asset
+            if (requestActivation) {
+                try {
+                    asset.activate();
+                } catch (std::exception& e) {
+                    // if activation fails, delete asset
+                    asset.remove(false);
+                    throw std::runtime_error(e.what());
+                }
+            }
 
             zmsg_addstr(reply, "OK");
             zmsg_addstr(reply, asset.getInternalName().c_str());
@@ -978,13 +990,30 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
                 messagebus::STATUS_OK, fty::conversion::toJson(asset));
             server.sendNotification(notification);
         } else if (streq(operation, "update")) {
+            fty::AssetImpl currentAsset(asset.getInternalName());
+
+            bool requestActivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
+                                      asset.getAssetStatus() == fty::AssetStatus::Active);
+
             // tryUpdate is not supported in old interface
-            if (!asset.activate()) {
+            if (!asset.isActivable()) {
                 throw std::runtime_error(
                     "Licensing limitation hit - maximum amount of active power devices allowed in "
                     "license reached.");
             }
+            // store asset to db
             asset.save();
+            // activate asset
+            if (requestActivation) {
+                try {
+                    asset.activate();
+                } catch (std::exception& e) {
+                    // if activation fails, set status to nonactive
+                    asset.setAssetStatus(fty::AssetStatus::Nonactive);
+                    asset.save();
+                    throw std::runtime_error(e.what());
+                }
+            }
 
             zmsg_addstr(reply, "OK");
             zmsg_addstr(reply, asset.getInternalName().c_str());

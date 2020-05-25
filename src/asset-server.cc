@@ -247,21 +247,31 @@ void AssetServer::createAsset(const messagebus::Message& msg)
         fty::AssetImpl asset;
         fty::conversion::fromJson(userData, asset);
 
-        if (asset.getAssetStatus() == fty::AssetStatus::Active) {
-            // activate asset
-            if (!asset.activate()) {
-                if (tryActivate) {
-                    asset.setAssetStatus(fty::AssetStatus::Nonactive);
-                } else {
-                    throw std::runtime_error(
-                        "Licensing limitation hit - maximum amount of active power devices allowed in "
-                        "license reached.");
-                }
+        bool requestActivation = (asset.getAssetStatus() == AssetStatus::Active);
+
+        if (requestActivation && !asset.isActivable()) {
+            if (tryActivate) {
+                asset.setAssetStatus(fty::AssetStatus::Nonactive);
+                requestActivation = false;
+            } else {
+                throw std::runtime_error(
+                    "Licensing limitation hit - maximum amount of active power devices allowed in "
+                    "license reached.");
             }
         }
 
         // store asset to db
         asset.save();
+        // activate asset
+        if (requestActivation) {
+            try {
+                asset.activate();
+            } catch (std::exception& e) {
+                // if activation fails, delete asset
+                asset.remove(false);
+                throw std::runtime_error(e.what());
+            }
+        }
 
         auto response = createMessage(FTY_ASSET_SUBJECT_CREATE,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
@@ -312,21 +322,35 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
         // before update
         assetJsonVector.push_back(fty::conversion::toJson(currentAsset));
 
+        bool requestActivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
+                                  asset.getAssetStatus() == fty::AssetStatus::Active);
+
         // if status changes from nonactive to active, request activation
-        if (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
-            asset.getAssetStatus() == fty::AssetStatus::Active) {
-            if (!asset.activate()) {
-                if (tryActivate) {
-                    asset.setAssetStatus(fty::AssetStatus::Nonactive);
-                } else {
-                    throw std::runtime_error(
-                        "Licensing limitation hit - maximum amount of active power devices allowed in "
-                        "license reached.");
-                }
+        if (requestActivation && !asset.isActivable()) {
+            if (tryActivate) {
+                asset.setAssetStatus(fty::AssetStatus::Nonactive);
+                requestActivation = false;
+            } else {
+                throw std::runtime_error(
+                    "Licensing limitation hit - maximum amount of active power devices allowed in "
+                    "license reached.");
             }
         }
 
+        // store asset to db
         asset.save();
+        // activate asset
+        if (requestActivation) {
+            try {
+                asset.activate();
+            } catch (std::exception& e) {
+                // if activation fails, set status to nonactive
+                asset.setAssetStatus(AssetStatus::Nonactive);
+                asset.save();
+                throw std::runtime_error(e.what());
+            }
+        }
+
         // after update
         assetJsonVector.push_back(fty::conversion::toJson(asset));
 
@@ -362,16 +386,20 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
 {
     messagebus::Message response;
     try {
-        fty::AssetImpl asset;
-        fty::conversion::fromJson(msg.userData().front(), asset);
 
-        asset.reload();
+        std::string    internalName = msg.userData().front();
+        fty::AssetImpl asset(internalName);
+
         asset.remove(value(msg.metaData(), "RECURSIVE") == "YES");
 
         response = createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
             value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
             value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK, "");
 
+        // send notification
+        messagebus::Message notification = createMessage(FTY_ASSET_SUBJECT_DELETED, "", m_agentNameNg, "",
+            messagebus::STATUS_OK, fty::conversion::toJson(asset));
+        sendNotification(notification);
     } catch (const std::exception& e) {
         response = createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
             value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
