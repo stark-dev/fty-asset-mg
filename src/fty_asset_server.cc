@@ -1296,26 +1296,36 @@ static void test_asset_mailbox_handler(const messagebus::Message& msg)
 {
     try {
         std::string msgSubject = msg.metaData().find(messagebus::Message::SUBJECT)->second;
-        if (msgSubject == FTY_ASSET_SUBJECT_CREATED) {
-            std::string assetJson = msg.userData().front();
+        if (msgSubject == FTY_ASSET_SUBJECT_CREATE) {
+            fty::Asset msgAsset;
+            fty::conversion::fromJson(msg.userData().back(), msgAsset);
 
-            if (assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second ==
-                assetJson) {
+            fty::Asset mapAsset;
+            fty::conversion::fromJson(
+                assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second,
+                mapAsset);
+
+            if (msgAsset.getInternalName() == mapAsset.getInternalName()) {
                 log_info("fty-asset-server-test:Test #15.1: OK");
             } else {
                 log_error("fty-asset-server-test:Test #15.1: FAILED");
             }
         } else if (msgSubject == FTY_ASSET_SUBJECT_UPDATE) {
-            std::string assetJson = msg.userData().front();
+            fty::Asset msgAsset;
+            fty::conversion::fromJson(msg.userData().back(), msgAsset);
 
-            if (assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second ==
-                assetJson) {
+            fty::Asset mapAsset;
+            fty::conversion::fromJson(
+                assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second,
+                mapAsset);
+
+            if (msgAsset.getInternalName() == mapAsset.getInternalName()) {
                 log_info("fty-asset-server-test:Test #15.2: OK");
             } else {
                 log_error("fty-asset-server-test:Test #15.2: FAILED");
             }
         } else if (msgSubject == FTY_ASSET_SUBJECT_GET) {
-            std::string assetJson = msg.userData().front();
+            std::string assetJson = msg.userData().back();
             fty::Asset  a;
             fty::conversion::fromJson(assetJson, a);
 
@@ -1387,6 +1397,28 @@ void fty_asset_server_test(bool /*verbose*/)
         zhash_destroy(&aux);
         assert(rv == 0);
         zmsg_t* reply = mlm_client_recv(ui);
+        if (!fty_proto_is(reply)) {
+            assert(streq(mlm_client_subject(ui), subject));
+            assert(zmsg_size(reply) == 2);
+            char* str = zmsg_popstr(reply);
+            assert(streq(str, "OK"));
+            zstr_free(&str);
+            str = zmsg_popstr(reply);
+            assert(streq(str, asset_name));
+            zstr_free(&str);
+            zmsg_destroy(&reply);
+        } else {
+            assert(is_fty_proto(reply));
+            fty_proto_t* fmsg             = fty_proto_decode(&reply);
+            std::string  expected_subject = "unknown.unknown@";
+            expected_subject.append(asset_name);
+            assert(streq(mlm_client_subject(ui), expected_subject.c_str()));
+            assert(streq(fty_proto_operation(fmsg), FTY_PROTO_ASSET_OP_CREATE));
+            fty_proto_destroy(&fmsg);
+            zmsg_destroy(&reply);
+        }
+
+        reply = mlm_client_recv(ui);
         if (!fty_proto_is(reply)) {
             assert(streq(mlm_client_subject(ui), subject));
             assert(zmsg_size(reply) == 2);
@@ -1603,6 +1635,17 @@ void fty_asset_server_test(bool /*verbose*/)
         }
         zmsg_destroy(&reply); // throw away stream message
 
+
+        reply = mlm_client_recv(ui);
+        if (!fty_proto_is(reply)) {
+            assert(streq(mlm_client_subject(ui), subject));
+            assert(zmsg_size(reply) == 2);
+            str = zmsg_popstr(reply);
+            assert(streq(str, "OK"));
+            zstr_free(&str);
+        }
+        zmsg_destroy(&reply); // throw away stream message
+
         // disable configurability
         mlm_client_set_producer(ui, "LICENSING-ANNOUNCEMENTS-TEST");
         zmsg_t* smsg = fty_proto_encode_metric(
@@ -1659,6 +1702,16 @@ void fty_asset_server_test(bool /*verbose*/)
         }
         zmsg_destroy(&reply); // throw away stream message
 
+        reply = mlm_client_recv(ui);
+        if (!fty_proto_is(reply)) {
+            assert(streq(mlm_client_subject(ui), subject));
+            assert(zmsg_size(reply) == 2);
+            str = zmsg_popstr(reply);
+            assert(streq(str, "OK"));
+            zstr_free(&str);
+        }
+        zmsg_destroy(&reply); // throw away stream message
+
         aux = zhash_new();
         zhash_autofree(aux);
         zhash_insert(aux, "type", (void*)"device");
@@ -1681,6 +1734,16 @@ void fty_asset_server_test(bool /*verbose*/)
         }
         zmsg_destroy(&reply); // throw away stream message
 
+        reply = mlm_client_recv(ui);
+        if (!fty_proto_is(reply)) {
+            assert(streq(mlm_client_subject(ui), subject));
+            assert(zmsg_size(reply) == 2);
+            str = zmsg_popstr(reply);
+            assert(streq(str, "OK"));
+            zstr_free(&str);
+        }
+        zmsg_destroy(&reply); // throw away stream message
+
         aux = zhash_new();
         zhash_autofree(aux);
         zhash_insert(aux, "type", (void*)"device");
@@ -1693,6 +1756,16 @@ void fty_asset_server_test(bool /*verbose*/)
             zhash_destroy(&aux);
         zclock_sleep(200);
         assert(rv == 0);
+
+        reply = mlm_client_recv(ui);
+        if (!fty_proto_is(reply)) {
+            assert(streq(mlm_client_subject(ui), subject));
+            assert(zmsg_size(reply) == 2);
+            str = zmsg_popstr(reply);
+            assert(streq(str, "OK"));
+            zstr_free(&str);
+        }
+        zmsg_destroy(&reply); // throw away stream message
 
         reply = mlm_client_recv(ui);
         if (!fty_proto_is(reply)) {
@@ -1787,7 +1860,7 @@ void fty_asset_server_test(bool /*verbose*/)
 
         // test create
         msg.metaData().emplace(messagebus::Message::CORRELATION_ID, messagebus::generateUuid());
-        msg.metaData().emplace(messagebus::Message::SUBJECT, FTY_ASSET_SUBJECT_CREATED);
+        msg.metaData().emplace(messagebus::Message::SUBJECT, FTY_ASSET_SUBJECT_CREATE);
         msg.metaData().emplace(messagebus::Message::FROM, FTY_ASSET_TEST_REC);
         msg.metaData().emplace(messagebus::Message::TO, FTY_ASSET_TEST_MAIL_NAME);
         msg.metaData().emplace(messagebus::Message::REPLY_TO, FTY_ASSET_TEST_Q);
