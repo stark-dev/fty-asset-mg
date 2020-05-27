@@ -94,8 +94,6 @@ static std::string generateUUID(
 
         uuid = uuid_char;
     } else {
-        std::cerr << "generate random UUID\n";
-
         uuid_t u;
         uuid_generate_random(u);
 
@@ -227,7 +225,6 @@ bool AssetImpl::isActivable()
     // TODO remove as soon as fty::Asset activation is supported
     fty::FullAsset fa = fty::conversion::toFullAsset(*this);
 
-    std::cerr << "checking asset activation\n";
     return activationAccessor.isActivable(fa);
 }
 
@@ -241,7 +238,6 @@ void AssetImpl::activate()
         fty::FullAsset fa = fty::conversion::toFullAsset(*this);
 
         activationAccessor.activate(fa);
-        std::cerr << "asset activated\n";
 
         setAssetStatus(fty::AssetStatus::Active);
         m_db->update(*this);

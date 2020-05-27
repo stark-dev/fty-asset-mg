@@ -32,17 +32,17 @@ namespace fty {
 
 AssetImpl::DBTest::DBTest()
 {
-    std::cerr << "Test DB impl" << std::endl;
+    std::cout << "DBTest::DBTest()" << std::endl;
 }
 
 void AssetImpl::DBTest::init()
 {
-    std::cerr << "init" << std::endl;
+    std::cout << "DBTest::init" << std::endl;
 }
 
 void AssetImpl::DBTest::loadAsset(const std::string& nameId, Asset& asset)
 {
-    // clang-format off
+    std::cout << "DBTest::loadAsset" << std::endl;
     asset.setInternalName(nameId);
     asset.setAssetStatus(fty::AssetStatus::Nonactive);
     asset.setAssetType(fty::TYPE_DEVICE);
@@ -53,12 +53,14 @@ void AssetImpl::DBTest::loadAsset(const std::string& nameId, Asset& asset)
 
 void AssetImpl::DBTest::loadExtMap(Asset& asset)
 {
+    std::cout << "DBTest::loadExtMap" << std::endl;
     asset.setExtEntry("uuid", "123-456-789", true);
     asset.setExtEntry("name", "My Asset", false);
 }
 
 void AssetImpl::DBTest::loadChildren(Asset& asset)
 {
+    std::cout << "DBTest::loadChildren" << std::endl;
     std::vector<std::string> children;
 
     children.push_back("child-1");
@@ -69,6 +71,7 @@ void AssetImpl::DBTest::loadChildren(Asset& asset)
 
 void AssetImpl::DBTest::loadLinkedAssets(Asset& asset)
 {
+    std::cout << "DBTest::loadLinkedAssets" << std::endl;
     std::vector<std::string> links;
 
     links.push_back("asset-1");
@@ -80,68 +83,84 @@ void AssetImpl::DBTest::loadLinkedAssets(Asset& asset)
 
 bool AssetImpl::DBTest::isLastDataCenter(Asset& asset)
 {
+    std::cout << "DBTest::isLastDataCenter" << std::endl;
     return asset.getInternalName() == "dc-0";
 }
 
 void AssetImpl::DBTest::removeFromGroups(Asset& asset)
 {
+    std::cout << "DBTest::removeFromGroups" << std::endl;
 }
 
 void AssetImpl::DBTest::removeFromRelations(Asset& asset)
 {
+    std::cout << "DBTest::removeFromRelations" << std::endl;
 }
 
 void AssetImpl::DBTest::removeAsset(Asset& asset)
 {
+    std::cout << "DBTest::removeAsset" << std::endl;
 }
 
 void AssetImpl::DBTest::removeExtMap(Asset& asset)
 {
+    std::cout << "DBTest::removeExtMap" << std::endl;
 }
 
 void AssetImpl::DBTest::clearGroup(Asset& asset)
 {
+    std::cout << "DBTest::clearGroup" << std::endl;
 }
 
 void AssetImpl::DBTest::unlinkFrom(Asset& asset)
 {
+    std::cout << "DBTest::unlinkFrom" << std::endl;
 }
 
 void AssetImpl::DBTest::beginTransaction()
 {
+    std::cout << "DBTest::beginTransaction" << std::endl;
 }
 
 void AssetImpl::DBTest::rollbackTransaction()
 {
+    std::cout << "DBTest::rollbackTransaction" << std::endl;
 }
 
 void AssetImpl::DBTest::commitTransaction()
 {
+    std::cout << "DBTest::commitTransaction" << std::endl;
 }
 
 void AssetImpl::DBTest::update(Asset& asset)
 {
+    std::cout << "DBTest::update" << std::endl;
 }
 
 void AssetImpl::DBTest::insert(Asset& asset)
 {
+    std::cout << "DBTest::insert" << std::endl;
 }
 
 std::string AssetImpl::DBTest::unameById(uint32_t id)
 {
+    std::cout << "DBTest::unameById" << std::endl;
     return "DC-1";
 }
 
 void AssetImpl::DBTest::saveLinkedAssets(Asset& asset)
 {
+    std::cout << "DBTest::saveLinkedAssets" << std::endl;
 }
 
 void AssetImpl::DBTest::saveExtMap(Asset& asset)
 {
+    std::cout << "DBTest::saveExtMap" << std::endl;
 }
 
 std::vector<std::string> AssetImpl::DBTest::listAllAssets()
 {
+    std::cout << "DBTest::listAllAssets" << std::endl;
     std::vector<std::string> assetList;
 
     assetList.push_back("asset-1");
