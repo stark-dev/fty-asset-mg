@@ -1,5 +1,5 @@
 /*  =========================================================================
-    fty-asset - Agent managing information about assets
+    asset - asset
 
     Copyright (C) 2014 - 2020 Eaton
 
@@ -19,10 +19,37 @@
     =========================================================================
 */
 
-#ifndef FTY_ASSET_H_H_INCLUDED
-#define FTY_ASSET_H_H_INCLUDED
+#pragma once
+#include "include/fty_asset_dto.h"
 
-//  Include the project library file
-#include "fty_asset_library.h"
+extern bool g_testMode;
 
-#endif
+namespace fty {
+
+class AssetImpl : public Asset
+{
+public:
+    AssetImpl();
+    AssetImpl(const std::string& nameId);
+    ~AssetImpl() override;
+
+    void remove(bool recursive = false);
+    bool hasLogicalAsset() const;
+    void save();
+    void reload();
+    bool isActivable();
+    void activate();
+
+    static std::vector<std::string> list();
+    static void                     massDelete(const std::vector<std::string>& assets);
+
+    using Asset::operator==;
+
+private:
+    class Interface;
+    class DB;
+    class DBTest;
+    std::unique_ptr<DB> m_db;
+};
+
+} // namespace fty

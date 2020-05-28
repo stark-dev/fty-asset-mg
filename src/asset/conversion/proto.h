@@ -1,7 +1,7 @@
 /*  =========================================================================
-    fty-asset - Agent managing information about assets
+    asset_conversion_proto - asset/conversion/proto
 
-    Copyright (C) 2014 - 2020 Eaton
+    Copyright (C) 2016 - 2020 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,10 +19,17 @@
     =========================================================================
 */
 
-#ifndef FTY_ASSET_H_H_INCLUDED
-#define FTY_ASSET_H_H_INCLUDED
+#pragma once
 
-//  Include the project library file
-#include "fty_asset_library.h"
+#include <string>
 
-#endif
+// fwd declaration
+typedef struct _fty_proto_t fty_proto_t;
+namespace fty {
+class Asset;
+}
+
+namespace fty { namespace conversion {
+    fty_proto_t* toFtyProto(const fty::Asset& asset, const std::string& operation, bool test = false);
+    void fromFtyProto(fty_proto_t* proto, fty::Asset& asset, bool extAttributeReadOnly, bool test = false);
+}} // namespace fty::conversion

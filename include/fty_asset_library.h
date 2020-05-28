@@ -35,6 +35,8 @@
 #include <tntdb.h>
 #include <malamute.h>
 #include <magic.h>
+#include <openssl/sha.h>
+#include <uuid/uuid.h>
 #include <fty_log.h>
 #include <ftyproto.h>
 #include <fty_common_db.h>

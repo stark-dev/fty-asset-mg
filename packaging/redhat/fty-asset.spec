@@ -62,6 +62,8 @@ BuildRequires:  cxxtools-devel
 BuildRequires:  tntdb-devel
 BuildRequires:  malamute-devel >= 1.0.0
 BuildRequires:  file-devel
+BuildRequires:  openssl-devel
+BuildRequires:  libuuid-devel
 BuildRequires:  fty-common-logging-devel
 BuildRequires:  fty-proto-devel >= 1.0.0
 BuildRequires:  fty-common-db-devel
@@ -99,6 +101,8 @@ Requires:       cxxtools-devel
 Requires:       tntdb-devel
 Requires:       malamute-devel >= 1.0.0
 Requires:       file-devel
+Requires:       openssl-devel
+Requires:       libuuid-devel
 Requires:       fty-common-logging-devel
 Requires:       fty-proto-devel >= 1.0.0
 Requires:       fty-common-db-devel

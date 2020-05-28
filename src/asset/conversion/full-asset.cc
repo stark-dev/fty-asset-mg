@@ -1,5 +1,5 @@
 /*  =========================================================================
-    fty_asset_manipulation - Helper functions to perform asset manipulation
+    asset_conversion_full_asset - asset/conversion/full-asset
 
     Copyright (C) 2016 - 2020 Eaton
 
@@ -19,16 +19,29 @@
     =========================================================================
 */
 
-#pragma once
-
-#include "fty_asset_dto.h"
-
+#include "full-asset.h"
+#include "include/fty_asset_dto.h"
 typedef struct _fty_proto_t fty_proto_t;
+#include <fty_common_asset.h>
 
-// get asset
-fty::Asset getAsset(const std::string& assetInternalName, bool test = false);
-// list assets
-std::vector<fty::Asset> listAssets(bool test = false);
+namespace fty { namespace conversion {
 
-// for test purposes
-extern std::map<std::string, std::string> test_map_asset_state;
+fty::FullAsset toFullAsset(const fty::Asset& asset)
+{
+    fty::FullAsset::HashMap auxMap; // does not exist in new Asset implementation
+    fty::FullAsset::HashMap extMap;
+
+    for (const auto& element : asset.getExt()) {
+        // FullAsset hash map has no readOnly parameter
+        extMap[element.first] = element.second.first;
+    }
+
+    fty::FullAsset fa(asset.getInternalName(), fty::assetStatusToString(asset.getAssetStatus()),
+        asset.getAssetType(), asset.getAssetSubtype(),
+        asset.getExtEntry(fty::EXT_NAME), // asset name is stored in ext structure
+        asset.getParentIname(), asset.getPriority(), auxMap, extMap);
+
+    return fa;
+}
+
+}}
