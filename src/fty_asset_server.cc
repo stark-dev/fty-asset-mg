@@ -192,12 +192,14 @@
 
 #include "asset-server.h"
 #include "fty_asset_classes.h"
+#include <ctime>
 #include <fty_common_db_uptime.h>
 #include <fty_common_messagebus.h>
 #include <functional>
 #include <malamute.h>
 #include <mlm_client.h>
 #include <string>
+#include <sys/time.h>
 #include <tntdb/connect.h>
 
 bool g_testMode = false;
@@ -1359,21 +1361,34 @@ void fty_asset_server_test(bool /*verbose*/)
         log_info("fty-asset-server-test:Test #1: OK");
     }
 
-    static const char* endpoint = "inproc://fty_asset_server-test";
+    timeval t;
+    gettimeofday(&t, NULL);
+    srand(t.tv_sec * t.tv_usec);
+
+    std::cerr << "################### " << t.tv_sec * t.tv_usec << std::endl;
+    int rnd_name = rand();
+
+    std::string endpoint = "inproc://fty_asset_server-test";
 
     zactor_t* server = zactor_new(mlm_server, (void*)"Malamute");
     assert(server != NULL);
-    zstr_sendx(server, "BIND", endpoint, NULL);
+    zstr_sendx(server, "BIND", endpoint.c_str(), NULL);
 
     mlm_client_t* ui = mlm_client_new();
-    mlm_client_connect(ui, endpoint, 5000, "fty-asset-ui");
+
+    std::string client_name = "fty-asset-";
+    client_name.append(std::to_string(rnd_name));
+
+    mlm_client_connect(ui, endpoint.c_str(), 5000, client_name.c_str());
     mlm_client_set_producer(ui, "ASSETS-TEST");
     mlm_client_set_consumer(ui, "ASSETS-TEST", ".*");
 
-    const char* asset_server_test_name = "asset_agent_test";
-    zactor_t*   asset_server           = zactor_new(fty_asset_server, (void*)asset_server_test_name);
+    std::string asset_server_test_name = "asset_agent_test-";
+    asset_server_test_name.append(std::to_string(rnd_name));
 
-    zstr_sendx(asset_server, "CONNECTSTREAM", endpoint, NULL);
+    zactor_t* asset_server = zactor_new(fty_asset_server, (void*)asset_server_test_name.c_str());
+
+    zstr_sendx(asset_server, "CONNECTSTREAM", endpoint.c_str(), NULL);
     zsock_wait(asset_server);
     zstr_sendx(asset_server, "PRODUCER", "ASSETS-TEST", NULL);
     zsock_wait(asset_server);
@@ -1381,7 +1396,7 @@ void fty_asset_server_test(bool /*verbose*/)
     zsock_wait(asset_server);
     zstr_sendx(asset_server, "CONSUMER", "LICENSING-ANNOUNCEMENTS-TEST", ".*", NULL);
     zsock_wait(asset_server);
-    zstr_sendx(asset_server, "CONNECTMAILBOX", endpoint, NULL);
+    zstr_sendx(asset_server, "CONNECTMAILBOX", endpoint.c_str(), NULL);
     zsock_wait(asset_server);
     static const char* asset_name = TEST_INAME;
     // Test #2: subject ASSET_MANIPULATION, message fty_proto_t *asset
@@ -1393,7 +1408,7 @@ void fty_asset_server_test(bool /*verbose*/)
         zhash_insert(aux, "subtype", (void*)"N_A");
         zmsg_t* msg = fty_proto_encode_asset(aux, asset_name, FTY_PROTO_ASSET_OP_CREATE, NULL);
         zmsg_pushstrf(msg, "%s", "READWRITE");
-        int rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        int rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         zhash_destroy(&aux);
         assert(rv == 0);
         zmsg_t* reply = mlm_client_recv(ui);
@@ -1462,7 +1477,7 @@ void fty_asset_server_test(bool /*verbose*/)
         zmsg_addstr(msg, uuid);
         zmsg_addstr(msg, command);
         zmsg_addstr(msg, asset_name);
-        int rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        int rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         assert(rv == 0);
         zmsg_t* reply = mlm_client_recv(ui);
         assert(streq(mlm_client_subject(ui), subject));
@@ -1493,7 +1508,7 @@ void fty_asset_server_test(bool /*verbose*/)
         zmsg_t*     msg     = zmsg_new();
         zmsg_addstr(msg, command);
         zmsg_addstr(msg, asset_name);
-        int rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        int rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         assert(rv == 0);
         zmsg_t* reply = mlm_client_recv(ui);
         assert(streq(mlm_client_subject(ui), subject));
@@ -1513,7 +1528,7 @@ void fty_asset_server_test(bool /*verbose*/)
         zmsg_addstr(msg, command);
         zmsg_addstr(msg, "UUID");
         zmsg_addstr(msg, asset_name);
-        int rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        int rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         assert(rv == 0);
         zmsg_t* reply = mlm_client_recv(ui);
         assert(streq(mlm_client_subject(ui), subject));
@@ -1542,7 +1557,7 @@ void fty_asset_server_test(bool /*verbose*/)
         const char* subject = "REPUBLISH";
         zmsg_t*     msg     = zmsg_new();
         zmsg_addstr(msg, "$all");
-        int rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        int rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         assert(rv == 0);
         zclock_sleep(200);
         log_info("fty-asset-server-test:Test #8: OK");
@@ -1557,7 +1572,7 @@ void fty_asset_server_test(bool /*verbose*/)
         zmsg_addstr(msg, command);
         zmsg_addstr(msg, uuid);
         zmsg_addstr(msg, asset_name);
-        int rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        int rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         assert(rv == 0);
         zmsg_t* reply    = mlm_client_recv(ui);
         char*   rcv_uuid = zmsg_popstr(reply);
@@ -1580,7 +1595,7 @@ void fty_asset_server_test(bool /*verbose*/)
         const char* asset_ename = TEST_ENAME;
         zmsg_t*     msg         = zmsg_new();
         zmsg_addstr(msg, asset_name);
-        int rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        int rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         assert(rv == 0);
         zmsg_t* reply = mlm_client_recv(ui);
         assert(zmsg_size(reply) == 2);
@@ -1594,11 +1609,11 @@ void fty_asset_server_test(bool /*verbose*/)
         log_info("fty-asset-server-test:Test #10: OK");
     }
     zactor_t* autoupdate_server = zactor_new(fty_asset_autoupdate_server, (void*)"asset-autoupdate-test");
-    zstr_sendx(autoupdate_server, "CONNECT", endpoint, NULL);
+    zstr_sendx(autoupdate_server, "CONNECT", endpoint.c_str(), NULL);
     zsock_wait(autoupdate_server);
     zstr_sendx(autoupdate_server, "PRODUCER", "ASSETS-TEST", NULL);
     zsock_wait(autoupdate_server);
-    zstr_sendx(autoupdate_server, "ASSET_AGENT_NAME", asset_server_test_name, NULL);
+    zstr_sendx(autoupdate_server, "ASSET_AGENT_NAME", asset_server_test_name.c_str(), NULL);
 
     // Test #11: message WAKEUP
     {
@@ -1620,7 +1635,7 @@ void fty_asset_server_test(bool /*verbose*/)
         zhash_insert(aux, "subtype", (void*)"N_A");
         zmsg_t* msg = fty_proto_encode_asset(aux, asset_name, FTY_PROTO_ASSET_OP_CREATE, NULL);
         zmsg_pushstrf(msg, "%s", "READWRITE");
-        int rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        int rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         zclock_sleep(200);
         zhash_destroy(&aux);
         assert(rv == 0);
@@ -1658,7 +1673,7 @@ void fty_asset_server_test(bool /*verbose*/)
         zhash_insert(aux, "subtype", (void*)"N_A");
         msg = fty_proto_encode_asset(aux, asset_name, FTY_PROTO_ASSET_OP_CREATE, NULL);
         zmsg_pushstrf(msg, "%s", "READWRITE");
-        rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         zclock_sleep(200);
         zhash_destroy(&aux);
         assert(rv == 0);
@@ -1687,7 +1702,7 @@ void fty_asset_server_test(bool /*verbose*/)
         zhash_insert(aux, "status", (void*)"active");
         msg = fty_proto_encode_asset(aux, "test1", FTY_PROTO_ASSET_OP_UPDATE, NULL);
         zmsg_pushstrf(msg, "%s", "READWRITE");
-        rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         if (aux)
             zhash_destroy(&aux);
         zclock_sleep(200);
@@ -1719,7 +1734,7 @@ void fty_asset_server_test(bool /*verbose*/)
         zhash_insert(aux, "status", (void*)"active");
         msg = fty_proto_encode_asset(aux, "test2", FTY_PROTO_ASSET_OP_UPDATE, NULL);
         zmsg_pushstrf(msg, "%s", "READWRITE");
-        rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         if (aux)
             zhash_destroy(&aux);
         zclock_sleep(1000);
@@ -1751,7 +1766,7 @@ void fty_asset_server_test(bool /*verbose*/)
         zhash_insert(aux, "status", (void*)"active");
         msg = fty_proto_encode_asset(aux, "test3", FTY_PROTO_ASSET_OP_UPDATE, NULL);
         zmsg_pushstrf(msg, "%s", "READWRITE");
-        rv = mlm_client_sendto(ui, asset_server_test_name, subject, NULL, 5000, &msg);
+        rv = mlm_client_sendto(ui, asset_server_test_name.c_str(), subject, NULL, 5000, &msg);
         if (aux)
             zhash_destroy(&aux);
         zclock_sleep(200);
@@ -1832,7 +1847,7 @@ void fty_asset_server_test(bool /*verbose*/)
         static const char* FTY_ASSET_TEST_PUB = "test-publisher";
         static const char* FTY_ASSET_TEST_REC = "test-receiver";
 
-        const std::string FTY_ASSET_TEST_MAIL_NAME = std::string(asset_server_test_name) + "-ng";
+        const std::string FTY_ASSET_TEST_MAIL_NAME = asset_server_test_name + "-ng";
 
         log_debug("fty-asset-server-test:Test #15");
 
