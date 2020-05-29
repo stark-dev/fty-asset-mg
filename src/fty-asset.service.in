@@ -4,6 +4,12 @@ After=malamute.service fty-db.target
 Requires=malamute.service fty-db.target
 PartOf=bios.target
 
+# Restart if database does:
+BindsTo=fty-db-engine.service
+After=fty-db-engine.service
+# ...and propagate its shutdowns to us too:
+PartOf=fty-db-engine.service
+
 [Service]
 Type=simple
 User=bios
