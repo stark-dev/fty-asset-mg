@@ -218,7 +218,7 @@ void AssetImpl::remove(bool recursive, bool removeLastDC)
     m_db.commitTransaction();
 }
 
-void AssetImpl::save(bool saveLinks)
+void AssetImpl::save()
 {
     m_db.beginTransaction();
     try {
@@ -232,10 +232,33 @@ void AssetImpl::save(bool saveLinks)
 
             m_db.insert(*this);
         }
-        if (saveLinks) {
+        m_db.saveLinkedAssets(*this);
+
+        m_db.saveExtMap(*this);
+    } catch (const std::exception& e) {
+        m_db.rollbackTransaction();
+        throw e.what();
+    }
+    m_db.commitTransaction();
+}
+
+void AssetImpl::restore(bool restoreLinks)
+{
+    m_db.beginTransaction();
+    // restore only if asset is not already in db and if it has uuid
+    if (getId() || (getUuid() == "")) {
+        throw std::runtime_error("Asset " + getInternalName() + " already exists, restore is not possible");
+    }
+    try {
+        // set creation timestamp
+        setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
+
+        m_db.insert(*this);
+        m_db.saveExtMap(*this);
+        if (restoreLinks) {
             m_db.saveLinkedAssets(*this);
         }
-        m_db.saveExtMap(*this);
+
     } catch (const std::exception& e) {
         m_db.rollbackTransaction();
         log_debug("AssetImpl::save() got EXCEPTION : %s", e.what());
@@ -318,8 +341,6 @@ void AssetImpl::unlinkAll()
 
 void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& si)
 {
-    AssetImpl parent(asset.getParentIname());
-
     std::vector<std::string> linkUuid;
 
     for (const auto& l : asset.getLinkedAssets()) {
@@ -332,7 +353,13 @@ void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& 
     si.addMember("type") <<= asset.getAssetType();
     si.addMember("subtype") <<= asset.getAssetSubtype();
     si.addMember("priority") <<= asset.getPriority();
-    si.addMember("parent") <<= parent.getUuid();
+    const std::string& parentIname = asset.getParentIname();
+    if (parentIname != "") {
+        AssetImpl parent(parentIname);
+        si.addMember("parent") <<= parent.getUuid();
+    } else {
+        si.addMember("parent") <<= "";
+    }
     si.addMember("linked") <<= linkUuid;
     // ext
     cxxtools::SerializationInfo& ext = si.addMember("");
@@ -356,9 +383,8 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
 
     // uuid
     si.getMember("uuid") >>= tmpString;
-    asset.setInternalName(DB::getInstance().inameByUuid(tmpString));
-
-    // uuid currently stored in text map
+    // WARNING iname is set to UUID, will be changed during restore
+    asset.setInternalName(tmpString);
     asset.setExtEntry("uuid", tmpString);
 
     // status
@@ -379,14 +405,16 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
 
     // parend id
     si.getMember("parent") >>= tmpString;
-    asset.setParentIname(DB::getInstance().inameByUuid(tmpString));
+    // WARNING parent iname is set to UUID, will be changed during restore
+    asset.setParentIname(tmpString);
 
     // linked assets
     std::vector<std::string> tmpVector;
 
     si.getMember("linked") >>= tmpVector;
     for (const auto& l : tmpVector) {
-        asset.linkTo(DB::getInstance().inameByUuid(l));
+        // WARNING link iname is set to UUID, will be changed during restore
+        asset.setLinkedAssets(tmpVector);
     }
 
     // ext map
@@ -406,13 +434,11 @@ std::vector<std::string> AssetImpl::list()
     return DB::getInstance().listAllAssets();
 }
 
-void AssetImpl::load(bool loadLinks)
+void AssetImpl::load()
 {
     m_db.loadAsset(getInternalName(), *this);
     m_db.loadExtMap(*this);
-    if (loadLinks) {
-        m_db.loadLinkedAssets(*this);
-    }
+    m_db.loadLinkedAssets(*this);
 }
 
 void AssetImpl::deleteList(const std::vector<std::string>& assets)
@@ -473,22 +499,6 @@ void AssetImpl::deleteList(const std::vector<std::string>& assets)
             errors.push_back(iname);
         }
     }
-
-    // auto isLinked = [&](const Asset& l, const Asset& r) {
-    //     // check if l is linked to r (l < r)
-    //     auto linksL    = l.getLinkedAssets();
-    //     auto isLinkedL = std::find(linksL.begin(), linksL.end(), r.getInternalName());
-    //     if (isLinkedL != linksL.end()) {
-    //         return false;
-    //     }
-    //     // check if r is linked to l (l > r)
-    //     auto linksR    = r.getLinkedAssets();
-    //     auto isLinkedR = std::find(linksR.begin(), linksR.end(), l.getInternalName());
-    //     if (isLinkedR != linksR.end()) {
-    //         return true;
-    //     }
-    //     return false;
-    // };
 
     for (auto& a : toDel) {
         a.unlinkAll();
