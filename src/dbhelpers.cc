@@ -568,7 +568,7 @@ static fty::Asset readAssetFromRow(tntdb::Connection& conn, const tntdb::Row& ro
     bool parentIdNotNull;
     std::string parentIname;
     std::string assetStatus;
-    int assetPriority;
+    int assetPriority = 3;
     std::string assetTag;
 
     row.reader().get(assetId)
