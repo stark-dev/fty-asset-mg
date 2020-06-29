@@ -959,6 +959,10 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
         fty::AssetImpl asset;
 
         fty::conversion::fromFtyProto(proto, asset, read_only, server.getTestMode());
+        log_debug("s_handle_subject_asset_manipulation(): Processing operation '%s' "
+            "for asset named '%s' with type '%s' and subtype '%s'",
+            operation, asset.getInternalName().c_str(),
+            asset.getAssetType().c_str(), asset.getAssetSubtype().c_str());
 
         if (streq(operation, "create") || streq(operation, "create-force")) {
             bool requestActivation = (asset.getAssetStatus() == fty::AssetStatus::Active);
@@ -995,6 +999,7 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
             fty::AssetImpl currentAsset(asset.getInternalName());
             // force ID of asset to update
             asset.setId(currentAsset.getId());
+            log_debug("s_handle_subject_asset_manipulation(): Updating asset with DB ID '%" PRIu32 "'", asset.getId());
 
             bool requestActivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
                                       asset.getAssetStatus() == fty::AssetStatus::Active);
