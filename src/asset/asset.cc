@@ -185,6 +185,7 @@ void AssetImpl::remove(bool recursive)
         }
     } catch (const std::exception& e) {
         m_db->rollbackTransaction();
+        log_debug("AssetImpl::remove() got EXCEPTION : %s", e.what());
         throw std::runtime_error(e.what());
     }
     m_db->commitTransaction();
@@ -208,6 +209,7 @@ void AssetImpl::save()
         m_db->saveExtMap(*this);
     } catch (const std::exception& e) {
         m_db->rollbackTransaction();
+        log_debug("AssetImpl::save() got EXCEPTION : %s", e.what());
         throw e.what();
     }
     m_db->commitTransaction();
