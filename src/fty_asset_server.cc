@@ -993,6 +993,8 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
             server.sendNotification(notification);
         } else if (streq(operation, "update")) {
             fty::AssetImpl currentAsset(asset.getInternalName());
+            // force ID of asset to update
+            asset.setId(currentAsset.getId());
 
             bool requestActivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
                                       asset.getAssetStatus() == fty::AssetStatus::Active);
