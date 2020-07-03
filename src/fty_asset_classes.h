@@ -143,18 +143,6 @@ typedef struct _asset_asset_db_t asset_asset_db_t;
 typedef struct _asset_asset_db_test_t asset_asset_db_test_t;
 #define ASSET_ASSET_DB_TEST_T_DEFINED
 #endif
-#ifndef ASSET_CONVERSION_JSON_T_DEFINED
-typedef struct _asset_conversion_json_t asset_conversion_json_t;
-#define ASSET_CONVERSION_JSON_T_DEFINED
-#endif
-#ifndef ASSET_CONVERSION_PROTO_T_DEFINED
-typedef struct _asset_conversion_proto_t asset_conversion_proto_t;
-#define ASSET_CONVERSION_PROTO_T_DEFINED
-#endif
-#ifndef ASSET_CONVERSION_FULL_ASSET_T_DEFINED
-typedef struct _asset_conversion_full_asset_t asset_conversion_full_asset_t;
-#define ASSET_CONVERSION_FULL_ASSET_T_DEFINED
-#endif
 
 //  Extra headers
 #include "topology/dbtypes.h"
@@ -187,9 +175,6 @@ typedef struct _asset_conversion_full_asset_t asset_conversion_full_asset_t;
 #include "asset/asset-storage.h"
 #include "asset/asset-db.h"
 #include "asset/asset-db-test.h"
-#include "asset/conversion/json.h"
-#include "asset/conversion/proto.h"
-#include "asset/conversion/full-asset.h"
 
 //  *** To avoid double-definitions, only define if building without draft ***
 #ifndef FTY_ASSET_BUILD_DRAFT_API

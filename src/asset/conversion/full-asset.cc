@@ -19,29 +19,29 @@
     =========================================================================
 */
 
-#include "full-asset.h"
+#include "include/asset/conversion/full-asset.h"
 #include "include/fty_asset_dto.h"
 typedef struct _fty_proto_t fty_proto_t;
 #include <fty_common_asset.h>
 
 namespace fty { namespace conversion {
 
-fty::FullAsset toFullAsset(const fty::Asset& asset)
-{
-    fty::FullAsset::HashMap auxMap; // does not exist in new Asset implementation
-    fty::FullAsset::HashMap extMap;
+    fty::FullAsset toFullAsset(const fty::Asset& asset)
+    {
+        fty::FullAsset::HashMap auxMap; // does not exist in new Asset implementation
+        fty::FullAsset::HashMap extMap;
 
-    for (const auto& element : asset.getExt()) {
-        // FullAsset hash map has no readOnly parameter
-        extMap[element.first] = element.second.first;
+        for (const auto& element : asset.getExt()) {
+            // FullAsset hash map has no readOnly parameter
+            extMap[element.first] = element.second.first;
+        }
+
+        fty::FullAsset fa(asset.getInternalName(), fty::assetStatusToString(asset.getAssetStatus()),
+            asset.getAssetType(), asset.getAssetSubtype(),
+            asset.getExtEntry(fty::EXT_NAME), // asset name is stored in ext structure
+            asset.getParentIname(), asset.getPriority(), auxMap, extMap);
+
+        return fa;
     }
 
-    fty::FullAsset fa(asset.getInternalName(), fty::assetStatusToString(asset.getAssetStatus()),
-        asset.getAssetType(), asset.getAssetSubtype(),
-        asset.getExtEntry(fty::EXT_NAME), // asset name is stored in ext structure
-        asset.getParentIname(), asset.getPriority(), auxMap, extMap);
-
-    return fa;
-}
-
-}}
+}} // namespace fty::conversion

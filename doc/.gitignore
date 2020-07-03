@@ -19,6 +19,12 @@ fty_asset_inventory.txt
 fty_asset_inventory.doc
 fty_asset_dto.txt
 fty_asset_dto.doc
+asset_conversion_json.txt
+asset_conversion_json.doc
+asset_conversion_proto.txt
+asset_conversion_proto.doc
+asset_conversion_full_asset.txt
+asset_conversion_full_asset.doc
 fty-asset.txt
 fty-asset.doc
 fty-asset-cli.txt

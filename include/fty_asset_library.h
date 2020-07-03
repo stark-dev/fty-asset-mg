@@ -93,6 +93,12 @@ typedef struct _fty_asset_inventory_t fty_asset_inventory_t;
 #define FTY_ASSET_INVENTORY_T_DEFINED
 typedef struct _fty_asset_dto_t fty_asset_dto_t;
 #define FTY_ASSET_DTO_T_DEFINED
+typedef struct _asset_conversion_json_t asset_conversion_json_t;
+#define ASSET_CONVERSION_JSON_T_DEFINED
+typedef struct _asset_conversion_proto_t asset_conversion_proto_t;
+#define ASSET_CONVERSION_PROTO_T_DEFINED
+typedef struct _asset_conversion_full_asset_t asset_conversion_full_asset_t;
+#define ASSET_CONVERSION_FULL_ASSET_T_DEFINED
 
 
 //  Public classes, each with its own header file
@@ -100,6 +106,9 @@ typedef struct _fty_asset_dto_t fty_asset_dto_t;
 #include "fty_asset_autoupdate.h"
 #include "fty_asset_inventory.h"
 #include "fty_asset_dto.h"
+#include "asset/conversion/json.h"
+#include "asset/conversion/proto.h"
+#include "asset/conversion/full-asset.h"
 
 #ifdef FTY_ASSET_BUILD_DRAFT_API
 
