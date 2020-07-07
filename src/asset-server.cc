@@ -204,7 +204,7 @@ dto::srr::SaveResponse AssetServer::handleSave(const dto::srr::SaveQuery& query)
         if (featureName == FTY_ASSET_SRR_NAME) {
             f1.set_version(SRR_ACTIVE_VERSION);
             try {
-                std::unique_lock<std::mutex>(m_srrLock);
+                std::unique_lock<std::mutex> lock(m_srrLock);
                 f1.set_data(assetutils::serialize(saveAssets()));
                 fs1.mutable_status()->set_status(Status::SUCCESS);
             } catch (std::exception& e) {
@@ -241,7 +241,7 @@ dto::srr::RestoreResponse AssetServer::handleRestore(const dto::srr::RestoreQuer
 
         if (featureName == FTY_ASSET_SRR_NAME) {
             try {
-                std::unique_lock<std::mutex>(m_srrLock);
+                std::unique_lock<std::mutex> lock(m_srrLock);
 
                 cxxtools::SerializationInfo si = assetutils::deserialize(feature.data());
                 log_debug("Si=\n%s", feature.data().c_str());

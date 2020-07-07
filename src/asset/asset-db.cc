@@ -643,7 +643,7 @@ void DB::saveLinkedAssets(Asset& asset)
         try {
             AssetImpl src(l.sourceId);
             link(src, l.srcOut, asset, l.destIn, l.linkType);
-        } catch (std::runtime_error) {
+        } catch (std::runtime_error&) {
             auto found = std::find_if(existing.begin(), existing.end(), [&](const Existing& e) {
                 return e.second == l;
             });
