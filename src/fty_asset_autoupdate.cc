@@ -205,7 +205,7 @@ autoupdate_request_all_rcs (fty_asset_autoupdate_t *self)
     zmsg_t *msg = zmsg_new ();
     zmsg_addstr (msg, "GET");
     zmsg_addstr (msg, "");
-    zmsg_addstr (msg, "rackcontroller");
+    zmsg_addstr (msg, "rack controller");
     int rv = mlm_client_sendto (self->client, self->asset_agent_name, "ASSETS_IN_CONTAINER", NULL, 5000, &msg);
     if (rv != 0) {
         log_error ("%s:\tRequest RC list failed", self->name);
