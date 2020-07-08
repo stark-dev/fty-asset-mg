@@ -22,7 +22,4 @@
 #ifndef FTY_ASSET_H_H_INCLUDED
 #define FTY_ASSET_H_H_INCLUDED
 
-//  Include the project library file
-#include "fty_asset_library.h"
-
 #endif

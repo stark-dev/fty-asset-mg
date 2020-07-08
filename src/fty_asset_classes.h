@@ -40,7 +40,7 @@
 #endif
 
 //  External API
-#include "../include/fty-asset.h"
+#include "../include/fty_asset_library.h"
 
 //  Opaque class structures to allow forward references
 #ifndef TOPOLOGY_DB_TOPOLOGY2_T_DEFINED
