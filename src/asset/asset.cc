@@ -112,14 +112,21 @@ static std::string createAssetName(const std::string& type, const std::string& s
 {
     std::string assetName;
 
-    srand(time(NULL));
+    timeval t;
+    gettimeofday(&t, NULL);
+    srand(t.tv_sec * t.tv_usec);
     // generate 8 digit random integer
     unsigned long index = rand() % 100000000;
 
+    std::string indexStr = std::to_string(index);
+
+    // create 8 digit index with leading zeros
+    indexStr = std::string(8 - indexStr.length(), '0') + indexStr;
+
     if (type == fty::TYPE_DEVICE) {
-        assetName = subtype + "-" + std::to_string(index);
+        assetName = subtype + "-" + indexStr;
     } else {
-        assetName = type + "-" + std::to_string(index);
+        assetName = type + "-" + indexStr;
     }
 
     return assetName;
