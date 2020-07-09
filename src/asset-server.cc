@@ -21,7 +21,7 @@
 
 #include "asset-server.h"
 #include "asset/asset-utils.h"
-#include "asset/conversion/json.h"
+#include "include/asset/conversion/json.h"
 #include "include/fty_asset_dto.h"
 #include <algorithm>
 #include <cxxtools/serializationinfo.h>
