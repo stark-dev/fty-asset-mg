@@ -478,7 +478,7 @@ s_should_filter (int filter_type, int type)
 static bool
 fctOrderByName (const Item &i1, const Item &i2)
 {
-    return (i1.name > i2.name);
+    return (i1.name < i2.name);
 }
 
 // MVY: TODO - it turns out that topology call is way more simpler than this
