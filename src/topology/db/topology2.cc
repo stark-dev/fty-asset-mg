@@ -151,7 +151,9 @@ void operator<<= (cxxtools::SerializationInfo &si, const Item &asset)
     si.addMember("type") <<= asset.type;
     si.addMember("sub_type") <<= asset.subtype;
     if (!asset.contains.empty ())
+    {
         si.addMember("contains") <<= asset.contains;
+    }
 }
 
 // helper print function to be deleted
@@ -207,7 +209,7 @@ s_topology2_devices_in_groups (
         "   ON rel.id_asset_group=el2.id_asset_element "
         " JOIN t_bios_asset_ext_attributes AS ext "
         "   ON el.id_asset_element=ext.id_asset_element "
-        " LEFT JOIN t_bios_asset_ext_attributes AS torder ON (el.id_asset_element=torder.id_asset_element AND torder.keytag=\"asset_order\") "
+        " LEFT JOIN t_bios_asset_ext_attributes AS torder ON (el.id_asset_element=torder.id_asset_element AND torder.keytag=\"name\") "
         " WHERE ext.keytag=\"name\" AND el2.name=:id "
         " ORDER BY "
         "   asset_order ASC ";
@@ -474,11 +476,9 @@ s_should_filter (int filter_type, int type)
 }
 
 static bool
-s_order13 (const Item &i1, const Item &i2)
+fctOrderByName (const Item &i1, const Item &i2)
 {
-    if (i1.asset_order < i2.asset_order)
-        return true;
-    return false;
+    return (i1.name > i2.name);
 }
 
 // MVY: TODO - it turns out that topology call is way more simpler than this
@@ -546,7 +546,7 @@ topology2_from_json (
 
             processed.emplace (id);
         }
-        topo.sort (s_order13);
+        topo.sort (fctOrderByName);
         topo.groups.insert (topo.groups.end (), groups.begin (), groups.end ());
     }
 
@@ -589,7 +589,7 @@ s_topo_recursive (
             s_topo_recursive (it.contains, kids, nm, im);
         }
         topo.push_back (it);
-        topo.sort (s_order13);
+        topo.sort (fctOrderByName);
     }
 }
 
