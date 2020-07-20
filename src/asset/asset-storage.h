@@ -42,9 +42,10 @@ public:
     virtual void                     loadLinkedAssets(Asset& asset)  = 0;
     virtual std::vector<std::string> getChildren(const Asset& asset) = 0;
 
-    virtual bool hasLinkedAssets(const Asset& asset) = 0;
-    virtual void link(
-        Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) = 0;
+    virtual uint32_t getID(const std::string& internalName) = 0;
+    virtual bool     hasLinkedAssets(const Asset& asset)    = 0;
+    virtual void     link(
+            Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) = 0;
     virtual void unlink(
         Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) = 0;
     virtual void unlinkAll(Asset& dest)                                                              = 0;

@@ -417,8 +417,6 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
 
         // get current asset data
         fty::AssetImpl currentAsset(asset.getInternalName());
-        // force ID of asset to update
-        asset.setId(currentAsset.getId());
 
         // data vector (contains asset before and after update)
         std::vector<std::string> assetJsonVector;

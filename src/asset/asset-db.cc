@@ -65,7 +65,6 @@ void DB::loadAsset(const std::string& nameId, Asset& asset)
     // clang-format on
     m_conn_lock.unlock();
 
-    asset.setId(row.getInt("id"));
     asset.setInternalName(row.getString("name"));
     asset.setAssetType(row.getString("type"));
     asset.setAssetSubtype(row.getString("subType"));
@@ -81,7 +80,8 @@ void DB::loadAsset(const std::string& nameId, Asset& asset)
 
 void DB::loadExtMap(Asset& asset)
 {
-    assert(asset.getId());
+    uint32_t assetID = getID(asset.getInternalName());
+    assert(assetID);
 
     // clang-format off
     m_conn_lock.lock();
@@ -95,7 +95,7 @@ void DB::loadExtMap(Asset& asset)
         WHERE
             id_asset_element = :asset_id
     )")
-    .set("asset_id", asset.getId())
+    .set("asset_id", assetID)
     .select();
     // clang-format on
     m_conn_lock.unlock();
@@ -107,7 +107,8 @@ void DB::loadExtMap(Asset& asset)
 
 std::vector<std::string> DB::getChildren(const Asset& asset)
 {
-    assert(asset.getId());
+    uint32_t assetID = getID(asset.getInternalName());
+    assert(assetID);
 
     m_conn_lock.lock();
     // clang-format off
@@ -119,7 +120,7 @@ std::vector<std::string> DB::getChildren(const Asset& asset)
         WHERE
             id_parent = :asset_id
     )")
-    .set("asset_id", asset.getId())
+    .set("asset_id", assetID)
     .select();
     // clang-format on
     m_conn_lock.unlock();
@@ -132,9 +133,39 @@ std::vector<std::string> DB::getChildren(const Asset& asset)
     return children;
 }
 
+// returns 0 if internal name is not found, the integer ID otherwise
+uint32_t DB::getID(const std::string& internalName)
+{
+    // clang-format off
+    auto q = m_conn.prepareCached(R"(
+        SELECT
+            id_asset_element
+        FROM
+            t_bios_asset_element
+        WHERE
+            name = :internal_name
+    )");
+    q.set("internal_name", internalName);
+    
+    uint32_t assetID = 0;
+
+    m_conn_lock.lock();
+    try{
+        auto v = q.selectValue();
+        assetID = v.getInt32();
+    } catch(tntdb::NotFound&) {
+        log_warning("Asset internal name %s not found", internalName.c_str());
+    }
+    // clang-format on
+    m_conn_lock.unlock();
+
+    return assetID;
+}
+
 void DB::loadLinkedAssets(Asset& asset)
 {
-    assert(asset.getId());
+    uint32_t assetID = getID(asset.getInternalName());
+    assert(assetID);
 
     // clang-format off
     m_conn_lock.lock();
@@ -152,7 +183,7 @@ void DB::loadLinkedAssets(Asset& asset)
         WHERE
             l.id_asset_element_dest = :asset_id
     )")
-    .set("asset_id", asset.getId())
+    .set("asset_id", assetID)
     .select();
     // clang-format on
     m_conn_lock.unlock();
@@ -176,7 +207,8 @@ void DB::loadLinkedAssets(Asset& asset)
 
 bool DB::isLastDataCenter(Asset& asset)
 {
-    assert(asset.getId());
+    uint32_t assetID = getID(asset.getInternalName());
+    assert(assetID);
 
     m_conn_lock.lock();
     // clang-format off
@@ -193,7 +225,7 @@ bool DB::isLastDataCenter(Asset& asset)
             )
             AND id_asset_element != :asset_id
     )")
-    .set("asset_id", asset.getId())
+    .set("asset_id", assetID)
     .selectValue()
     .getInt();
     // clang-format on
@@ -204,7 +236,8 @@ bool DB::isLastDataCenter(Asset& asset)
 
 void DB::removeFromGroups(Asset& asset)
 {
-    assert(asset.getId());
+    uint32_t assetID = getID(asset.getInternalName());
+    assert(assetID);
 
     m_conn_lock.lock();
     // clang-format off
@@ -214,7 +247,7 @@ void DB::removeFromGroups(Asset& asset)
         WHERE
             id_asset_element = :asset_id
     )")
-    .set("asset_id", asset.getId())
+    .set("asset_id", assetID)
     .execute();
     // clang-format on
     m_conn_lock.unlock();
@@ -222,7 +255,8 @@ void DB::removeFromGroups(Asset& asset)
 
 void DB::removeFromRelations(Asset& asset)
 {
-    assert(asset.getId());
+    uint32_t assetID = getID(asset.getInternalName());
+    assert(assetID);
 
     m_conn_lock.lock();
     // clang-format off
@@ -232,7 +266,7 @@ void DB::removeFromRelations(Asset& asset)
         WHERE
             id_asset_element = :asset_id
     )")
-    .set("asset_id", asset.getId())
+    .set("asset_id", assetID)
     .execute();
     // clang-format on
     m_conn_lock.unlock();
@@ -240,7 +274,8 @@ void DB::removeFromRelations(Asset& asset)
 
 void DB::removeAsset(Asset& asset)
 {
-    assert(asset.getId());
+    uint32_t assetID = getID(asset.getInternalName());
+    assert(assetID);
 
     m_conn_lock.lock();
     // clang-format off
@@ -250,7 +285,7 @@ void DB::removeAsset(Asset& asset)
         WHERE
             id_asset_element = :asset_id
     )")
-    .set("asset_id", asset.getId())
+    .set("asset_id", assetID)
     .execute();
     // clang-format on
     m_conn_lock.unlock();
@@ -258,7 +293,8 @@ void DB::removeAsset(Asset& asset)
 
 void DB::removeExtMap(Asset& asset)
 {
-    assert(asset.getId());
+    uint32_t assetID = getID(asset.getInternalName());
+    assert(assetID);
 
     m_conn_lock.lock();
     // clang-format off
@@ -268,7 +304,7 @@ void DB::removeExtMap(Asset& asset)
         WHERE
             id_asset_element = :assetId
     )")
-    .set("assetId", asset.getId())
+    .set("assetId", assetID)
     .execute();
     m_conn_lock.unlock();
     // clang-format on
@@ -276,7 +312,8 @@ void DB::removeExtMap(Asset& asset)
 
 void DB::clearGroup(Asset& asset)
 {
-    assert(asset.getId());
+    uint32_t assetID = getID(asset.getInternalName());
+    assert(assetID);
 
     m_conn_lock.lock();
     // clang-format off
@@ -286,7 +323,7 @@ void DB::clearGroup(Asset& asset)
         WHERE
             d_asset_group = :grp
     )")
-    .set("grp", asset.getId())
+    .set("grp", assetID)
     .execute();
     // clang-format on
     m_conn_lock.unlock();
@@ -294,7 +331,8 @@ void DB::clearGroup(Asset& asset)
 
 bool DB::hasLinkedAssets(const Asset& asset)
 {
-    assert(asset.getId());
+    uint32_t assetID = getID(asset.getInternalName());
+    assert(assetID);
 
     m_conn_lock.lock();
     // clang-format off
@@ -306,7 +344,7 @@ bool DB::hasLinkedAssets(const Asset& asset)
         WHERE
             id_asset_device_src = :src
     )")
-    .set("src", asset.getId())
+    .set("src", assetID)
     .selectValue()
     .getInt();
     // clang-format on
@@ -317,8 +355,11 @@ bool DB::hasLinkedAssets(const Asset& asset)
 
 void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType)
 {
-    assert(src.getId());
-    assert(dest.getId());
+    uint32_t srcID = getID(src.getInternalName());
+    assert(srcID);
+
+    uint32_t destID = getID(dest.getInternalName());
+    assert(destID);
 
     m_conn_lock.lock();
     // clang-format off
@@ -338,7 +379,7 @@ void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::str
         WHERE
              id_asset_device_dest = :assetId
     )")
-    .set("assetId", dest.getId())
+    .set("assetId", destID)
     .select();
     // clang-format on
     m_conn_lock.unlock();
@@ -383,8 +424,8 @@ void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::str
 
     // clang-format on
 
-    q.set("src", src.getId());
-    q.set("dest", dest.getId());
+    q.set("src", srcID);
+    q.set("dest", destID);
 
     srcOut.empty() ? q.setNull("srcOut") : q.set("srcOut", srcOut);
     destIn.empty() ? q.setNull("destIn") : q.set("destIn", destIn);
@@ -398,8 +439,11 @@ void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::str
 
 void DB::unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType)
 {
-    assert(src.getId());
-    assert(dest.getId());
+    uint32_t srcID = getID(src.getInternalName());
+    assert(srcID);
+
+    uint32_t destID = getID(dest.getInternalName());
+    assert(destID);
 
     tntdb::Statement q;
 
@@ -431,8 +475,8 @@ void DB::unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::s
 
     q = m_conn.prepareCached(qs.str().c_str());
 
-    q.set("src", src.getId());
-    q.set("dest", dest.getId());
+    q.set("src", srcID);
+    q.set("dest", destID);
 
     if (!srcOut.empty())
         q.set("srcOut", srcOut);
@@ -448,7 +492,8 @@ void DB::unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::s
 
 void DB::unlinkAll(Asset& dest)
 {
-    assert(dest.getId());
+    uint32_t destID = getID(dest.getInternalName());
+    assert(destID);
 
     m_conn_lock.lock();
     // clang-format off
@@ -458,7 +503,7 @@ void DB::unlinkAll(Asset& dest)
         WHERE
             id_asset_device_dest = :dest
     )")
-    .set("dest", dest.getId())
+    .set("dest", destID)
     .execute();
     // clang-format on
     m_conn_lock.unlock();
@@ -502,7 +547,7 @@ void DB::update(Asset& asset)
             id_asset_element = :assetId
     )");
     // clang-format on
-
+    q.set("assetId", getID(asset.getInternalName()));
     q.set("type", asset.getAssetType());
     q.set("subtype", asset.getAssetSubtype());
     // name field can't be null, parent id is set to NULL if parentIname is empty
@@ -547,9 +592,6 @@ void DB::insert(Asset& asset)
     m_conn_lock.lock();
     q.execute();
     m_conn_lock.unlock();
-
-    // update ID after insertion
-    asset.setId(m_conn.lastInsertId());
 }
 
 std::string DB::inameById(uint32_t id)
@@ -598,6 +640,11 @@ std::string DB::inameByUuid(const std::string& uuid)
 
 void DB::saveLinkedAssets(Asset& asset)
 {
+    uint32_t assetID = getID(asset.getInternalName());
+    if (assetID == 0) {
+        throw std::runtime_error("Asset " + asset.getInternalName() + " not found");
+    }
+
     m_conn_lock.lock();
     // clang-format off
     auto res = m_conn.prepareCached(R"(
@@ -614,7 +661,7 @@ void DB::saveLinkedAssets(Asset& asset)
         WHERE
              id_asset_device_dest = :assetId
     )")
-    .set("assetId", asset.getId())
+    .set("assetId", assetID)
     .select();
     // clang-format on
     m_conn_lock.unlock();
@@ -663,6 +710,11 @@ void DB::saveLinkedAssets(Asset& asset)
 
 void DB::saveExtMap(Asset& asset)
 {
+    uint32_t assetID = getID(asset.getInternalName());
+    if (assetID == 0) {
+        throw std::runtime_error("Asset " + asset.getInternalName() + " not found");
+    }
+
     m_conn_lock.lock();
     // clang-format off
     auto res = m_conn.prepareCached(R"(
@@ -675,7 +727,7 @@ void DB::saveExtMap(Asset& asset)
         WHERE
              id_asset_element = : assetId
     )")
-    .set("assetId", asset.getId())
+    .set("assetId", assetID)
     .select();
     // clang-format on
     m_conn_lock.unlock();
@@ -704,7 +756,7 @@ void DB::saveExtMap(Asset& asset)
             .set("key", it.first)
             .set("value", it.second.first)
             .set("readOnly", it.second.second)
-            .set("assetId", asset.getId())
+            .set("assetId", assetID)
             .execute();
             // clang-format on
             m_conn_lock.unlock();

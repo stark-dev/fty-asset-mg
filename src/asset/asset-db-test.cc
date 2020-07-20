@@ -108,6 +108,12 @@ void DBTest::clearGroup(Asset& asset)
     std::cout << "DBTest::clearGroup" << std::endl;
 }
 
+uint32_t DBTest::getID(const std::string& internalName)
+{
+    std::cout << "DBTest::getID fors asset" << internalName << std::endl;
+    return 1;
+}
+
 bool DBTest::hasLinkedAssets(const Asset& asset)
 {
     std::cout << "DBTest::hasLinkedAssets" << std::endl;

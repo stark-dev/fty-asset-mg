@@ -111,11 +111,6 @@ AssetStatus stringToAssetStatus(const std::string& str)
 
 // getters
 
-uint32_t Asset::getId() const
-{
-    return m_id;
-}
-
 const std::string& Asset::getInternalName() const
 {
     return m_internalName;
@@ -207,11 +202,6 @@ const std::vector<AssetLink>& Asset::getLinkedAssets() const
 }
 
 // setters
-
-void Asset::setId(uint32_t id)
-{
-    m_id = id;
-}
 
 void Asset::setInternalName(const std::string& internalName)
 {

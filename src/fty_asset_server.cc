@@ -993,8 +993,7 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
         } else if (streq(operation, "update")) {
             fty::AssetImpl currentAsset(asset.getInternalName());
             // force ID of asset to update
-            asset.setId(currentAsset.getId());
-            log_debug("s_handle_subject_asset_manipulation(): Updating asset with DB ID '%" PRIu32 "'", asset.getId());
+            log_debug("s_handle_subject_asset_manipulation(): Updating asset with internal name %s", asset.getInternalName().c_str());
 
             bool requestActivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
                                       asset.getAssetStatus() == fty::AssetStatus::Active);

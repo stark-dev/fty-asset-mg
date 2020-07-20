@@ -44,7 +44,8 @@ public:
     void                     loadLinkedAssets(Asset& asset);
     std::vector<std::string> getChildren(const Asset& asset);
 
-    bool hasLinkedAssets(const Asset& asset);
+    uint32_t getID(const std::string& internalName);
+    bool     hasLinkedAssets(const Asset& asset);
     void link(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType);
     void unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType);
     void unlinkAll(Asset& dest);

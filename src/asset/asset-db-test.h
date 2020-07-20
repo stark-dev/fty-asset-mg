@@ -42,9 +42,10 @@ public:
     void                     loadLinkedAssets(Asset& asset) override;
     std::vector<std::string> getChildren(const Asset& asset) override;
 
-    bool hasLinkedAssets(const Asset& asset) override;
-    void link(
-        Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) override;
+    uint32_t getID(const std::string& internalName) override;
+    bool     hasLinkedAssets(const Asset& asset) override;
+    void     link(
+            Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) override;
     void unlink(
         Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) override;
     void unlinkAll(Asset& dest) override;

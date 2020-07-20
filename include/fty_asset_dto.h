@@ -192,7 +192,6 @@ public:
     virtual ~Asset() = default;
 
     // getters
-    uint32_t             getId() const;
     const std::string&   getInternalName() const;
     AssetStatus          getAssetStatus() const;
     const std::string&   getAssetType() const;
@@ -211,7 +210,6 @@ public:
     const std::vector<AssetLink>& getLinkedAssets() const;
 
     // setters
-    void setId(uint32_t id);
     void setInternalName(const std::string& internalName);
     void setAssetStatus(AssetStatus assetStatus);
     void setAssetType(const std::string& assetType);
@@ -230,7 +228,6 @@ public:
     bool operator!=(const Asset& asset) const;
 
 private:
-    uint32_t m_id = 0;
     // internal name = <subtype>-<id>)
     std::string m_internalName;
 

@@ -257,7 +257,7 @@ void AssetImpl::save()
 {
     m_storage.beginTransaction();
     try {
-        if (getId()) {
+        if (m_storage.getID(getInternalName())) {
             m_storage.update(*this);
         } else { // create
             // set internal name (type/subtype-<random id>)
@@ -283,7 +283,7 @@ void AssetImpl::restore(bool restoreLinks)
 {
     m_storage.beginTransaction();
     // restore only if asset is not already in db
-    if (getId()) {
+    if (m_storage.getID(getInternalName())) {
         throw std::runtime_error("Asset " + getInternalName() + " already exists, restore is not possible");
     }
     try {
