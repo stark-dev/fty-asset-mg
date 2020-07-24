@@ -668,7 +668,7 @@ void AssetServer::restoreAssets(const cxxtools::SerializationInfo& si, bool tryA
 
 void AssetServer::getAsset(const messagebus::Message& msg, bool getFromUuid)
 {
-    log_debug("subject GET%s", (getFromUuid ? "" : "_FROM_UUID"));
+    log_debug("subject GET%s", (getFromUuid ? "_FROM_UUID" : ""));
 
     try {
         std::string assetID = msg.userData().front();
