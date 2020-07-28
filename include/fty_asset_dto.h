@@ -42,6 +42,8 @@ AssetStatus       stringToAssetStatus(const std::string& str);
 static constexpr const char* EXT_UUID         = "uuid";
 static constexpr const char* EXT_CREATE_TS    = "create_ts";
 static constexpr const char* EXT_CREATE_USER  = "create_user";
+static constexpr const char* EXT_UPDATE_TS    = "update_ts";
+static constexpr const char* EXT_UPDATE_USER  = "update_user";
 static constexpr const char* EXT_NAME         = "name";
 static constexpr const char* EXT_MODEL        = "model";
 static constexpr const char* EXT_MANUFACTURER = "manufacturer";

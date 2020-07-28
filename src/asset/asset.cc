@@ -257,7 +257,10 @@ void AssetImpl::save()
 {
     m_storage.beginTransaction();
     try {
-        if (m_storage.getID(getInternalName())) {
+        if (m_storage.getID(getInternalName())) { // update
+            // set last update timestamp
+            setExtEntry(fty::EXT_UPDATE_TS, generateCurrentTimestamp(), true);
+
             m_storage.update(*this);
         } else { // create
             // set internal name (type/subtype-<random id>)
