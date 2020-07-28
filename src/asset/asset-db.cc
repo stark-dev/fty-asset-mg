@@ -40,9 +40,10 @@ DB::DB(bool test)
 
 void DB::loadAsset(const std::string& nameId, Asset& asset)
 {
+    tntdb::Row row;
+
     // clang-format off
-    m_conn_lock.lock();
-    tntdb::Row row = m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         SELECT
             a.id_asset_element AS id,
             a.name             AS name,
@@ -59,11 +60,18 @@ void DB::loadAsset(const std::string& nameId, Asset& asset)
             LEFT JOIN t_bios_asset_element AS p
             ON a.id_parent = p.id_asset_element
         WHERE a.name = :asset_name
-    )")
-    .set("asset_name", nameId)
-    .selectRow();
+    )");
+    q.set("asset_name", nameId);
     // clang-format on
-    m_conn_lock.unlock();
+
+    try {
+        m_conn_lock.lock();
+        row = q.selectRow();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 
     asset.setInternalName(row.getString("name"));
     asset.setAssetType(row.getString("type"));
@@ -84,8 +92,7 @@ void DB::loadExtMap(Asset& asset)
     assert(assetID);
 
     // clang-format off
-    m_conn_lock.lock();
-    auto ext = m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         SELECT
             keytag,
             value,
@@ -94,13 +101,22 @@ void DB::loadExtMap(Asset& asset)
             t_bios_asset_ext_attributes
         WHERE
             id_asset_element = :asset_id
-    )")
-    .set("asset_id", assetID)
-    .select();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("asset_id", assetID);
 
-    for (const auto& row : ext) {
+    tntdb::Result res;
+
+    try {
+        m_conn_lock.lock();
+        res = q.select();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
+
+    for (const auto& row : res) {
         asset.setExtEntry(row.getString("keytag"), row.getString("value"), row.getBool("read_only"));
     }
 }
@@ -110,23 +126,31 @@ std::vector<std::string> DB::getChildren(const Asset& asset)
     uint32_t assetID = getID(asset.getInternalName());
     assert(assetID);
 
-    m_conn_lock.lock();
     // clang-format off
-    auto result = m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         SELECT
             name
         FROM
             t_bios_asset_element
         WHERE
             id_parent = :asset_id
-    )")
-    .set("asset_id", assetID)
-    .select();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("asset_id", assetID);
+
+    tntdb::Result res;
+
+    try {
+        m_conn_lock.lock();
+        res = q.select();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 
     std::vector<std::string> children;
-    for (const auto& row : result) {
+    for (const auto& row : res) {
         children.push_back(row.getString("name"));
     }
 
@@ -145,19 +169,24 @@ uint32_t DB::getID(const std::string& internalName)
         WHERE
             name = :internal_name
     )");
+    // clang-format on
     q.set("internal_name", internalName);
-    
+
     uint32_t assetID = 0;
 
-    m_conn_lock.lock();
-    try{
+    try {
+        m_conn_lock.lock();
         auto v = q.selectValue();
+        m_conn_lock.unlock();
+
         assetID = v.getInt32();
-    } catch(tntdb::NotFound&) {
+    } catch (tntdb::NotFound&) {
+        m_conn_lock.unlock();
         log_warning("Asset internal name %s not found", internalName.c_str());
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
     }
-    // clang-format on
-    m_conn_lock.unlock();
 
     return assetID;
 }
@@ -168,8 +197,7 @@ void DB::loadLinkedAssets(Asset& asset)
     assert(assetID);
 
     // clang-format off
-    m_conn_lock.lock();
-    auto result = m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         SELECT
             l.id_asset_element_src  AS id,
             e.name                  AS name,
@@ -182,14 +210,23 @@ void DB::loadLinkedAssets(Asset& asset)
             t_bios_asset_element AS e ON l.id_asset_element_src = e.id_asset_element
         WHERE
             l.id_asset_element_dest = :asset_id
-    )")
-    .set("asset_id", assetID)
-    .select();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("asset_id", assetID);
+
+    tntdb::Result res;
+
+    try {
+        m_conn_lock.lock();
+        res = q.select();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 
     std::vector<AssetLink> links;
-    for (const auto& row : result) {
+    for (const auto& row : res) {
         std::string srcOut, destIn;
         // may be NULL
         if (!row.isNull("srcOut")) {
@@ -210,9 +247,8 @@ bool DB::isLastDataCenter(Asset& asset)
     uint32_t assetID = getID(asset.getInternalName());
     assert(assetID);
 
-    m_conn_lock.lock();
     // clang-format off
-    int numDatacentersAfterDelete = m_conn.prepare(R"(
+    auto q = m_conn.prepare(R"(
         SELECT
             COUNT(id_asset_element)
         FROM
@@ -224,12 +260,20 @@ bool DB::isLastDataCenter(Asset& asset)
                 WHERE  name = 'datacenter'
             )
             AND id_asset_element != :asset_id
-    )")
-    .set("asset_id", assetID)
-    .selectValue()
-    .getInt();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("asset_id", assetID);
+
+    int numDatacentersAfterDelete = -1;
+
+    try {
+        m_conn_lock.lock();
+        numDatacentersAfterDelete = q.selectValue().getInt();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 
     return numDatacentersAfterDelete == 0;
 }
@@ -239,18 +283,24 @@ void DB::removeFromGroups(Asset& asset)
     uint32_t assetID = getID(asset.getInternalName());
     assert(assetID);
 
-    m_conn_lock.lock();
     // clang-format off
-    m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         DELETE FROM
             t_bios_asset_group_relation
         WHERE
             id_asset_element = :asset_id
-    )")
-    .set("asset_id", assetID)
-    .execute();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("asset_id", assetID);
+
+    try {
+        m_conn_lock.lock();
+        q.execute();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 }
 
 void DB::removeFromRelations(Asset& asset)
@@ -258,18 +308,24 @@ void DB::removeFromRelations(Asset& asset)
     uint32_t assetID = getID(asset.getInternalName());
     assert(assetID);
 
-    m_conn_lock.lock();
     // clang-format off
-    m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         DELETE FROM
             t_bios_monitor_asset_relation
         WHERE
             id_asset_element = :asset_id
-    )")
-    .set("asset_id", assetID)
-    .execute();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("asset_id", assetID);
+
+    try {
+        m_conn_lock.lock();
+        q.execute();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 }
 
 void DB::removeAsset(Asset& asset)
@@ -277,18 +333,24 @@ void DB::removeAsset(Asset& asset)
     uint32_t assetID = getID(asset.getInternalName());
     assert(assetID);
 
-    m_conn_lock.lock();
     // clang-format off
-    m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         DELETE FROM
             t_bios_asset_element
         WHERE
             id_asset_element = :asset_id
-    )")
-    .set("asset_id", assetID)
-    .execute();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("asset_id", assetID);
+
+    try {
+        m_conn_lock.lock();
+        q.execute();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 }
 
 void DB::removeExtMap(Asset& asset)
@@ -296,18 +358,24 @@ void DB::removeExtMap(Asset& asset)
     uint32_t assetID = getID(asset.getInternalName());
     assert(assetID);
 
-    m_conn_lock.lock();
     // clang-format off
-    m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         DELETE FROM
             t_bios_asset_ext_attributes
         WHERE
             id_asset_element = :assetId
-    )")
-    .set("assetId", assetID)
-    .execute();
-    m_conn_lock.unlock();
+    )");
     // clang-format on
+    q.set("assetId", assetID);
+
+    try {
+        m_conn_lock.lock();
+        q.execute();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 }
 
 void DB::clearGroup(Asset& asset)
@@ -315,18 +383,24 @@ void DB::clearGroup(Asset& asset)
     uint32_t assetID = getID(asset.getInternalName());
     assert(assetID);
 
-    m_conn_lock.lock();
     // clang-format off
-    m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         DELETE FROM
             t_bios_asset_group_relation
         WHERE
             d_asset_group = :grp
-    )")
-    .set("grp", assetID)
-    .execute();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("grp", assetID);
+
+    try {
+        m_conn_lock.lock();
+        q.execute();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 }
 
 bool DB::hasLinkedAssets(const Asset& asset)
@@ -334,21 +408,27 @@ bool DB::hasLinkedAssets(const Asset& asset)
     uint32_t assetID = getID(asset.getInternalName());
     assert(assetID);
 
-    m_conn_lock.lock();
     // clang-format off
-    int linkedAssets = m_conn.prepare(R"(
+    auto q = m_conn.prepare(R"(
         SELECT
             COUNT(id_link)
         FROM
             t_bios_asset_link
         WHERE
             id_asset_device_src = :src
-    )")
-    .set("src", assetID)
-    .selectValue()
-    .getInt();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("src", assetID);
+
+    int linkedAssets;
+    try {
+        m_conn_lock.lock();
+        linkedAssets = q.selectValue().getInt();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 
     return linkedAssets != 0;
 }
@@ -361,9 +441,9 @@ void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::str
     uint32_t destID = getID(dest.getInternalName());
     assert(destID);
 
-    m_conn_lock.lock();
     // clang-format off
-    auto res = m_conn.prepareCached(R"(
+    tntdb::Result res;
+    auto q1 = m_conn.prepareCached(R"(
         SELECT
             e.id_asset_element   AS srcId,
             e.name               AS srcName,
@@ -378,11 +458,18 @@ void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::str
             e.id_asset_element = l.id_asset_device_src
         WHERE
              id_asset_device_dest = :assetId
-    )")
-    .set("assetId", destID)
-    .select();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q1.set("assetId", destID);
+
+    try {
+        m_conn_lock.lock();
+        res = q1.select();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 
     std::vector<AssetLink> existing;
     for (const auto& row : res) {
@@ -409,7 +496,7 @@ void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::str
     }
 
     // clang-format off
-    auto q = m_conn.prepareCached(R"(
+    auto q2 = m_conn.prepareCached(R"(
         INSERT INTO
             t_bios_asset_link
             (id_asset_device_src, src_out, id_asset_device_dest, dest_in, id_asset_link_type)
@@ -421,20 +508,24 @@ void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::str
             :linkType
         )
     )");
-
     // clang-format on
 
-    q.set("src", srcID);
-    q.set("dest", destID);
+    q2.set("src", srcID);
+    q2.set("dest", destID);
 
-    srcOut.empty() ? q.setNull("srcOut") : q.set("srcOut", srcOut);
-    destIn.empty() ? q.setNull("destIn") : q.set("destIn", destIn);
+    srcOut.empty() ? q2.setNull("srcOut") : q2.set("srcOut", srcOut);
+    destIn.empty() ? q2.setNull("destIn") : q2.set("destIn", destIn);
 
-    q.set("linkType", linkType);
+    q2.set("linkType", linkType);
 
-    m_conn_lock.lock();
-    q.execute();
-    m_conn_lock.unlock();
+    try {
+        m_conn_lock.lock();
+        q2.execute();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 }
 
 void DB::unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType)
@@ -485,9 +576,14 @@ void DB::unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::s
 
     q.set("linkType", linkType);
 
-    m_conn_lock.lock();
-    q.execute();
-    m_conn_lock.unlock();
+    try {
+        m_conn_lock.lock();
+        q.execute();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 }
 
 void DB::unlinkAll(Asset& dest)
@@ -495,18 +591,24 @@ void DB::unlinkAll(Asset& dest)
     uint32_t destID = getID(dest.getInternalName());
     assert(destID);
 
-    m_conn_lock.lock();
     // clang-format off
-    m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         DELETE FROM
             t_bios_asset_link
         WHERE
             id_asset_device_dest = :dest
-    )")
-    .set("dest", destID)
-    .execute();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("dest", destID);
+
+    try {
+        m_conn_lock.lock();
+        q.execute();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 }
 
 void DB::beginTransaction()
@@ -556,9 +658,14 @@ void DB::update(Asset& asset)
     q.set("priority", asset.getPriority());
     asset.getAssetTag().empty() ? q.setNull("assetTag") : q.set("assetTag", asset.getAssetTag());
 
-    m_conn_lock.lock();
-    q.execute();
-    m_conn_lock.unlock();
+    try {
+        m_conn_lock.lock();
+        q.execute();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 }
 
 void DB::insert(Asset& asset)
@@ -589,32 +696,44 @@ void DB::insert(Asset& asset)
     q.set("priority", asset.getPriority());
     asset.getAssetTag().empty() ? q.setNull("assetTag") : q.set("assetTag", asset.getAssetTag());
 
-    m_conn_lock.lock();
-    q.execute();
-    m_conn_lock.unlock();
+    try {
+        m_conn_lock.lock();
+        q.execute();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 }
 
 std::string DB::inameById(uint32_t id)
 {
-    m_conn_lock.lock();
-    // clang-format off
-    std::string result = m_conn.prepareCached(R"(
-        SELECT name FROM t_bios_asset_element WHERE id_asset_element = :assetId
-    )")
-    .set("assetId", id)
-    .selectRow()
-    .getString("name");
-    // clang-format on
-    m_conn_lock.unlock();
+    std::string res;
 
-    return result;
+    // clang-format off
+    auto q = m_conn.prepareCached(R"(
+        SELECT name FROM t_bios_asset_element WHERE id_asset_element = :assetId
+    )");
+    // clang-format on
+    q.set("assetId", id);
+
+    try {
+        m_conn_lock.lock();
+        res = q.selectRow().getString("name");
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
+
+    return res;
 }
 
 std::string DB::inameByUuid(const std::string& uuid)
 {
-    m_conn_lock.lock();
+    std::string res;
     // clang-format off
-    std::string result = m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         SELECT
             name
         FROM
@@ -628,14 +747,20 @@ std::string DB::inameByUuid(const std::string& uuid)
                 WHERE
                     keytag = "uuid" AND value = :uuid
             )
-        )")
-    .set("uuid", uuid)
-    .selectRow()
-    .getString("name");
+        )");
+    q.set("uuid", uuid);
     // clang-format on
-    m_conn_lock.unlock();
 
-    return result;
+    try {
+        m_conn_lock.lock();
+        res = q.selectRow().getString("name");
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
+
+    return res;
 }
 
 void DB::saveLinkedAssets(Asset& asset)
@@ -645,9 +770,8 @@ void DB::saveLinkedAssets(Asset& asset)
         throw std::runtime_error("Asset " + asset.getInternalName() + " not found");
     }
 
-    m_conn_lock.lock();
     // clang-format off
-    auto res = m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         SELECT
             e.id_asset_element   AS srcId,
             e.name               AS srcName,
@@ -660,11 +784,19 @@ void DB::saveLinkedAssets(Asset& asset)
             ON e.id_asset_element = l.id_asset_device_src
         WHERE
              id_asset_device_dest = :assetId
-    )")
-    .set("assetId", assetID)
-    .select();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("assetId", assetID);
+
+    tntdb::Result res;
+    try {
+        m_conn_lock.lock();
+        res = q.select();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 
     using Existing = std::pair<uint32_t, AssetLink>;
 
@@ -715,9 +847,8 @@ void DB::saveExtMap(Asset& asset)
         throw std::runtime_error("Asset " + asset.getInternalName() + " not found");
     }
 
-    m_conn_lock.lock();
     // clang-format off
-    auto res = m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         SELECT
             id_asset_ext_attribute AS id,
             keytag                 AS akey,
@@ -726,11 +857,20 @@ void DB::saveExtMap(Asset& asset)
         FROM t_bios_asset_ext_attributes
         WHERE
              id_asset_element = : assetId
-    )")
-    .set("assetId", assetID)
-    .select();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+    q.set("assetId", assetID);
+
+    tntdb::Result res;
+
+    try {
+        m_conn_lock.lock();
+        res = q.select();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 
     using Existing = std::tuple<uint32_t, std::string, std::string, bool>;
 
@@ -747,52 +887,69 @@ void DB::saveExtMap(Asset& asset)
         });
 
         if (found == existing.end()) {
-            m_conn_lock.lock();
             // clang-format off
-            m_conn.prepareCached(R"(
+            auto q = m_conn.prepareCached(R"(
                 INSERT INTO t_bios_asset_ext_attributes (keytag, value, id_asset_element, read_only)
                 VALUES (:key, :value, :assetId, :readOnly)
-            )")
-            .set("key", it.first)
-            .set("value", it.second.first)
-            .set("readOnly", it.second.second)
-            .set("assetId", assetID)
-            .execute();
+            )");
             // clang-format on
-            m_conn_lock.unlock();
+            q.set("key", it.first);
+            q.set("value", it.second.first);
+            q.set("readOnly", it.second.second);
+            q.set("assetId", assetID);
+            try {
+                m_conn_lock.lock();
+                q.execute();
+                m_conn_lock.unlock();
+            } catch (std::exception& e) {
+                m_conn_lock.unlock();
+                throw std::runtime_error("Database error: " + std::string(e.what()));
+            }
         } else {
             if (std::get<2>(*found) != it.second.first || std::get<3>(*found) != it.second.second) {
-                m_conn_lock.lock();
                 // clang-format off
-                m_conn.prepareCached(R"(
+                auto q = m_conn.prepareCached(R"(
                     UPDATE t_bios_asset_ext_attributes
                     SET
                         value = :value,
                         read_only = :readOnly
                     WHERE id_asset_ext_attribute = :extId
-                )")
-                .set("value", it.second.first)
-                .set("readOnly", it.second.second)
-                .set("extId", std::get<0>(*found))
-                .execute();
+                )");
                 // clang-format on
-                m_conn_lock.unlock();
+                q.set("value", it.second.first);
+                q.set("readOnly", it.second.second);
+                q.set("extId", std::get<0>(*found));
+
+                try {
+                    m_conn_lock.lock();
+                    q.execute();
+                    m_conn_lock.unlock();
+                } catch (std::exception& e) {
+                    m_conn_lock.unlock();
+                    throw std::runtime_error("Database error: " + std::string(e.what()));
+                }
             }
             existing.erase(found);
         }
     }
 
     for (const auto& toRem : existing) {
-        m_conn_lock.lock();
         // clang-format off
-        m_conn.prepareCached(R"(
+        auto q = m_conn.prepareCached(R"(
             DELETE FROM t_bios_asset_ext_attributes
             WHERE id_asset_ext_attribute = :extId
-        )")
-        .set("extId", std::get<0>(toRem))
-        .execute();
+        )");
         // clang-format on
-        m_conn_lock.unlock();
+        q.set("extId", std::get<0>(toRem));
+
+        try {
+            m_conn_lock.lock();
+            q.execute();
+            m_conn_lock.unlock();
+        } catch (std::exception& e) {
+            m_conn_lock.unlock();
+            throw std::runtime_error("Database error: " + std::string(e.what()));
+        }
     }
 }
 
@@ -800,16 +957,24 @@ std::vector<std::string> DB::listAllAssets()
 {
     std::vector<std::string> assetList;
 
-    m_conn_lock.lock();
     // clang-format off
-    auto res = m_conn.prepareCached(R"(
+    auto q = m_conn.prepareCached(R"(
         SELECT
             name          AS name
         FROM t_bios_asset_element
-    )")
-    .select();
+    )");
     // clang-format on
-    m_conn_lock.unlock();
+
+    tntdb::Result res;
+
+    try {
+        m_conn_lock.lock();
+        res = q.select();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("Database error: " + std::string(e.what()));
+    }
 
     for (const auto& row : res) {
         const std::string& assetName = row.getString("name");
