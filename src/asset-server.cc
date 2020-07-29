@@ -131,7 +131,8 @@ void AssetServer::connectPublisherClientNg()
 // new generation asset manipulation handler
 void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
 {
-    log_debug("Received new asset manipulation message with subject %s", msg.metaData().at(messagebus::Message::SUBJECT).c_str());
+    log_debug("Received new asset manipulation message with subject %s",
+        msg.metaData().at(messagebus::Message::SUBJECT).c_str());
     // asset manipulation is disabled
     if (getGlobalConfigurability() == 0) {
         throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
@@ -347,6 +348,11 @@ void AssetServer::createAsset(const messagebus::Message& msg)
     bool tryActivate = value(msg.metaData(), METADATA_TRY_ACTIVATE) == "true";
 
     try {
+        // asset manipulation is disabled
+        if (getGlobalConfigurability() == 0) {
+            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
+        }
+
         std::string    userData = msg.userData().front();
         fty::AssetImpl asset;
         fty::conversion::fromJson(userData, asset);
@@ -411,6 +417,11 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
     bool tryActivate = value(msg.metaData(), METADATA_TRY_ACTIVATE) == "true";
 
     try {
+        // asset manipulation is disabled
+        if (getGlobalConfigurability() == 0) {
+            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
+        }
+
         std::string    userData = msg.userData().front();
         fty::AssetImpl asset;
 
@@ -490,6 +501,10 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
 
     messagebus::Message response;
     try {
+        // asset manipulation is disabled
+        if (getGlobalConfigurability() == 0) {
+            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
+        }
 
         std::string    internalName = msg.userData().front();
         fty::AssetImpl asset(internalName);
@@ -519,14 +534,33 @@ void AssetServer::deleteAssetList(const messagebus::Message& msg)
 
     cxxtools::SerializationInfo si = assetutils::deserialize(msg.userData().front());
 
-    std::vector<std::string> assetInames;
-    for (const auto& el : si.getMember("id")) {
-        std::string elId;
-        el.getValue(elId);
-        assetInames.push_back(elId);
+    messagebus::Message response;
+
+    try {
+        // asset manipulation is disabled
+        if (getGlobalConfigurability() == 0) {
+            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
+        }
+
+        std::vector<std::string> assetInames;
+        for (const auto& el : si.getMember("id")) {
+            std::string elId;
+            el.getValue(elId);
+            assetInames.push_back(elId);
+        }
+
+        response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
+            value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
+            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK, "");
+
+        AssetImpl::deleteList(assetInames);
+    } catch (const std::exception& e) {
+        response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
+            value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
+            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_KO, e.what());
     }
 
-    AssetImpl::deleteList(assetInames);
+    m_assetMsgQueue->sendReply(value(msg.metaData(), messagebus::Message::REPLY_TO), response);
 }
 
 cxxtools::SerializationInfo AssetServer::saveAssets()
