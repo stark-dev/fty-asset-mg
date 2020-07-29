@@ -277,7 +277,7 @@ void AssetImpl::save()
         m_storage.saveExtMap(*this);
     } catch (const std::exception& e) {
         m_storage.rollbackTransaction();
-        throw e.what();
+        throw std::runtime_error(std::string(e.what()));
     }
     m_storage.commitTransaction();
 }

@@ -492,7 +492,7 @@ void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::str
     auto found = std::find(existing.begin(), existing.end(), l);
 
     if (found != existing.end()) {
-        throw std::runtime_error("Link to asset " + src.getInternalName() + " already exists");
+        throw std::logic_error("Link to asset " + src.getInternalName() + " already exists");
     }
 
     // clang-format off
@@ -561,7 +561,6 @@ void DB::unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::s
     qs <<
         "    AND" \
         "    id_asset_link_type = :linkType";
-    qs << ")";
     // clang-format on
 
     q = m_conn.prepareCached(qs.str().c_str());
@@ -800,7 +799,8 @@ void DB::saveLinkedAssets(Asset& asset)
 
     using Existing = std::pair<uint32_t, AssetLink>;
 
-    std::vector<Existing> existing;
+    // get existings links from database
+    std::vector<Existing> toRemove;
     for (const auto& row : res) {
         std::string tmpOut, tmpIn;
 
@@ -812,29 +812,32 @@ void DB::saveLinkedAssets(Asset& asset)
             row.getString("destIn", tmpIn);
         }
 
-        existing.emplace_back(row.getUnsigned32("srcId"),
+        toRemove.emplace_back(row.getUnsigned32("srcId"),
             AssetLink(row.getString("srcName"), tmpOut, tmpIn, row.getInt("linkType")));
     }
 
     // add new links
     for (const AssetLink l : asset.getLinkedAssets()) {
+        // delete link from the list of links to remove
+        auto found = std::find_if(toRemove.begin(), toRemove.end(), [&](const Existing& e) {
+            return e.second == l;
+        });
 
-        try {
+        if (found != toRemove.end()) {
+            // link is required, do not remove
+            toRemove.erase(found);
+        } else {
+            // create new link
             AssetImpl src(l.sourceId);
             link(src, l.srcOut, asset, l.destIn, l.linkType);
-        } catch (std::runtime_error&) {
-            auto found = std::find_if(existing.begin(), existing.end(), [&](const Existing& e) {
-                return e.second == l;
-            });
-
-            existing.erase(found);
         }
     }
 
     // remove links not present in DTO
-    for (const auto& toRem : existing) {
-        const AssetLink& l = toRem.second;
+    for (const auto& entry : toRemove) {
+        const AssetLink& l = entry.second;
 
+        // remove all remaining links
         AssetImpl src(l.sourceId);
         unlink(src, l.srcOut, asset, l.destIn, l.linkType);
     }
