@@ -972,7 +972,7 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
                 }
             }
             // store asset to db
-            asset.save();
+            asset.create();
             // activate asset
             if (requestActivation) {
                 try {
@@ -1005,7 +1005,7 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
                     "license reached.");
             }
             // store asset to db
-            asset.save();
+            asset.update();
             // activate asset
             if (requestActivation) {
                 try {
@@ -1013,7 +1013,7 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
                 } catch (std::exception& e) {
                     // if activation fails, set status to nonactive
                     asset.setAssetStatus(fty::AssetStatus::Nonactive);
-                    asset.save();
+                    asset.update();
                     throw std::runtime_error(e.what());
                 }
             }

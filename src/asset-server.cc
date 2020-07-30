@@ -30,6 +30,8 @@
 #include <malamute.h>
 #include <mlm_client.h>
 #include <sstream>
+#include <stdlib.h>
+#include <time.h>
 
 using namespace std::placeholders;
 
@@ -56,6 +58,33 @@ static V value(const std::map<K, V>& map, const typename identify<K>::type& key,
         return it->second;
     }
     return def;
+}
+
+// ===========================================================================================================
+
+// generate asset name
+static std::string createAssetName(const std::string& type, const std::string& subtype)
+{
+    std::string assetName;
+
+    timeval t;
+    gettimeofday(&t, NULL);
+    srand(t.tv_sec * t.tv_usec);
+    // generate 8 digit random integer
+    unsigned long index = rand() % 100000000;
+
+    std::string indexStr = std::to_string(index);
+
+    // create 8 digit index with leading zeros
+    indexStr = std::string(8 - indexStr.length(), '0') + indexStr;
+
+    if (type == fty::TYPE_DEVICE) {
+        assetName = subtype + "-" + indexStr;
+    } else {
+        assetName = type + "-" + indexStr;
+    }
+
+    return assetName;
 }
 
 // ===========================================================================================================
@@ -366,8 +395,11 @@ void AssetServer::createAsset(const messagebus::Message& msg)
             }
         }
 
+        // internal name provided in the JSON payload is discarded
+        // set internal name (<type/subtype>-<random id>)
+        asset.setInternalName(createAssetName(asset.getAssetType(), asset.getAssetSubtype()));
         // store asset to db
-        asset.save();
+        asset.create();
         // activate asset
         if (requestActivation) {
             try {
@@ -378,6 +410,9 @@ void AssetServer::createAsset(const messagebus::Message& msg)
                 throw std::runtime_error(e.what());
             }
         }
+
+        // update asset data
+        asset.load();
 
         auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_CREATE,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
@@ -398,7 +433,7 @@ void AssetServer::createAsset(const messagebus::Message& msg)
         auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_CREATE,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
             msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_KO,
-            TRANSLATE_ME(e.what()));
+            "An error occurred while creating asset. " + std::string(e.what()));
 
         // send response
         log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
@@ -447,7 +482,7 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
         }
 
         // store asset to db
-        asset.save();
+        asset.update();
         // activate asset
         if (requestActivation) {
             try {
@@ -455,7 +490,7 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
             } catch (std::exception& e) {
                 // if activation fails, set status to nonactive
                 asset.setAssetStatus(AssetStatus::Nonactive);
-                asset.save();
+                asset.update();
                 throw std::runtime_error(e.what());
             }
         }

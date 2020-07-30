@@ -47,7 +47,8 @@ public:
     bool hasLinkedAssets() const;
     bool hasLogicalAsset() const;
     void load();
-    void save();
+    void create();
+    void update();
     void restore(bool restoreLinks = false);
     bool isActivable();
     void activate();

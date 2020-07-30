@@ -107,31 +107,6 @@ static std::string generateUUID(
     return uuid;
 }
 
-// generate asset name
-static std::string createAssetName(const std::string& type, const std::string& subtype)
-{
-    std::string assetName;
-
-    timeval t;
-    gettimeofday(&t, NULL);
-    srand(t.tv_sec * t.tv_usec);
-    // generate 8 digit random integer
-    unsigned long index = rand() % 100000000;
-
-    std::string indexStr = std::to_string(index);
-
-    // create 8 digit index with leading zeros
-    indexStr = std::string(8 - indexStr.length(), '0') + indexStr;
-
-    if (type == fty::TYPE_DEVICE) {
-        assetName = subtype + "-" + indexStr;
-    } else {
-        assetName = type + "-" + indexStr;
-    }
-
-    return assetName;
-}
-
 static AssetStorage& getStorage()
 {
     if (g_testMode) {
@@ -253,27 +228,40 @@ void AssetImpl::remove(bool recursive, bool removeLastDC)
     m_storage.commitTransaction();
 }
 
-void AssetImpl::save()
+void AssetImpl::create()
 {
     m_storage.beginTransaction();
     try {
-        if (m_storage.getID(getInternalName())) { // update
-            // set last update timestamp
-            setExtEntry(fty::EXT_UPDATE_TS, generateCurrentTimestamp(), true);
-
-            m_storage.update(*this);
-        } else { // create
-            // set internal name (type/subtype-<random id>)
-            setInternalName(createAssetName(getAssetType(), getAssetSubtype()));
-            // set creation timestamp
-            setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
-            // set uuid
-            setExtEntry(fty::EXT_UUID, generateUUID(getManufacturer(), getModel(), getSerialNo()), true);
-
-            m_storage.insert(*this);
+        if (m_storage.getID(getInternalName())) {
+            throw(std::runtime_error("Create failed, asset name already exists"));
         }
-        m_storage.saveLinkedAssets(*this);
+        // set creation timestamp
+        setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
+        // set uuid
+        setExtEntry(fty::EXT_UUID, generateUUID(getManufacturer(), getModel(), getSerialNo()), true);
 
+        m_storage.insert(*this);
+        m_storage.saveLinkedAssets(*this);
+        m_storage.saveExtMap(*this);
+    } catch (const std::exception& e) {
+        m_storage.rollbackTransaction();
+        throw std::runtime_error(std::string(e.what()));
+    }
+    m_storage.commitTransaction();
+}
+
+void AssetImpl::update()
+{
+    m_storage.beginTransaction();
+    try {
+        if (!m_storage.getID(getInternalName())) {
+            throw std::runtime_error("Update failed, asset does not exist.");   
+        }
+        // set last update timestamp
+        setExtEntry(fty::EXT_UPDATE_TS, generateCurrentTimestamp(), true);
+
+        m_storage.update(*this);
+        m_storage.saveLinkedAssets(*this);
         m_storage.saveExtMap(*this);
     } catch (const std::exception& e) {
         m_storage.rollbackTransaction();

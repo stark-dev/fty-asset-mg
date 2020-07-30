@@ -669,6 +669,16 @@ void DB::update(Asset& asset)
 
 void DB::insert(Asset& asset)
 {
+    uint32_t parentId = 0;
+
+    // if parent name is not empty, check if it exists
+    const std::string& parentIname = asset.getParentIname();
+    if(!parentIname.empty()) {
+        parentId = getID(parentIname);
+        if(parentId == 0) {
+            throw std::runtime_error("Could not find parent internal name");
+        }
+    }
     // clang-format off
     auto q = m_conn.prepareCached(R"(
         INSERT INTO
@@ -678,7 +688,7 @@ void DB::insert(Asset& asset)
             :name,
             (SELECT id_asset_element_type FROM t_bios_asset_element_type WHERE name = :type),
             (SELECT id_asset_device_type FROM t_bios_asset_device_type WHERE name = :subtype),
-            (SELECT p.id_asset_element FROM t_bios_asset_element AS p WHERE p.name = :parent),
+            :parent_id,
             :status,
             :priority,
             :asset_tag
@@ -689,7 +699,7 @@ void DB::insert(Asset& asset)
     q.set("type", asset.getAssetType());
     q.set("subtype", asset.getAssetSubtype());
     // name field can't be null, parent id is set to NULL if parentIname is empty
-    asset.getParentIname().empty() ? q.setNull("parent") : q.set("parent", asset.getParentIname());
+    parentId == 0 ? q.setNull("parent_id") : q.set("parent_id", parentId);
     // always insert as non active, update after activation
     q.set("status", assetStatusToString(fty::AssetStatus::Nonactive));
     q.set("priority", asset.getPriority());
