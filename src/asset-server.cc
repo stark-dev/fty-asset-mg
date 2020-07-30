@@ -462,9 +462,12 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
         fty::AssetImpl currentAsset(asset.getInternalName());
 
         // data vector (contains asset before and after update)
-        std::vector<std::string> assetJsonVector;
+        cxxtools::SerializationInfo  si;
+        cxxtools::SerializationInfo& before = si.addMember("before");
+        cxxtools::SerializationInfo& after  = si.addMember("after");
+
         // before update
-        assetJsonVector.push_back(fty::conversion::toJson(currentAsset));
+        AssetImpl::assetToSrr(currentAsset, before);
 
         bool requestActivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
                                   asset.getAssetStatus() == fty::AssetStatus::Active);
@@ -495,8 +498,11 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
             }
         }
 
+        // update data from db
+        asset.load();
+
         // after update
-        assetJsonVector.push_back(fty::conversion::toJson(asset));
+        AssetImpl::assetToSrr(asset, after);
 
         // create response (ok)
         auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATE,
@@ -509,8 +515,8 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
         // send notification
-        messagebus::Message notification = assetutils::createMessage(
-            FTY_ASSET_SUBJECT_UPDATED, "", m_agentNameNg, "", messagebus::STATUS_OK, assetJsonVector);
+        messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATED, "",
+            m_agentNameNg, "", messagebus::STATUS_OK, assetutils::serialize(si));
         sendNotification(notification);
     } catch (const std::exception& e) {
         log_error(e.what());
@@ -518,7 +524,7 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
         auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATE,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
             msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_KO,
-            TRANSLATE_ME(e.what()));
+            "An error occurred while updating asset. " + std::string(e.what()));
 
         // send response
         log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
