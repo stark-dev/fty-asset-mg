@@ -550,11 +550,11 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
 
         response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
             value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
-            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK, "");
+            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK, internalName);
 
         // send notification
         messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_DELETED, "",
-            m_agentNameNg, "", messagebus::STATUS_OK, fty::conversion::toJson(asset));
+            m_agentNameNg, "", messagebus::STATUS_OK, internalName);
         sendNotification(notification);
     } catch (const std::exception& e) {
         response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
