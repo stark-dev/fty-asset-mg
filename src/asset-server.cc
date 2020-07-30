@@ -133,10 +133,6 @@ void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
 {
     log_debug("Received new asset manipulation message with subject %s",
         msg.metaData().at(messagebus::Message::SUBJECT).c_str());
-    // asset manipulation is disabled
-    if (getGlobalConfigurability() == 0) {
-        throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
-    }
 
     // clang-format off
     static std::map<std::string, std::function<void(const messagebus::Message&)>> procMap = {
