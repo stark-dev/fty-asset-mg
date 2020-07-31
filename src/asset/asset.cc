@@ -232,7 +232,7 @@ void AssetImpl::create()
 {
     m_storage.beginTransaction();
     try {
-        if (m_storage.getID(getInternalName())) {
+        if (!g_testMode && m_storage.getID(getInternalName())) {
             throw(std::runtime_error("Create failed, asset name already exists"));
         }
         // set creation timestamp
@@ -254,7 +254,7 @@ void AssetImpl::update()
 {
     m_storage.beginTransaction();
     try {
-        if (!m_storage.getID(getInternalName())) {
+        if (!g_testMode && !m_storage.getID(getInternalName())) {
             throw std::runtime_error("Update failed, asset does not exist.");   
         }
         // set last update timestamp
