@@ -334,9 +334,14 @@ void AssetServer::sendNotification(const messagebus::Message& msg) const
 
         // REMOVE as soon as old interface is not needed anymore
         // old interface
+        cxxtools::SerializationInfo        si    = assetutils::deserialize(msg.userData().front());
+        const cxxtools::SerializationInfo& after = si.getMember("after");
+
         fty::Asset asset;
-        fty::conversion::fromJson(
-            msg.userData().back(), asset); // old interface replies only with updated asset
+        // old interface replies only with updated asset
+        using conversion::operator>>=;
+        after >>= asset;
+
         send_create_or_update_asset(
             *this, asset.getInternalName(), "update", false /* read_only is not used */);
     } else if (subject == FTY_ASSET_SUBJECT_DELETED) {
@@ -458,16 +463,8 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
 
         fty::conversion::fromJson(userData, asset);
 
-        // get current asset data
+        // get current asset data from storage
         fty::AssetImpl currentAsset(asset.getInternalName());
-
-        // data vector (contains asset before and after update)
-        cxxtools::SerializationInfo  si;
-        cxxtools::SerializationInfo& before = si.addMember("before");
-        cxxtools::SerializationInfo& after  = si.addMember("after");
-
-        // before update
-        AssetImpl::assetToSrr(currentAsset, before);
 
         bool requestActivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
                                   asset.getAssetStatus() == fty::AssetStatus::Active);
@@ -501,8 +498,29 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
         // update data from db
         asset.load();
 
+        // build message
+        // serialization info which contains asset before and after update
+        cxxtools::SerializationInfo si;
+
+        // before update
+        cxxtools::SerializationInfo tmpSi;
+        using conversion::          operator<<=;
+
+        tmpSi <<= currentAsset;
+
+        cxxtools::SerializationInfo& before = si.addMember("");
+        before.setCategory(cxxtools::SerializationInfo::Category::Object);
+        before = tmpSi;
+        before.setName("before");
+
         // after update
-        AssetImpl::assetToSrr(asset, after);
+        tmpSi.clear();
+        tmpSi <<= asset;
+
+        cxxtools::SerializationInfo& after = si.addMember("");
+        after.setCategory(cxxtools::SerializationInfo::Category::Object);
+        after = tmpSi;
+        after.setName("after");
 
         // create response (ok)
         auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATE,
@@ -553,8 +571,8 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
             value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK, internalName);
 
         // send notification
-        messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_DELETED, "",
-            m_agentNameNg, "", messagebus::STATUS_OK, internalName);
+        messagebus::Message notification = assetutils::createMessage(
+            FTY_ASSET_SUBJECT_DELETED, "", m_agentNameNg, "", messagebus::STATUS_OK, internalName);
         sendNotification(notification);
     } catch (const std::exception& e) {
         response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
