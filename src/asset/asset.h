@@ -43,7 +43,6 @@ public:
     AssetImpl& operator=(const AssetImpl& a);
 
     // asset operations
-    void remove(bool recursive = false, bool removeLastDC = false);
     bool hasLinkedAssets() const;
     bool hasLogicalAsset() const;
     void load();
@@ -62,7 +61,8 @@ public:
     static void srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& asset);
 
     static std::vector<std::string> list();
-    static void                     deleteList(const std::vector<std::string>& assets);
+    static std::vector<std::string> deleteAsset(const std::string& internalName, bool recursive = false);
+    static std::vector<std::string> deleteList(const std::vector<std::string>& assets, bool removeLastDC = false);
     static void                     deleteAll();
     static std::string              getInameFromUuid(const std::string& uuid);
 
@@ -72,6 +72,8 @@ public:
 
 private:
     AssetStorage& m_storage;
+
+    void remove(bool removeLastDC = false);
 };
 
 } // namespace fty

@@ -411,7 +411,7 @@ void AssetServer::createAsset(const messagebus::Message& msg)
                 asset.activate();
             } catch (std::exception& e) {
                 // if activation fails, delete asset
-                asset.remove(false);
+                AssetImpl::deleteAsset(asset.getInternalName());
                 throw std::runtime_error(e.what());
             }
         }
@@ -564,15 +564,20 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
         std::string    internalName = msg.userData().front();
         fty::AssetImpl asset(internalName);
 
-        asset.remove(value(msg.metaData(), "RECURSIVE") == "YES");
+        std::vector<std::string> deleted =
+            AssetImpl::deleteAsset(asset.getInternalName(), value(msg.metaData(), "RECURSIVE") == "YES");
+
+        cxxtools::SerializationInfo si;
+        si <<= deleted;
 
         response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
             value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
-            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK, internalName);
+            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK,
+            assetutils::serialize(si));
 
         // send notification
-        messagebus::Message notification = assetutils::createMessage(
-            FTY_ASSET_SUBJECT_DELETED, "", m_agentNameNg, "", messagebus::STATUS_OK, internalName);
+        messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_DELETED, "",
+            m_agentNameNg, "", messagebus::STATUS_OK, assetutils::serialize(si));
         sendNotification(notification);
     } catch (const std::exception& e) {
         response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
@@ -734,7 +739,7 @@ void AssetServer::restoreAssets(const cxxtools::SerializationInfo& si, bool tryA
                     a.activate();
                 } catch (std::exception& e) {
                     // if activation fails, delete asset
-                    a.remove(false);
+                    AssetImpl::deleteAsset(a.getInternalName());
                     throw std::runtime_error(e.what());
                 }
             }

@@ -169,31 +169,30 @@ bool AssetImpl::hasLinkedAssets() const
     return m_storage.hasLinkedAssets(*this);
 }
 
-void AssetImpl::remove(bool recursive, bool removeLastDC)
+void AssetImpl::remove(bool removeLastDC)
 {
     if (RC0 == getInternalName()) {
         throw std::runtime_error("Prevented deleting RC-0");
     }
 
     if (hasLogicalAsset()) {
-        throw std::runtime_error(TRANSLATE_ME("a logical_asset (sensor) refers to it"));
+        throw std::runtime_error(
+            TRANSLATE_ME("can't delete asset because a logical_asset (sensor) refers to it"));
     }
 
     if (hasLinkedAssets()) {
-        throw std::runtime_error(TRANSLATE_ME("can't delete asset because it has other assets connected"));
+        throw std::runtime_error(TRANSLATE_ME("can't delete asset because it the source of a link"));
     }
 
     std::vector<std::string> assetChildren = getChildren(*this);
 
-    if (!recursive && !assetChildren.empty()) {
+    if (!assetChildren.empty()) {
         throw std::runtime_error(TRANSLATE_ME("can't delete the asset because it has at least one child"));
     }
 
-    if (recursive) {
-        for (const std::string& id : assetChildren) {
-            AssetImpl asset(id);
-            asset.remove(recursive);
-        }
+    // deactivate asset
+    if (getAssetStatus() == AssetStatus::Active) {
+        deactivate();
     }
 
     m_storage.beginTransaction();
@@ -222,7 +221,12 @@ void AssetImpl::remove(bool recursive, bool removeLastDC)
         }
     } catch (const std::exception& e) {
         m_storage.rollbackTransaction();
-        log_debug("AssetImpl::remove() got EXCEPTION : %s", e.what());
+
+        // reactivate is previous status was active
+        if (getAssetStatus() == AssetStatus::Active) {
+            activate();
+        }
+        log_debug("Asset %s could not be removed: %s", getInternalName().c_str(), e.what());
         throw std::runtime_error(e.what());
     }
     m_storage.commitTransaction();
@@ -255,7 +259,7 @@ void AssetImpl::update()
     m_storage.beginTransaction();
     try {
         if (!g_testMode && !m_storage.getID(getInternalName())) {
-            throw std::runtime_error("Update failed, asset does not exist.");   
+            throw std::runtime_error("Update failed, asset does not exist.");
         }
         // set last update timestamp
         setExtEntry(fty::EXT_UPDATE_TS, generateCurrentTimestamp(), true);
@@ -450,20 +454,20 @@ void AssetImpl::load()
     m_storage.loadLinkedAssets(*this);
 }
 
-void AssetImpl::deleteList(const std::vector<std::string>& assets)
+std::vector<std::string> AssetImpl::deleteAsset(const std::string& internalName, bool recursive)
 {
-    std::vector<AssetImpl>   toDel;
-    std::vector<std::string> errors;
+    std::vector<std::string> toDel;
 
-    for (const std::string& iname : assets) {
+    toDel.push_back(internalName);
+
+    // delete whole sub-tree
+    if (recursive) {
         std::vector<std::pair<AssetImpl, int>> stack;
-        std::vector<std::string>               childrenList;
 
-        AssetImpl a(iname);
-        toDel.push_back(a);
+        AssetImpl a(internalName);
 
         AssetImpl& ref = a;
-        childrenList.push_back(ref.getInternalName());
+        toDel.push_back(ref.getInternalName());
 
         bool         end  = false;
         unsigned int next = 0;
@@ -477,7 +481,7 @@ void AssetImpl::deleteList(const std::vector<std::string>& assets)
                 ref  = children[next];
                 next = 0;
 
-                childrenList.push_back(ref.getInternalName());
+                toDel.push_back(ref.getInternalName());
             } else {
                 if (stack.empty()) {
                     end = true;
@@ -488,32 +492,20 @@ void AssetImpl::deleteList(const std::vector<std::string>& assets)
                 }
             }
         }
-
-        // remove assets already in the list
-        for (const std::string& iname : assets) {
-            childrenList.erase(
-                std::remove(childrenList.begin(), childrenList.end(), iname), childrenList.end());
-        }
-
-        // get linked assets
-        std::vector<AssetLink> linkedAssets = a.getLinkedAssets();
-
-        // remove assets already in the list
-        for (const std::string& iname : assets) {
-            linkedAssets.erase(std::remove_if(linkedAssets.begin(), linkedAssets.end(),
-                                   [&](const AssetLink& l) {
-                                       return iname == l.sourceId;
-                                   }),
-                linkedAssets.end());
-        }
-
-        if (!childrenList.empty() || !linkedAssets.empty()) {
-            errors.push_back(iname);
-        }
     }
 
-    for (auto& a : toDel) {
-        a.unlinkAll();
+    return deleteList(toDel);
+}
+
+std::vector<std::string> AssetImpl::deleteList(const std::vector<std::string>& assets, bool removeLastDC)
+{
+    std::vector<std::string> deleted;
+
+    std::vector<AssetImpl> toDel;
+
+    for (const std::string& iname : assets) {
+        AssetImpl a(iname);
+        toDel.push_back(a);
     }
 
     auto isAnyParent = [&](const AssetImpl& l, const AssetImpl& r) {
@@ -549,32 +541,33 @@ void AssetImpl::deleteList(const std::vector<std::string>& assets)
 
     // sort by deletion order
     std::sort(toDel.begin(), toDel.end(), [&](const AssetImpl& l, const AssetImpl& r) {
-        return isAnyParent(l, r) /*  || isLinked(l, r) */;
+        return isAnyParent(l, r);
     });
+
+    // remove all links
+    for (auto& a : toDel) {
+        a.unlinkAll();
+    }
 
     for (auto& d : toDel) {
         // after deleting assets, children list may change -> reload
         d.load();
-        auto it = std::find_if(errors.begin(), errors.end(), [&](const std::string& iname) {
-            return d.getInternalName() == iname;
-        });
 
-        if (it != errors.end()) {
-            log_error("Asset %s cannot be deleted", it->c_str());
-        } else {
-            d.deactivate();
-            // non recursive, force removal of last DC
-            log_debug("Deleting asset %s", d.getInternalName().c_str());
-            d.remove(false, true);
+        try {
+            d.remove(removeLastDC);
+            deleted.push_back(d.getInternalName());
+        } catch (std::exception&) {
+            log_error("Asset %s cannot be deleted", d.getInternalName().c_str());
         }
     }
-} // namespace fty
 
+    return deleted;
+}
 
 void AssetImpl::deleteAll()
 {
-    // get list of all assets
-    deleteList(list());
+    // get list of all assets (including last datacenter)
+    deleteList(list(), true);
 }
 
 /// get internal name from UUID

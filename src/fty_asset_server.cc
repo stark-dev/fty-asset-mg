@@ -954,10 +954,11 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
         fty::AssetImpl asset;
 
         fty::conversion::fromFtyProto(proto, asset, read_only, server.getTestMode());
-        log_debug("s_handle_subject_asset_manipulation(): Processing operation '%s' "
+        log_debug(
+            "s_handle_subject_asset_manipulation(): Processing operation '%s' "
             "for asset named '%s' with type '%s' and subtype '%s'",
-            operation, asset.getInternalName().c_str(),
-            asset.getAssetType().c_str(), asset.getAssetSubtype().c_str());
+            operation, asset.getInternalName().c_str(), asset.getAssetType().c_str(),
+            asset.getAssetSubtype().c_str());
 
         if (streq(operation, "create") || streq(operation, "create-force")) {
             bool requestActivation = (asset.getAssetStatus() == fty::AssetStatus::Active);
@@ -979,7 +980,7 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
                     asset.activate();
                 } catch (std::exception& e) {
                     // if activation fails, delete asset
-                    asset.remove(false);
+                    fty::AssetImpl::deleteAsset(asset.getInternalName());
                     throw std::runtime_error(e.what());
                 }
             }
@@ -993,7 +994,8 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
         } else if (streq(operation, "update")) {
             fty::AssetImpl currentAsset(asset.getInternalName());
             // force ID of asset to update
-            log_debug("s_handle_subject_asset_manipulation(): Updating asset with internal name %s", asset.getInternalName().c_str());
+            log_debug("s_handle_subject_asset_manipulation(): Updating asset with internal name %s",
+                asset.getInternalName().c_str());
 
             bool requestActivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
                                       asset.getAssetStatus() == fty::AssetStatus::Active);
@@ -1018,11 +1020,35 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
                 }
             }
 
+            asset.load();
+
             zmsg_addstr(reply, "OK");
             zmsg_addstr(reply, asset.getInternalName().c_str());
 
+            cxxtools::SerializationInfo si;
+
+            // before update
+            cxxtools::SerializationInfo tmpSi;
+            using fty::conversion::operator<<=;
+
+            tmpSi <<= currentAsset;
+
+            cxxtools::SerializationInfo& before = si.addMember("");
+            before.setCategory(cxxtools::SerializationInfo::Category::Object);
+            before = tmpSi;
+            before.setName("before");
+
+            // after update
+            tmpSi.clear();
+            tmpSi <<= asset;
+
+            cxxtools::SerializationInfo& after = si.addMember("");
+            after.setCategory(cxxtools::SerializationInfo::Category::Object);
+            after = tmpSi;
+            after.setName("after");
+
             auto notification = fty::assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATED, "",
-                server.getAgentNameNg(), "", messagebus::STATUS_OK, fty::conversion::toJson(asset));
+                server.getAgentNameNg(), "", messagebus::STATUS_OK, fty::assetutils::serialize(si));
             server.sendNotification(notification);
         } else {
             // unknown op
