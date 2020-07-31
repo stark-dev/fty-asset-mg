@@ -806,10 +806,14 @@ void AssetServer::listAsset(const messagebus::Message& msg)
     try {
         std::vector<std::string> assetList = fty::AssetImpl::list();
 
+        cxxtools::SerializationInfo si;
+        si <<= assetList;
+
         // create response (ok)
         auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_LIST,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK, assetList);
+            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK,
+            assetutils::serialize(si));
 
         // send response
         log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
@@ -820,7 +824,7 @@ void AssetServer::listAsset(const messagebus::Message& msg)
         auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_LIST,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
             msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_KO,
-            TRANSLATE_ME(e.what()));
+            std::string(e.what()));
 
         // send response
         log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
