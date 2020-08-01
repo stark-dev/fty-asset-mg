@@ -170,7 +170,7 @@ void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
         { FTY_ASSET_SUBJECT_DELETE,       [&](const messagebus::Message& msg){ deleteAsset(msg); } },
         { FTY_ASSET_SUBJECT_DELETE_LIST,  [&](const messagebus::Message& msg){ deleteAssetList(msg); } },
         { FTY_ASSET_SUBJECT_GET,          [&](const messagebus::Message& msg){ getAsset(msg); } },
-        { FTY_ASSET_SUBJECT_GET_FROM_UUID,[&](const messagebus::Message& msg){ getAsset(msg, true); } },
+        { FTY_ASSET_SUBJECT_GET_BY_UUID,  [&](const messagebus::Message& msg){ getAsset(msg, true); } },
         { FTY_ASSET_SUBJECT_LIST,         [&](const messagebus::Message& msg){ listAsset(msg); } },
     };
     // clang-format on

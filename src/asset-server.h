@@ -27,13 +27,13 @@
 
 static constexpr const char* FTY_ASSET_MAILBOX = "FTY.Q.ASSET.QUERY";
 // new interface mailbox subjects
-static constexpr const char* FTY_ASSET_SUBJECT_CREATE        = "CREATE";
-static constexpr const char* FTY_ASSET_SUBJECT_UPDATE        = "UPDATE";
-static constexpr const char* FTY_ASSET_SUBJECT_DELETE        = "DELETE";
-static constexpr const char* FTY_ASSET_SUBJECT_DELETE_LIST   = "DELETE_LIST";
-static constexpr const char* FTY_ASSET_SUBJECT_GET           = "GET";
-static constexpr const char* FTY_ASSET_SUBJECT_GET_FROM_UUID = "GET_FROM_UUID";
-static constexpr const char* FTY_ASSET_SUBJECT_LIST          = "LIST";
+static constexpr const char* FTY_ASSET_SUBJECT_CREATE      = "CREATE";
+static constexpr const char* FTY_ASSET_SUBJECT_UPDATE      = "UPDATE";
+static constexpr const char* FTY_ASSET_SUBJECT_DELETE      = "DELETE";
+static constexpr const char* FTY_ASSET_SUBJECT_DELETE_LIST = "DELETE_LIST";
+static constexpr const char* FTY_ASSET_SUBJECT_GET         = "GET";
+static constexpr const char* FTY_ASSET_SUBJECT_GET_BY_UUID = "GET_BY_UUID";
+static constexpr const char* FTY_ASSET_SUBJECT_LIST        = "LIST";
 
 // new interface topics
 static constexpr const char* FTY_ASSET_TOPIC_CREATED = "FTY.T.ASSET.CREATED";
