@@ -70,7 +70,7 @@ void DB::loadAsset(const std::string& nameId, Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     asset.setInternalName(row.getString("name"));
@@ -113,7 +113,7 @@ void DB::loadExtMap(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     for (const auto& row : res) {
@@ -146,7 +146,7 @@ std::vector<std::string> DB::getChildren(const Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     std::vector<std::string> children;
@@ -185,7 +185,7 @@ uint32_t DB::getID(const std::string& internalName)
         log_warning("Asset internal name %s not found", internalName.c_str());
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     return assetID;
@@ -222,7 +222,7 @@ void DB::loadLinkedAssets(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     std::vector<AssetLink> links;
@@ -272,7 +272,7 @@ bool DB::isLastDataCenter(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     return numDatacentersAfterDelete == 0;
@@ -299,7 +299,7 @@ void DB::removeFromGroups(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
 
@@ -324,7 +324,7 @@ void DB::removeFromRelations(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error(std::string(e.what()));
     }
 }
 
@@ -349,7 +349,7 @@ void DB::removeAsset(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
 
@@ -374,7 +374,7 @@ void DB::removeExtMap(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
 
@@ -399,7 +399,7 @@ void DB::clearGroup(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
 
@@ -427,7 +427,7 @@ bool DB::hasLinkedAssets(const Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     return linkedAssets != 0;
@@ -468,7 +468,7 @@ void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::str
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     std::vector<AssetLink> existing;
@@ -524,7 +524,7 @@ void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::str
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
 
@@ -581,7 +581,7 @@ void DB::unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::s
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
 
@@ -606,7 +606,7 @@ void DB::unlinkAll(Asset& dest)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
 
@@ -674,7 +674,7 @@ void DB::update(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
 
@@ -722,7 +722,7 @@ void DB::insert(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
 
@@ -743,7 +743,7 @@ std::string DB::inameById(uint32_t id)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     return res;
@@ -777,7 +777,7 @@ std::string DB::inameByUuid(const std::string& uuid)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     return res;
@@ -815,7 +815,7 @@ void DB::saveLinkedAssets(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     using Existing = std::pair<uint32_t, AssetLink>;
@@ -893,7 +893,7 @@ void DB::saveExtMap(Asset& asset)
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     using Existing = std::tuple<uint32_t, std::string, std::string, bool>;
@@ -927,7 +927,7 @@ void DB::saveExtMap(Asset& asset)
                 m_conn_lock.unlock();
             } catch (std::exception& e) {
                 m_conn_lock.unlock();
-                throw std::runtime_error("Database error: " + std::string(e.what()));
+                throw std::runtime_error("database error - " + std::string(e.what()));
             }
         } else {
             if (std::get<2>(*found) != it.second.first || std::get<3>(*found) != it.second.second) {
@@ -950,7 +950,7 @@ void DB::saveExtMap(Asset& asset)
                     m_conn_lock.unlock();
                 } catch (std::exception& e) {
                     m_conn_lock.unlock();
-                    throw std::runtime_error("Database error: " + std::string(e.what()));
+                    throw std::runtime_error("database error - " + std::string(e.what()));
                 }
             }
             existing.erase(found);
@@ -972,7 +972,7 @@ void DB::saveExtMap(Asset& asset)
             m_conn_lock.unlock();
         } catch (std::exception& e) {
             m_conn_lock.unlock();
-            throw std::runtime_error("Database error: " + std::string(e.what()));
+            throw std::runtime_error("database error - " + std::string(e.what()));
         }
     }
 }
@@ -997,7 +997,7 @@ std::vector<std::string> DB::listAllAssets()
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();
-        throw std::runtime_error("Database error: " + std::string(e.what()));
+        throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
     for (const auto& row : res) {

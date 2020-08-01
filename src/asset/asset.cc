@@ -172,22 +172,21 @@ bool AssetImpl::hasLinkedAssets() const
 void AssetImpl::remove(bool removeLastDC)
 {
     if (RC0 == getInternalName()) {
-        throw std::runtime_error("Prevented deleting RC-0");
+        throw std::runtime_error("cannot delete RC-0");
     }
 
     if (hasLogicalAsset()) {
-        throw std::runtime_error(
-            TRANSLATE_ME("can't delete asset because a logical_asset (sensor) refers to it"));
+        throw std::runtime_error("a logical_asset (sensor) refers to it");
     }
 
     if (hasLinkedAssets()) {
-        throw std::runtime_error(TRANSLATE_ME("can't delete asset because it the source of a link"));
+        throw std::runtime_error("it the source of a link");
     }
 
     std::vector<std::string> assetChildren = getChildren(*this);
 
     if (!assetChildren.empty()) {
-        throw std::runtime_error(TRANSLATE_ME("can't delete the asset because it has at least one child"));
+        throw std::runtime_error("it has at least one child");
     }
 
     // deactivate asset
@@ -199,7 +198,7 @@ void AssetImpl::remove(bool removeLastDC)
     try {
         if (isAnyOf(getAssetType(), TYPE_DATACENTER, TYPE_ROW, TYPE_ROOM, TYPE_RACK)) {
             if (!removeLastDC && m_storage.isLastDataCenter(*this)) {
-                throw std::runtime_error(TRANSLATE_ME("will not allow last datacenter to be deleted"));
+                throw std::runtime_error("cannot delete last datacenter");
             }
             m_storage.removeExtMap(*this);
             m_storage.removeFromGroups(*this);
@@ -227,7 +226,8 @@ void AssetImpl::remove(bool removeLastDC)
             activate();
         }
         log_debug("Asset %s could not be removed: %s", getInternalName().c_str(), e.what());
-        throw std::runtime_error(e.what());
+        throw std::runtime_error(
+            "Asset " + getInternalName() + "could not be removed: " + std::string(e.what()));
     }
     m_storage.commitTransaction();
 }
@@ -454,9 +454,15 @@ void AssetImpl::load()
     m_storage.loadLinkedAssets(*this);
 }
 
-std::vector<std::string> AssetImpl::deleteAsset(const std::string& internalName, bool recursive)
+AssetImpl::DeleteStatus AssetImpl::deleteAsset(const std::string& internalName, bool recursive)
 {
     std::vector<std::string> toDel;
+
+    if (getStorage().getID(internalName) == 0) {
+        DeleteStatus deleted;
+        deleted.push_back({internalName, "Asset does not exist"});
+        return deleted;
+    }
 
     toDel.push_back(internalName);
 
@@ -467,7 +473,6 @@ std::vector<std::string> AssetImpl::deleteAsset(const std::string& internalName,
         AssetImpl a(internalName);
 
         AssetImpl& ref = a;
-        toDel.push_back(ref.getInternalName());
 
         bool         end  = false;
         unsigned int next = 0;
@@ -497,15 +502,20 @@ std::vector<std::string> AssetImpl::deleteAsset(const std::string& internalName,
     return deleteList(toDel);
 }
 
-std::vector<std::string> AssetImpl::deleteList(const std::vector<std::string>& assets, bool removeLastDC)
+AssetImpl::DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool removeLastDC)
 {
-    std::vector<std::string> deleted;
-
     std::vector<AssetImpl> toDel;
 
+    DeleteStatus deleted;
+
     for (const std::string& iname : assets) {
-        AssetImpl a(iname);
-        toDel.push_back(a);
+        try {
+            AssetImpl a(iname);
+            toDel.push_back(a);
+        } catch (std::exception& e) {
+            log_error("Error while loading asset %s. %s", iname.c_str(), e.what());
+            deleted.push_back({iname, "Error while loading asset: " + std::string(e.what())});
+        }
     }
 
     auto isAnyParent = [&](const AssetImpl& l, const AssetImpl& r) {
@@ -555,19 +565,20 @@ std::vector<std::string> AssetImpl::deleteList(const std::vector<std::string>& a
 
         try {
             d.remove(removeLastDC);
-            deleted.push_back(d.getInternalName());
-        } catch (std::exception&) {
-            log_error("Asset %s cannot be deleted", d.getInternalName().c_str());
+            deleted.push_back({d.getInternalName(), "OK"});
+        } catch (std::exception& e) {
+            log_error("Asset could not be removed: %s", e.what());
+            deleted.push_back({d.getInternalName(), "Asset could not be removed: " + std::string(e.what())});
         }
     }
 
     return deleted;
 }
 
-void AssetImpl::deleteAll()
+AssetImpl::DeleteStatus AssetImpl::deleteAll()
 {
     // get list of all assets (including last datacenter)
-    deleteList(list(), true);
+    return deleteList(list(), true);
 }
 
 /// get internal name from UUID

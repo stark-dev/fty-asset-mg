@@ -380,7 +380,7 @@ void AssetServer::createAsset(const messagebus::Message& msg)
     try {
         // asset manipulation is disabled
         if (getGlobalConfigurability() == 0) {
-            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
+            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited");
         }
 
         std::string    userData = msg.userData().front();
@@ -455,7 +455,7 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
     try {
         // asset manipulation is disabled
         if (getGlobalConfigurability() == 0) {
-            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
+            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited");
         }
 
         std::string    userData = msg.userData().front();
@@ -550,6 +550,19 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
     }
 }
 
+static std::string serializeDeleteStatus(AssetImpl::DeleteStatus statusList)
+{
+    cxxtools::SerializationInfo si;
+
+    for (const auto& s : statusList) {
+        si.addMember(s.first) <<= s.second;
+    }
+
+    si.setCategory(cxxtools::SerializationInfo::Category::Array);
+
+    return assetutils::serialize(si);
+}
+
 void AssetServer::deleteAsset(const messagebus::Message& msg)
 {
     log_debug("subject DELETE");
@@ -558,27 +571,28 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
     try {
         // asset manipulation is disabled
         if (getGlobalConfigurability() == 0) {
-            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
+            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited");
         }
 
-        std::string    internalName = msg.userData().front();
-        fty::AssetImpl asset(internalName);
+        std::string internalName = msg.userData().front();
 
-        std::vector<std::string> deleted =
-            AssetImpl::deleteAsset(asset.getInternalName(), value(msg.metaData(), "RECURSIVE") == "YES");
+        AssetImpl::DeleteStatus deleted =
+            AssetImpl::deleteAsset(internalName, value(msg.metaData(), "RECURSIVE") == "YES");
 
-        cxxtools::SerializationInfo si;
-        si <<= deleted;
-
+        // send response
         response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
             value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
             value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK,
-            assetutils::serialize(si));
+            serializeDeleteStatus(deleted));
 
-        // send notification
-        messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_DELETED, "",
-            m_agentNameNg, "", messagebus::STATUS_OK, assetutils::serialize(si));
-        sendNotification(notification);
+        // send one notification for each asset deleted
+        for (const auto& status : deleted) {
+            if (status.second == "OK") {
+                messagebus::Message notification = assetutils::createMessage(
+                    FTY_ASSET_SUBJECT_DELETED, "", m_agentNameNg, "", messagebus::STATUS_OK, status.first);
+                sendNotification(notification);
+            }
+        }
     } catch (const std::exception& e) {
         response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
             value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
@@ -599,21 +613,28 @@ void AssetServer::deleteAssetList(const messagebus::Message& msg)
     try {
         // asset manipulation is disabled
         if (getGlobalConfigurability() == 0) {
-            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited.");
+            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited");
         }
 
         std::vector<std::string> assetInames;
-        for (const auto& el : si.getMember("id")) {
-            std::string elId;
-            el.getValue(elId);
-            assetInames.push_back(elId);
-        }
+        si >>= assetInames;
 
+        AssetImpl::DeleteStatus deleted = AssetImpl::deleteList(assetInames);
+
+        // send response
         response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
             value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
-            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK, "");
+            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK,
+            serializeDeleteStatus(deleted));
 
-        AssetImpl::deleteList(assetInames);
+        // send one notification for each asset deleted
+        for (const auto& status : deleted) {
+            if (status.second == "OK") {
+                messagebus::Message notification = assetutils::createMessage(
+                    FTY_ASSET_SUBJECT_DELETED, "", m_agentNameNg, "", messagebus::STATUS_OK, status.first);
+                sendNotification(notification);
+            }
+        }
     } catch (const std::exception& e) {
         response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
             value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
