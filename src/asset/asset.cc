@@ -175,9 +175,10 @@ void AssetImpl::remove(bool removeLastDC)
         throw std::runtime_error("cannot delete RC-0");
     }
 
-    if (hasLogicalAsset()) {
-        throw std::runtime_error("a logical_asset (sensor) refers to it");
-    }
+    // TODO verify if it is necessary to prevent assets with logical_asset attribute from being deleted
+    // if (hasLogicalAsset()) {
+    //     throw std::runtime_error("a logical_asset (sensor) refers to it");
+    // }
 
     if (hasLinkedAssets()) {
         throw std::runtime_error("it the source of a link");
