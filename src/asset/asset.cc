@@ -225,9 +225,8 @@ void AssetImpl::remove(bool removeLastDC)
         if (getAssetStatus() == AssetStatus::Active) {
             activate();
         }
-        log_debug("Asset %s could not be removed: %s", getInternalName().c_str(), e.what());
-        throw std::runtime_error(
-            "Asset " + getInternalName() + "could not be removed: " + std::string(e.what()));
+        log_debug("Asset could not be removed: %s", e.what());
+        throw std::runtime_error("Asset could not be removed: " + std::string(e.what()));
     }
     m_storage.commitTransaction();
 }

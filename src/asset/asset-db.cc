@@ -182,7 +182,6 @@ uint32_t DB::getID(const std::string& internalName)
         assetID = v.getInt32();
     } catch (tntdb::NotFound&) {
         m_conn_lock.unlock();
-        log_warning("Asset internal name %s not found", internalName.c_str());
     } catch (std::exception& e) {
         m_conn_lock.unlock();
         throw std::runtime_error("database error - " + std::string(e.what()));
