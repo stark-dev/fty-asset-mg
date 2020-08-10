@@ -22,20 +22,21 @@
 #include "asset.h"
 #include "asset-db-test.h"
 #include "asset-db.h"
-#include "conversion/full-asset.h"
+#include "asset-storage.h"
+#include "include/asset/conversion/full-asset.h"
+#include <algorithm>
 #include <fty_asset_activator.h>
 #include <fty_common_db_dbpath.h>
+#include <functional>
 #include <memory>
+#include <sstream>
 #include <time.h>
+#include <utility>
 #include <uuid/uuid.h>
 
 #define AGENT_ASSET_ACTIVATOR "etn-licensing-credits"
 
 namespace fty {
-
-//============================================================================================================
-
-static constexpr const char* RC0_INAME = "rackcontroller-0";
 
 //============================================================================================================
 
@@ -106,27 +107,56 @@ static std::string generateUUID(
     return uuid;
 }
 
+static AssetStorage& getStorage()
+{
+    if (g_testMode) {
+        return DBTest::getInstance();
+    } else {
+        return DB::getInstance();
+    }
+}
+
+/// get children of Asset a
+std::vector<std::string> getChildren(const AssetImpl& a)
+{
+    return getStorage().getChildren(a);
+}
+
 //============================================================================================================
 
 AssetImpl::AssetImpl()
-    : m_db(g_testMode ? new DBTest : new DB)
+    : m_storage(getStorage())
 {
-    m_db->init();
 }
 
-AssetImpl::AssetImpl(const std::string& nameId)
-    : m_db(g_testMode ? new DBTest : new DB)
+AssetImpl::AssetImpl(const std::string& nameId, bool loadLinks)
+    : m_storage(getStorage())
 {
-    m_db->init();
-
-    m_db->loadAsset(nameId, *this);
-    m_db->loadExtMap(*this);
-    m_db->loadChildren(*this);
-    m_db->loadLinkedAssets(*this);
+    m_storage.loadAsset(nameId, *this);
+    m_storage.loadExtMap(*this);
+    if (loadLinks) {
+        m_storage.loadLinkedAssets(*this);
+    }
 }
 
 AssetImpl::~AssetImpl()
 {
+}
+
+AssetImpl::AssetImpl(const AssetImpl& a)
+    : Asset(a)
+    , m_storage(getStorage())
+{
+}
+
+AssetImpl& AssetImpl::operator=(const AssetImpl& a)
+{
+    if (&a == this) {
+        return *this;
+    }
+    Asset::operator=(a);
+
+    return *this;
 }
 
 bool AssetImpl::hasLogicalAsset() const
@@ -134,85 +164,139 @@ bool AssetImpl::hasLogicalAsset() const
     return getExt().find("logical_asset") != getExt().end();
 }
 
-void AssetImpl::remove(bool recursive)
+bool AssetImpl::hasLinkedAssets() const
 {
-    if (RC0_INAME == getInternalName()) {
-        throw std::runtime_error("Prevented deleting RC-0");
-    }
-
-    if (hasLogicalAsset()) {
-        throw std::runtime_error(TRANSLATE_ME("a logical_asset (sensor) refers to it"));
-    }
-
-    if (!getLinkedAssets().empty()) {
-        throw std::runtime_error(TRANSLATE_ME("can't delete the asset because it is linked to others"));
-    }
-
-    if (!recursive && !getChildren().empty()) {
-        throw std::runtime_error(TRANSLATE_ME("can't delete the asset because it has at least one child"));
-    }
-
-    if (recursive) {
-        for (const std::string& id : getChildren()) {
-            AssetImpl asset(id);
-            asset.remove(recursive);
-        }
-    }
-
-    m_db->beginTransaction();
-    try {
-        if (isAnyOf(getAssetType(), TYPE_DATACENTER, TYPE_ROW, TYPE_ROOM, TYPE_RACK)) {
-            if (m_db->isLastDataCenter(*this)) {
-                throw std::runtime_error(TRANSLATE_ME("will not allow last datacenter to be deleted"));
-            }
-            m_db->removeExtMap(*this);
-            m_db->removeFromGroups(*this);
-            m_db->removeFromRelations(*this);
-            m_db->removeAsset(*this);
-        } else if (isAnyOf(getAssetType(), TYPE_GROUP)) {
-            m_db->clearGroup(*this);
-            m_db->removeExtMap(*this);
-            m_db->removeAsset(*this);
-        } else if (isAnyOf(getAssetType(), TYPE_DEVICE)) {
-            m_db->removeFromGroups(*this);
-            m_db->unlinkFrom(*this);
-            m_db->removeFromRelations(*this);
-            m_db->removeExtMap(*this);
-            m_db->removeAsset(*this);
-        } else {
-            m_db->removeExtMap(*this);
-            m_db->removeAsset(*this);
-        }
-    } catch (const std::exception& e) {
-        m_db->rollbackTransaction();
-        log_debug("AssetImpl::remove() got EXCEPTION : %s", e.what());
-        throw std::runtime_error(e.what());
-    }
-    m_db->commitTransaction();
+    return m_storage.hasLinkedAssets(*this);
 }
 
-void AssetImpl::save()
+void AssetImpl::remove(bool removeLastDC)
 {
-    m_db->beginTransaction();
-    try {
-        if (getId()) {
-            m_db->update(*this);
-        } else { // create
-            // set creation timestamp
-            setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
-            // set uuid
-            setExtEntry(fty::EXT_UUID, generateUUID(getManufacturer(), getModel(), getSerialNo()), true);
+    if (RC0 == getInternalName()) {
+        throw std::runtime_error("cannot delete RC-0");
+    }
 
-            m_db->insert(*this);
+    // TODO verify if it is necessary to prevent assets with logical_asset attribute from being deleted
+    // if (hasLogicalAsset()) {
+    //     throw std::runtime_error("a logical_asset (sensor) refers to it");
+    // }
+
+    if (hasLinkedAssets()) {
+        throw std::runtime_error("it the source of a link");
+    }
+
+    std::vector<std::string> assetChildren = getChildren(*this);
+
+    if (!assetChildren.empty()) {
+        throw std::runtime_error("it has at least one child");
+    }
+
+    // deactivate asset
+    if (getAssetStatus() == AssetStatus::Active) {
+        deactivate();
+    }
+
+    m_storage.beginTransaction();
+    try {
+        if (isAnyOf(getAssetType(), TYPE_DATACENTER, TYPE_ROW, TYPE_ROOM, TYPE_RACK)) {
+            if (!removeLastDC && m_storage.isLastDataCenter(*this)) {
+                throw std::runtime_error("cannot delete last datacenter");
+            }
+            m_storage.removeExtMap(*this);
+            m_storage.removeFromGroups(*this);
+            m_storage.removeFromRelations(*this);
+            m_storage.removeAsset(*this);
+        } else if (isAnyOf(getAssetType(), TYPE_GROUP)) {
+            m_storage.clearGroup(*this);
+            m_storage.removeExtMap(*this);
+            m_storage.removeAsset(*this);
+        } else if (isAnyOf(getAssetType(), TYPE_DEVICE)) {
+            m_storage.removeFromGroups(*this);
+            m_storage.unlinkAll(*this);
+            m_storage.removeFromRelations(*this);
+            m_storage.removeExtMap(*this);
+            m_storage.removeAsset(*this);
+        } else {
+            m_storage.removeExtMap(*this);
+            m_storage.removeAsset(*this);
         }
-        m_db->saveLinkedAssets(*this);
-        m_db->saveExtMap(*this);
     } catch (const std::exception& e) {
-        m_db->rollbackTransaction();
+        m_storage.rollbackTransaction();
+
+        // reactivate is previous status was active
+        if (getAssetStatus() == AssetStatus::Active) {
+            activate();
+        }
+        log_debug("Asset could not be removed: %s", e.what());
+        throw std::runtime_error("Asset could not be removed: " + std::string(e.what()));
+    }
+    m_storage.commitTransaction();
+}
+
+void AssetImpl::create()
+{
+    m_storage.beginTransaction();
+    try {
+        if (!g_testMode && m_storage.getID(getInternalName())) {
+            throw(std::runtime_error("Create failed, asset name already exists"));
+        }
+        // set creation timestamp
+        setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
+        // set uuid
+        setExtEntry(fty::EXT_UUID, generateUUID(getManufacturer(), getModel(), getSerialNo()), true);
+
+        m_storage.insert(*this);
+        m_storage.saveLinkedAssets(*this);
+        m_storage.saveExtMap(*this);
+    } catch (const std::exception& e) {
+        m_storage.rollbackTransaction();
+        throw std::runtime_error(std::string(e.what()));
+    }
+    m_storage.commitTransaction();
+}
+
+void AssetImpl::update()
+{
+    m_storage.beginTransaction();
+    try {
+        if (!g_testMode && !m_storage.getID(getInternalName())) {
+            throw std::runtime_error("Update failed, asset does not exist.");
+        }
+        // set last update timestamp
+        setExtEntry(fty::EXT_UPDATE_TS, generateCurrentTimestamp(), true);
+
+        m_storage.update(*this);
+        m_storage.saveLinkedAssets(*this);
+        m_storage.saveExtMap(*this);
+    } catch (const std::exception& e) {
+        m_storage.rollbackTransaction();
+        throw std::runtime_error(std::string(e.what()));
+    }
+    m_storage.commitTransaction();
+}
+
+void AssetImpl::restore(bool restoreLinks)
+{
+    m_storage.beginTransaction();
+    // restore only if asset is not already in db
+    if (m_storage.getID(getInternalName())) {
+        throw std::runtime_error("Asset " + getInternalName() + " already exists, restore is not possible");
+    }
+    try {
+        // set creation timestamp
+        setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
+
+        m_storage.insert(*this);
+        m_storage.saveExtMap(*this);
+        if (restoreLinks) {
+            m_storage.saveLinkedAssets(*this);
+        }
+
+    } catch (const std::exception& e) {
+        m_storage.rollbackTransaction();
         log_debug("AssetImpl::save() got EXCEPTION : %s", e.what());
         throw e.what();
     }
-    m_db->commitTransaction();
+    m_storage.commitTransaction();
 }
 
 bool AssetImpl::isActivable()
@@ -242,32 +326,265 @@ void AssetImpl::activate()
         activationAccessor.activate(fa);
 
         setAssetStatus(fty::AssetStatus::Active);
-        m_db->update(*this);
+        m_storage.update(*this);
+    }
+}
+
+void AssetImpl::deactivate()
+{
+    if (!g_testMode) {
+        mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
+        fty::AssetActivator activationAccessor(client);
+
+        // TODO remove as soon as fty::Asset activation is supported
+        fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+
+        activationAccessor.deactivate(fa);
+        log_debug("Asset %s deactivated", getInternalName().c_str());
+
+        setAssetStatus(fty::AssetStatus::Nonactive);
+        m_storage.update(*this);
+    }
+}
+
+void AssetImpl::linkTo(
+    const std::string& src, const std::string& srcOut, const std::string& destIn, int linkType)
+{
+    try {
+        AssetImpl s(src);
+        m_storage.link(s, srcOut, *this, destIn, linkType);
+    } catch (std::exception& ex) {
+        log_error("%s", ex.what());
+    }
+    m_storage.loadLinkedAssets(*this);
+}
+
+void AssetImpl::unlinkFrom(
+    const std::string& src, const std::string& srcOut, const std::string& destIn, int linkType)
+{
+    AssetImpl s(src);
+    m_storage.unlink(s, srcOut, *this, destIn, linkType);
+
+    m_storage.loadLinkedAssets(*this);
+}
+
+void AssetImpl::unlinkAll()
+{
+    m_storage.unlinkAll(*this);
+}
+
+void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& si)
+{
+    // basic
+    si.addMember("id") <<= asset.getInternalName();
+    si.addMember("status") <<= int(asset.getAssetStatus());
+    si.addMember("type") <<= asset.getAssetType();
+    si.addMember("subtype") <<= asset.getAssetSubtype();
+    si.addMember("priority") <<= asset.getPriority();
+    si.addMember("parent") <<= asset.getParentIname();
+    si.addMember("linked") <<= asset.getLinkedAssets();
+
+    // ext
+    cxxtools::SerializationInfo& ext = si.addMember("");
+
+    cxxtools::SerializationInfo data;
+    for (const auto& e : asset.getExt()) {
+        cxxtools::SerializationInfo& entry = data.addMember(e.first);
+        entry <<= e.second.first;
+    }
+    data.setCategory(cxxtools::SerializationInfo::Category::Object);
+    ext = data;
+    ext.setName("ext");
+}
+
+void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& asset)
+{
+    int         tmpInt;
+    std::string tmpString;
+
+    // uuid
+    si.getMember("id") >>= tmpString;
+    asset.setInternalName(tmpString);
+
+    // status
+    si.getMember("status") >>= tmpInt;
+    asset.setAssetStatus(AssetStatus(tmpInt));
+
+    // type
+    si.getMember("type") >>= tmpString;
+    asset.setAssetType(tmpString);
+
+    // subtype
+    si.getMember("subtype") >>= tmpString;
+    asset.setAssetSubtype(tmpString);
+
+    // priority
+    si.getMember("priority") >>= tmpInt;
+    asset.setPriority(tmpInt);
+
+    // parend id
+    si.getMember("parent") >>= tmpString;
+    asset.setParentIname(tmpString);
+
+    // linked assets
+    std::vector<AssetLink> tmpVector;
+    si.getMember("linked") >>= tmpVector;
+    asset.setLinkedAssets(tmpVector);
+
+    // ext map
+    const cxxtools::SerializationInfo ext = si.getMember("ext");
+    for (const auto& si : ext) {
+        std::string key = si.name();
+        std::string val;
+        si >>= val;
+
+        asset.setExtEntry(key, val);
     }
 }
 
 std::vector<std::string> AssetImpl::list()
 {
-    std::unique_ptr<AssetImpl::DB> db;
-    if (g_testMode) {
-        db = std::unique_ptr<AssetImpl::DB>(new DBTest);
-    } else {
-        db = std::unique_ptr<AssetImpl::DB>(new DB);
-        db->init();
+    return getStorage().listAllAssets();
+}
+
+void AssetImpl::load()
+{
+    m_storage.loadAsset(getInternalName(), *this);
+    m_storage.loadExtMap(*this);
+    m_storage.loadLinkedAssets(*this);
+}
+
+AssetImpl::DeleteStatus AssetImpl::deleteAsset(const std::string& internalName, bool recursive)
+{
+    std::vector<std::string> toDel;
+
+    if (getStorage().getID(internalName) == 0) {
+        DeleteStatus deleted;
+        deleted.push_back({internalName, "Asset does not exist"});
+        return deleted;
     }
-    return db->listAllAssets();
+
+    toDel.push_back(internalName);
+
+    // delete whole sub-tree
+    if (recursive) {
+        std::vector<std::pair<AssetImpl, int>> stack;
+
+        AssetImpl a(internalName);
+
+        AssetImpl& ref = a;
+
+        bool         end  = false;
+        unsigned int next = 0;
+
+        while (!end) {
+            std::vector<std::string> children = getChildren(ref);
+
+            if (next < children.size()) {
+                stack.push_back(std::make_pair(ref, next + 1));
+
+                ref  = children[next];
+                next = 0;
+
+                toDel.push_back(ref.getInternalName());
+            } else {
+                if (stack.empty()) {
+                    end = true;
+                } else {
+                    ref  = stack.back().first;
+                    next = stack.back().second;
+                    stack.pop_back();
+                }
+            }
+        }
+    }
+
+    return deleteList(toDel);
 }
 
-void AssetImpl::reload()
+AssetImpl::DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool removeLastDC)
 {
-    m_db->loadAsset(getInternalName(), *this);
-    m_db->loadExtMap(*this);
-    m_db->loadChildren(*this);
-    m_db->loadLinkedAssets(*this);
+    std::vector<AssetImpl> toDel;
+
+    DeleteStatus deleted;
+
+    for (const std::string& iname : assets) {
+        try {
+            AssetImpl a(iname);
+            toDel.push_back(a);
+        } catch (std::exception& e) {
+            log_error("Error while loading asset %s. %s", iname.c_str(), e.what());
+            deleted.push_back({iname, "Error while loading asset: " + std::string(e.what())});
+        }
+    }
+
+    auto isAnyParent = [&](const AssetImpl& l, const AssetImpl& r) {
+        std::vector<std::pair<std::string, int>> lTree;
+        auto                                     ptr = l;
+        // path to root of L
+        int distL = 0;
+        while (ptr.getParentIname() != "") {
+            lTree.push_back(std::make_pair(ptr.getInternalName(), distL));
+            std::string parentIname = ptr.getParentIname();
+            ptr                     = AssetImpl(parentIname);
+            distL++;
+        }
+
+        int distR = 0;
+        ptr       = r;
+        while (ptr.getParentIname() != "") {
+            // look for LCA, if exists
+            auto found = std::find_if(lTree.begin(), lTree.end(), [&](const std::pair<std::string, int>& p) {
+                return p.first == ptr.getInternalName();
+            });
+            if (found != lTree.end()) {
+                distL = found->second; // distance of L from LCA
+                break;
+            }
+
+            ptr = AssetImpl(ptr.getParentIname());
+            distR++;
+        }
+        // farthest node from LCA gets deleted first
+        return distL > distR;
+    };
+
+    // sort by deletion order
+    std::sort(toDel.begin(), toDel.end(), [&](const AssetImpl& l, const AssetImpl& r) {
+        return isAnyParent(l, r);
+    });
+
+    // remove all links
+    for (auto& a : toDel) {
+        a.unlinkAll();
+    }
+
+    for (auto& d : toDel) {
+        // after deleting assets, children list may change -> reload
+        d.load();
+
+        try {
+            d.remove(removeLastDC);
+            deleted.push_back({d.getInternalName(), "OK"});
+        } catch (std::exception& e) {
+            log_error("Asset could not be removed: %s", e.what());
+            deleted.push_back({d.getInternalName(), "Asset could not be removed: " + std::string(e.what())});
+        }
+    }
+
+    return deleted;
 }
 
-void AssetImpl::massDelete(const std::vector<std::string>& assets)
+AssetImpl::DeleteStatus AssetImpl::deleteAll()
 {
+    // get list of all assets (including last datacenter)
+    return deleteList(list(), true);
+}
+
+/// get internal name from UUID
+std::string AssetImpl::getInameFromUuid(const std::string& uuid)
+{
+    return getStorage().inameByUuid(uuid);
 }
 
 } // namespace fty

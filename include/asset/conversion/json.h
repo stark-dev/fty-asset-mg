@@ -1,5 +1,5 @@
 /*  =========================================================================
-    fty_asset_manipulation - Helper functions to perform asset manipulation
+    asset_conversion_json - asset/conversion/json
 
     Copyright (C) 2016 - 2020 Eaton
 
@@ -21,14 +21,17 @@
 
 #pragma once
 
-#include "fty_asset_dto.h"
+#include <cxxtools/serializationinfo.h>
+#include <string>
+// fwd declaration
+namespace fty {
+class Asset;
+} // namespace fty
 
-typedef struct _fty_proto_t fty_proto_t;
+namespace fty { namespace conversion {
+    std::string toJson(const Asset& asset);
+    void        fromJson(const std::string& json, fty::Asset& asset);
 
-// get asset
-fty::Asset getAsset(const std::string& assetInternalName, bool test = false);
-// list assets
-std::vector<fty::Asset> listAssets(bool test = false);
-
-// for test purposes
-extern std::map<std::string, std::string> test_map_asset_state;
+    void operator<<=(cxxtools::SerializationInfo& si, const Asset& asset);
+    void operator>>=(const cxxtools::SerializationInfo& si, Asset& asset);
+}} // namespace fty::conversion

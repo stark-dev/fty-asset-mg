@@ -27,11 +27,54 @@
 */
 
 #include "include/fty_asset_dto.h"
+#include <algorithm>
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
 #include <sstream>
 
 namespace fty {
+
+AssetLink::AssetLink(const std::string& s, std::string o, std::string i, int t)
+    : sourceId(s)
+    , srcOut(o)
+    , destIn(i)
+    , linkType(t)
+{
+}
+
+bool operator==(const AssetLink& l, const AssetLink& r)
+{
+    return (
+        l.sourceId == r.sourceId && l.srcOut == r.srcOut && l.destIn == r.destIn && r.linkType == l.linkType);
+}
+
+void operator<<=(cxxtools::SerializationInfo& si, const AssetLink& l)
+{
+    si.addMember("source") <<= l.sourceId;
+    si.addMember("link_type") <<= l.linkType;
+    if (!l.srcOut.empty()) {
+        si.addMember("src_out") <<= l.srcOut;
+    }
+    if (!l.destIn.empty()) {
+        si.addMember("dest_in") <<= l.destIn;
+    }
+}
+
+void operator>>=(const cxxtools::SerializationInfo& si, AssetLink& l)
+{
+    si.getMember("source") >>= l.sourceId;
+    si.getMember("link_type") >>= l.linkType;
+
+    std::string tmpStr;
+    if (si.getMember("src_out", tmpStr)) {
+        l.srcOut = tmpStr;
+    }
+
+    if (si.getMember("dest_in", tmpStr)) {
+        l.destIn = tmpStr;
+    }
+} // namespace fty
+
 
 const std::string assetStatusToString(AssetStatus status)
 {
@@ -67,11 +110,6 @@ AssetStatus stringToAssetStatus(const std::string& str)
 }
 
 // getters
-
-uint32_t Asset::getId() const
-{
-    return m_id;
-}
 
 const std::string& Asset::getInternalName() const
 {
@@ -158,22 +196,12 @@ const std::string& Asset::getSerialNo() const
     return getExtEntry(EXT_SERIAL_NO);
 }
 
-const std::vector<std::string>& Asset::getLinkedAssets() const
+const std::vector<AssetLink>& Asset::getLinkedAssets() const
 {
     return m_linkedAssets;
 }
 
-const std::vector<std::string>& Asset::getChildren() const
-{
-    return m_children;
-}
-
 // setters
-
-void Asset::setId(uint32_t id)
-{
-    m_id = id;
-}
 
 void Asset::setInternalName(const std::string& internalName)
 {
@@ -220,14 +248,9 @@ void Asset::setExtEntry(const std::string& key, const std::string& value, bool r
     m_ext[key] = std::make_pair(value, readOnly);
 }
 
-void Asset::setLinkedAssets(const std::vector<std::string>& assets)
+void Asset::setLinkedAssets(const std::vector<AssetLink>& assets)
 {
     m_linkedAssets = assets;
-}
-
-void Asset::setChildren(const std::vector<std::string>& assets)
-{
-    m_children = assets;
 }
 
 void Asset::dump(std::ostream& os)
@@ -242,6 +265,11 @@ void Asset::dump(std::ostream& os)
     for (const auto& e : m_ext) {
         os << "- key: " << e.first << " - value: " << e.second.first << std::endl;
     }
+
+    for (const auto& l : m_linkedAssets) {
+        os << "- linked to: " << l.sourceId << " on port: " << l.srcOut << " from port " << l.destIn
+           << std::endl;
+    }
 }
 
 bool Asset::operator==(const Asset& asset) const
@@ -249,7 +277,7 @@ bool Asset::operator==(const Asset& asset) const
     return (m_internalName == asset.m_internalName && m_assetStatus == asset.m_assetStatus &&
             m_assetType == asset.m_assetType && m_assetSubtype == asset.m_assetSubtype &&
             m_parentIname == asset.m_parentIname && m_priority == asset.m_priority &&
-            m_assetTag == asset.m_assetTag && m_ext == asset.m_ext);
+            m_assetTag == asset.m_assetTag && m_ext == asset.m_ext && m_linkedAssets == asset.m_linkedAssets);
 }
 
 bool Asset::operator!=(const Asset& asset) const

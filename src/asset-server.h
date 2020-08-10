@@ -21,7 +21,9 @@
 
 #pragma once
 #include "asset/asset.h"
+#include <fty_srr_dto.h>
 #include <memory>
+#include <mutex>
 
 static constexpr const char* FTY_ASSET_MAILBOX = "FTY.Q.ASSET.QUERY";
 // new interface mailbox subjects
@@ -30,6 +32,7 @@ static constexpr const char* FTY_ASSET_SUBJECT_UPDATE      = "UPDATE";
 static constexpr const char* FTY_ASSET_SUBJECT_DELETE      = "DELETE";
 static constexpr const char* FTY_ASSET_SUBJECT_DELETE_LIST = "DELETE_LIST";
 static constexpr const char* FTY_ASSET_SUBJECT_GET         = "GET";
+static constexpr const char* FTY_ASSET_SUBJECT_GET_BY_UUID = "GET_BY_UUID";
 static constexpr const char* FTY_ASSET_SUBJECT_LIST        = "LIST";
 
 // new interface topics
@@ -46,6 +49,12 @@ static constexpr const char* FTY_ASSET_SUBJECT_DELETED = "DELETED";
 static constexpr const char* METADATA_TRY_ACTIVATE      = "TRY_ACTIVATE";
 static constexpr const char* METADATA_NO_ERROR_IF_EXIST = "NO_ERROR_IF_EXIST";
 
+// SRR
+static constexpr const char* SRR_ACTIVE_VERSION  = "1.0";
+static constexpr const char* FTY_ASSET_SRR_AGENT = "asset-agent-srr";
+static constexpr const char* FTY_ASSET_SRR_NAME  = "asset-agent";
+static constexpr const char* FTY_ASSET_SRR_QUEUE = "FTY.Q.ASSET.SRR";
+
 typedef struct _mlm_client_t mlm_client_t;
 namespace messagebus {
 class MessageBus;
@@ -57,6 +66,8 @@ namespace fty {
 class AssetServer
 {
 public:
+    using MsgBusPtr = std::unique_ptr<messagebus::MessageBus>;
+
     AssetServer();
     ~AssetServer() = default;
 
@@ -141,10 +152,20 @@ public:
         m_agentNameNg = name;
     }
 
+    void setSrrEndpoint(const std::string& endpoint)
+    {
+        m_srrEndpoint = endpoint;
+    }
+
+    void setSrrAgentName(const std::string& agentName)
+    {
+        m_srrAgentName = agentName;
+    }
+
     void createMailboxClientNg();
     void resetMailboxClientNg();
     void connectMailboxClientNg();
-    void receiveMailboxClientNg(const std::string& query);
+    void receiveMailboxClientNg(const std::string& queue);
 
     void createPublisherClientNg();
     void resetPublisherClientNg();
@@ -153,19 +174,26 @@ public:
     // notifications
     void sendNotification(const messagebus::Message&) const;
 
+    // SRR
+    void initSrr(const std::string& queue);
+    void resetSrrClient();
+
 private:
     void createAsset(const messagebus::Message& msg);
     void updateAsset(const messagebus::Message& msg);
     void deleteAsset(const messagebus::Message& msg);
-    void getAsset(const messagebus::Message& msg);
+    void getAsset(const messagebus::Message& msg, bool getFromUuid = false);
     void listAsset(const messagebus::Message& msg);
     void deleteAssetList(const messagebus::Message& msg);
+
+    // SRR
+    cxxtools::SerializationInfo saveAssets();
+    void                        restoreAssets(const cxxtools::SerializationInfo& si, bool tryActivate = true);
 
 private:
     static void destroyMlmClient(mlm_client_t* client);
 
     using MlmClientPtr = std::unique_ptr<mlm_client_t, decltype(&AssetServer::destroyMlmClient)>;
-    using MsgBusPtr    = std::unique_ptr<messagebus::MessageBus>;
 
 
 private:
@@ -187,12 +215,19 @@ private:
 
     // topic handlers
     void handleAssetManipulationReq(const messagebus::Message& msg);
-};
+    void handleAssetSrrReq(const messagebus::Message& msg);
 
-messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
-    const std::string& from, const std::string& to, const std::string& status, const std::string& data);
-messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
-    const std::string& from, const std::string& to, const std::string& status,
-    const std::vector<std::string>& data);
+    // SRR
+    std::string                 m_srrEndpoint  = "ipc://@/malamute";
+    std::string                 m_srrAgentName = "asset-agent-srr";
+    MsgBusPtr                   m_srrClient;
+    std::mutex                  m_srrLock;
+    dto::srr::SrrQueryProcessor m_srrProcessor;
+
+    // SRR handlers
+    dto::srr::SaveResponse    handleSave(const dto::srr::SaveQuery& query);
+    dto::srr::RestoreResponse handleRestore(const dto::srr::RestoreQuery& query);
+    dto::srr::ResetResponse   handleReset(const dto::srr::ResetQuery& query);
+};
 
 } // namespace fty

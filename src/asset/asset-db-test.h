@@ -20,23 +20,35 @@
 */
 
 #pragma once
-#include "asset-db.h"
+#include "asset-storage.h"
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace fty {
 
-class AssetImpl::DBTest : public AssetImpl::DB
+class DBTest : public AssetStorage
 {
 public:
-    DBTest();
-    void init();
+    static DBTest& getInstance()
+    {
+        static DBTest m_instance;
+        return m_instance;
+    }
+
     void loadAsset(const std::string& nameId, Asset& asset) override;
 
-    void loadExtMap(Asset& asset) override;
-    void loadChildren(Asset& asset) override;
-    void loadLinkedAssets(Asset& asset) override;
+    void                     loadExtMap(Asset& asset) override;
+    void                     loadLinkedAssets(Asset& asset) override;
+    std::vector<std::string> getChildren(const Asset& asset) override;
 
-    void unlinkFrom(Asset& asset) override;
+    uint32_t getID(const std::string& internalName) override;
+    bool     hasLinkedAssets(const Asset& asset) override;
+    void     link(
+            Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) override;
+    void unlink(
+        Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) override;
+    void unlinkAll(Asset& dest) override;
     void clearGroup(Asset& asset) override;
     void removeAsset(Asset& asset) override;
     void removeFromRelations(Asset& asset) override;
@@ -53,9 +65,13 @@ public:
 
     void        saveLinkedAssets(Asset& asset) override;
     void        saveExtMap(Asset& asset) override;
-    std::string unameById(uint32_t id) override;
+    std::string inameById(uint32_t id) override;
+    std::string inameByUuid(const std::string& uuid) override;
 
     std::vector<std::string> listAllAssets() override;
+
+private:
+    DBTest();
 };
 
 } // namespace fty

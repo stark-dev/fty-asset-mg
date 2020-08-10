@@ -19,7 +19,7 @@
     =========================================================================
 */
 
-#include "proto.h"
+#include "include/asset/conversion/proto.h"
 #include "include/fty_asset_dto.h"
 #include "src/dbhelpers.h"
 #include <fty_proto.h>

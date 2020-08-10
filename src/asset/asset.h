@@ -20,36 +20,65 @@
 */
 
 #pragma once
+
 #include "include/fty_asset_dto.h"
 
 extern bool g_testMode;
 
 namespace fty {
 
+static constexpr const char* RC0 = "rackcontroller-0";
+
+class AssetStorage;
+
 class AssetImpl : public Asset
 {
 public:
     AssetImpl();
-    AssetImpl(const std::string& nameId);
+    AssetImpl(const std::string& nameId, bool loadLinks = true);
     ~AssetImpl() override;
 
-    void remove(bool recursive = false);
+    AssetImpl(const AssetImpl& a);
+
+    AssetImpl& operator=(const AssetImpl& a);
+
+    // asset operations
+    bool hasLinkedAssets() const;
     bool hasLogicalAsset() const;
-    void save();
-    void reload();
+    void load();
+    void create();
+    void update();
+    void restore(bool restoreLinks = false);
     bool isActivable();
     void activate();
+    void deactivate();
+    void linkTo(const std::string& src, const std::string& srcOut, const std::string& destIn, int linkType);
+    void unlinkFrom(
+        const std::string& src, const std::string& srcOut, const std::string& destIn, int linkType);
+    void unlinkAll();
+
+    static void assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& si);
+    static void srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& asset);
+
 
     static std::vector<std::string> list();
-    static void                     massDelete(const std::vector<std::string>& assets);
+
+    using DeleteStatus = std::vector<std::pair<std::string, std::string>>;
+
+    static DeleteStatus deleteAsset(const std::string& internalName, bool recursive = false);
+    static DeleteStatus deleteList(const std::vector<std::string>& assets, bool removeLastDC = false);
+    static DeleteStatus deleteAll();
+
+    static std::string getInameFromUuid(const std::string& uuid);
 
     using Asset::operator==;
 
+    friend std::vector<std::string> getChildren(const AssetImpl& a);
+
 private:
-    class Interface;
-    class DB;
-    class DBTest;
-    std::unique_ptr<DB> m_db;
+    AssetStorage& m_storage;
+
+    void remove(bool removeLastDC = false);
 };
 
 } // namespace fty

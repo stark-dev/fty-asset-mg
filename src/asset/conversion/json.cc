@@ -19,11 +19,10 @@
     =========================================================================
 */
 
-#include "json.h"
+#include "include/asset/conversion/json.h"
 #include "include/fty_asset_dto.h"
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
-#include <cxxtools/serializationinfo.h>
 #include <sstream>
 
 namespace fty { namespace conversion {
@@ -35,6 +34,7 @@ namespace fty { namespace conversion {
     static constexpr const char* SI_PRIORITY = "priority";
     static constexpr const char* SI_PARENT   = "parent";
     static constexpr const char* SI_EXT      = "ext";
+    static constexpr const char* SI_LINKED   = "linked";
 
     void operator<<=(cxxtools::SerializationInfo& si, const Asset& asset)
     {
@@ -45,7 +45,18 @@ namespace fty { namespace conversion {
         si.addMember(SI_NAME) <<= asset.getInternalName();
         si.addMember(SI_PRIORITY) <<= asset.getPriority();
         si.addMember(SI_PARENT) <<= asset.getParentIname();
-        si.addMember(SI_EXT) <<= asset.getExt();
+        si.addMember(SI_LINKED) <<= asset.getLinkedAssets();
+        // ext map
+        cxxtools::SerializationInfo& ext = si.addMember("");
+
+        cxxtools::SerializationInfo data;
+        for (const auto& e : asset.getExt()) {
+            cxxtools::SerializationInfo& entry = data.addMember(e.first);
+            entry <<= e.second.first;
+        }
+        data.setCategory(cxxtools::SerializationInfo::Category::Object);
+        ext = data;
+        ext.setName(SI_EXT);
     }
 
     void operator>>=(const cxxtools::SerializationInfo& si, Asset& asset)
@@ -65,7 +76,7 @@ namespace fty { namespace conversion {
         si.getMember(SI_SUB_TYPE) >>= tmpString;
         asset.setAssetSubtype(tmpString);
 
-        // external name
+        // internal name
         si.getMember(SI_NAME) >>= tmpString;
         asset.setInternalName(tmpString);
 
@@ -77,10 +88,19 @@ namespace fty { namespace conversion {
         si.getMember(SI_PARENT) >>= tmpString;
         asset.setParentIname(tmpString);
 
-        // ext attribute
-        Asset::ExtMap tmpMap;
-        si.getMember(SI_EXT) >>= tmpMap;
-        asset.setExt(tmpMap);
+        // linked assets
+        std::vector<AssetLink> tmpVector;
+        si.getMember(SI_LINKED) >>= tmpVector;
+        asset.setLinkedAssets(tmpVector);
+
+        // ext map
+        const cxxtools::SerializationInfo ext = si.getMember(SI_EXT);
+        for (const auto& si : ext) {
+            std::string key = si.name();
+            std::string val;
+            si >>= val;
+            asset.setExtEntry(key, val);
+        }
     }
 
     std::string toJson(const Asset& asset)

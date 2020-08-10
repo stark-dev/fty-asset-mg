@@ -7,6 +7,7 @@
     check_license_years = "1"
     license = "GPL-2.0+"
     repository = "https://github.com/42ity/fty-asset"
+    header = "fty-asset.h"
     >
 
     <target name = "debian" />
@@ -99,6 +100,10 @@
     <use project = "fty-common-mlm" libname = "libfty_common_mlm" header = "fty_common_mlm.h"
         test = "fty_common_mlm_selftest"
         repository = "https://github.com/42ity/fty-common-mlm.git" />
+
+    <use project = "fty-common-dto" libname = "libfty_common_dto" header = "fty_common_dto.h"
+        repository = "https://github.com/42ity/fty-common-dto.git"
+        test = "fty_common_dto_selftest" />
     
     <!-- use fty-common-messagebus -->
     <use project = "fty-common-messagebus" libname = "libfty_common_messagebus" header = "fty_common_messagebus.h"
@@ -140,15 +145,16 @@
     <class name = "fty_asset_inventory" state = "stable" >Inventory server: process inventory ASSET messages and update extended attributes</class>
 
     <class name = "fty_asset_dto" state = "stable" >Asset DTO: defines ASSET attributes for data exchange</class>
-    <class name = "fty_asset_manipulation" state = "stable" private = "1" selftest = "0" >Helper functions to perform asset manipulation</class>
 
     <class name = "asset-server" state = "stable" private = "1" selftest = "0" >asset-server</class>
     <class name = "asset/asset" state = "stable" private = "1" selftest = "0" >asset/asset</class>
+    <class name = "asset/asset-utils" state = "stable" private = "1" selftest = "0" >asset/asset-utils</class>
+    <class name = "asset/asset-storage" state = "stable" private = "1" selftest = "0" >asset/asset-storage</class>
     <class name = "asset/asset-db" state = "stable" private = "1" selftest = "0" >asset/asset-db</class>
     <class name = "asset/asset-db-test" state = "stable" private = "1" selftest = "0" >asset/asset-db-test</class>
-    <class name = "asset/conversion/json" state = "stable" private = "1" selftest = "0" >asset/conversion/json</class>
-    <class name = "asset/conversion/proto" state = "stable" private = "1" selftest = "0" >asset/conversion/proto</class>
-    <class name = "asset/conversion/full-asset" state = "stable" private = "1" selftest = "0" >asset/conversion/full-asset</class>
+    <class name = "asset/conversion/json" state = "stable" private = "0" selftest = "0" >asset/conversion/json</class>
+    <class name = "asset/conversion/proto" state = "stable" private = "0" selftest = "0" >asset/conversion/proto</class>
+    <class name = "asset/conversion/full-asset" state = "stable" private = "0" selftest = "0" >asset/conversion/full-asset</class>
 
     <main name = "fty-asset" service = "1" >
         Agent managing assets
