@@ -555,7 +555,9 @@ static std::string serializeDeleteStatus(AssetImpl::DeleteStatus statusList)
     cxxtools::SerializationInfo si;
 
     for (const auto& s : statusList) {
-        si.addMember(s.first) <<= s.second;
+        cxxtools::SerializationInfo& status = si.addMember("");
+        status.setCategory(cxxtools::SerializationInfo::Category::Object);
+        status.addMember(s.first) <<= s.second;
     }
 
     si.setCategory(cxxtools::SerializationInfo::Category::Array);
