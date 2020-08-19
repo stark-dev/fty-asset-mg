@@ -133,10 +133,18 @@ void AssetServer::createPublisherClientNg()
     m_publisherCreate.reset(messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-create"));
     log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
         (m_agentNameNg + "-create").c_str());
+    m_publisherCreateLight.reset(
+        messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-create-light"));
+    log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
+        (m_agentNameNg + "-create-light").c_str());
 
     m_publisherUpdate.reset(messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-update"));
     log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
         (m_agentNameNg + "-update").c_str());
+    m_publisherUpdateLight.reset(
+        messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-update-light"));
+    log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
+        (m_agentNameNg + "-update-light").c_str());
 
     m_publisherDelete.reset(messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-delete"));
     log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
@@ -146,14 +154,18 @@ void AssetServer::createPublisherClientNg()
 void AssetServer::resetPublisherClientNg()
 {
     m_publisherCreate.reset();
+    m_publisherCreateLight.reset();
     m_publisherUpdate.reset();
+    m_publisherUpdateLight.reset();
     m_publisherDelete.reset();
 }
 
 void AssetServer::connectPublisherClientNg()
 {
     m_publisherCreate->connect();
+    m_publisherCreateLight->connect();
     m_publisherUpdate->connect();
+    m_publisherUpdateLight->connect();
     m_publisherDelete->connect();
 }
 
@@ -329,6 +341,8 @@ void AssetServer::sendNotification(const messagebus::Message& msg) const
         fty::conversion::fromJson(msg.userData().back(), asset);
         send_create_or_update_asset(
             *this, asset.getInternalName(), "create", false /* read_only is not used */);
+    } else if (subject == FTY_ASSET_SUBJECT_CREATED_L) {
+        m_publisherCreateLight->publish(FTY_ASSET_TOPIC_CREATED_L, msg);
     } else if (subject == FTY_ASSET_SUBJECT_UPDATED) {
         m_publisherUpdate->publish(FTY_ASSET_TOPIC_UPDATED, msg);
 
@@ -344,6 +358,8 @@ void AssetServer::sendNotification(const messagebus::Message& msg) const
 
         send_create_or_update_asset(
             *this, asset.getInternalName(), "update", false /* read_only is not used */);
+    } else if (subject == FTY_ASSET_SUBJECT_UPDATED_L) {
+        m_publisherUpdateLight->publish(FTY_ASSET_TOPIC_UPDATED_L, msg);
     } else if (subject == FTY_ASSET_SUBJECT_DELETED) {
         m_publisherDelete->publish(FTY_ASSET_TOPIC_DELETED, msg);
     }
@@ -428,10 +444,14 @@ void AssetServer::createAsset(const messagebus::Message& msg)
         log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
-        // send notification
+        // full notification
         messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_CREATED, "",
             m_agentNameNg, "", messagebus::STATUS_OK, fty::conversion::toJson(asset));
         sendNotification(notification);
+        // light notification
+        messagebus::Message notification_l = assetutils::createMessage(FTY_ASSET_SUBJECT_CREATED_L, "",
+            m_agentNameNg, "", messagebus::STATUS_OK, asset.getInternalName());
+        sendNotification(notification_l);
     } catch (std::exception& e) {
         log_error(e.what());
         // create response (error)
@@ -532,10 +552,15 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
         log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
-        // send notification
+        // full notification
         messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATED, "",
             m_agentNameNg, "", messagebus::STATUS_OK, assetutils::serialize(si));
         sendNotification(notification);
+
+        // light notification
+        messagebus::Message notification_l = assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATED_L, "",
+            m_agentNameNg, "", messagebus::STATUS_OK, asset.getInternalName());
+        sendNotification(notification_l);
     } catch (const std::exception& e) {
         log_error(e.what());
         // create response (error)

@@ -36,14 +36,18 @@ static constexpr const char* FTY_ASSET_SUBJECT_GET_BY_UUID = "GET_BY_UUID";
 static constexpr const char* FTY_ASSET_SUBJECT_LIST        = "LIST";
 
 // new interface topics
-static constexpr const char* FTY_ASSET_TOPIC_CREATED = "FTY.T.ASSET.CREATED";
-static constexpr const char* FTY_ASSET_TOPIC_UPDATED = "FTY.T.ASSET.UPDATED";
-static constexpr const char* FTY_ASSET_TOPIC_DELETED = "FTY.T.ASSET.DELETED";
+static constexpr const char* FTY_ASSET_TOPIC_CREATED   = "FTY.T.ASSET.CREATED";
+static constexpr const char* FTY_ASSET_TOPIC_CREATED_L = "FTY.T.ASSET_LIGHT.CREATED";
+static constexpr const char* FTY_ASSET_TOPIC_UPDATED   = "FTY.T.ASSET.UPDATED";
+static constexpr const char* FTY_ASSET_TOPIC_UPDATED_L = "FTY.T.ASSET_LIGHT.UPDATED";
+static constexpr const char* FTY_ASSET_TOPIC_DELETED   = "FTY.T.ASSET.DELETED";
 
 // new interface topic subjects
-static constexpr const char* FTY_ASSET_SUBJECT_CREATED = "CREATED";
-static constexpr const char* FTY_ASSET_SUBJECT_UPDATED = "UPDATED";
-static constexpr const char* FTY_ASSET_SUBJECT_DELETED = "DELETED";
+static constexpr const char* FTY_ASSET_SUBJECT_CREATED   = "CREATED";
+static constexpr const char* FTY_ASSET_SUBJECT_CREATED_L = "CREATED_L";
+static constexpr const char* FTY_ASSET_SUBJECT_UPDATED   = "UPDATED";
+static constexpr const char* FTY_ASSET_SUBJECT_UPDATED_L = "UPDATED_L";
+static constexpr const char* FTY_ASSET_SUBJECT_DELETED   = "DELETED";
 
 
 static constexpr const char* METADATA_TRY_ACTIVATE      = "TRY_ACTIVATE";
@@ -210,7 +214,9 @@ private:
     std::string m_agentNameNg = "asset-agent-ng";
     MsgBusPtr   m_assetMsgQueue;
     MsgBusPtr   m_publisherCreate;
+    MsgBusPtr   m_publisherCreateLight;
     MsgBusPtr   m_publisherUpdate;
+    MsgBusPtr   m_publisherUpdateLight;
     MsgBusPtr   m_publisherDelete;
 
     // topic handlers
