@@ -454,55 +454,45 @@ void AssetImpl::load()
     m_storage.loadLinkedAssets(*this);
 }
 
-AssetImpl::DeleteStatus AssetImpl::deleteAsset(const std::string& internalName, bool recursive)
+static void addSubTree(const std::string& internalName, std::vector<AssetImpl>& toDel)
 {
-    std::vector<std::string> toDel;
+    std::vector<std::pair<AssetImpl, int>> stack;
 
-    if (getStorage().getID(internalName) == 0) {
-        DeleteStatus deleted;
-        deleted.push_back({internalName, "Asset does not exist"});
-        return deleted;
-    }
+    AssetImpl a(internalName);
 
-    toDel.push_back(internalName);
+    AssetImpl& ref = a;
 
-    // delete whole sub-tree
-    if (recursive) {
-        std::vector<std::pair<AssetImpl, int>> stack;
+    bool         end  = false;
+    unsigned int next = 0;
 
-        AssetImpl a(internalName);
+    while (!end) {
+        std::vector<std::string> children = getChildren(ref);
 
-        AssetImpl& ref = a;
+        if (next < children.size()) {
+            stack.push_back(std::make_pair(ref, next + 1));
 
-        bool         end  = false;
-        unsigned int next = 0;
+            ref  = children[next];
+            next = 0;
 
-        while (!end) {
-            std::vector<std::string> children = getChildren(ref);
-
-            if (next < children.size()) {
-                stack.push_back(std::make_pair(ref, next + 1));
-
-                ref  = children[next];
-                next = 0;
-
-                toDel.push_back(ref.getInternalName());
+            auto found = std::find_if(toDel.begin(), toDel.end(), [&](const AssetImpl& a) {
+                return a.getInternalName() == ref.getInternalName();
+            });
+            if (found == toDel.end()) {
+                toDel.push_back(ref);
+            }
+        } else {
+            if (stack.empty()) {
+                end = true;
             } else {
-                if (stack.empty()) {
-                    end = true;
-                } else {
-                    ref  = stack.back().first;
-                    next = stack.back().second;
-                    stack.pop_back();
-                }
+                ref  = stack.back().first;
+                next = stack.back().second;
+                stack.pop_back();
             }
         }
     }
-
-    return deleteList(toDel);
 }
 
-AssetImpl::DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool removeLastDC)
+AssetImpl::DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool recursive, bool removeLastDC)
 {
     std::vector<AssetImpl> toDel;
 
@@ -512,9 +502,12 @@ AssetImpl::DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& as
         try {
             AssetImpl a(iname);
             toDel.push_back(a);
+
+            if(recursive) {
+                addSubTree(iname, toDel);
+            }
         } catch (std::exception& e) {
-            log_error("Error while loading asset %s. %s", iname.c_str(), e.what());
-            deleted.push_back({iname, "Error while loading asset: " + std::string(e.what())});
+            log_warning("Error while loading asset %s. %s", iname.c_str(), e.what());
         }
     }
 
@@ -565,10 +558,10 @@ AssetImpl::DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& as
 
         try {
             d.remove(removeLastDC);
-            deleted.push_back({d.getInternalName(), "OK"});
+            deleted.push_back({d, "OK"});
         } catch (std::exception& e) {
             log_error("Asset could not be removed: %s", e.what());
-            deleted.push_back({d.getInternalName(), "Asset could not be removed: " + std::string(e.what())});
+            deleted.push_back({d, "Asset could not be removed: " + std::string(e.what())});
         }
     }
 
@@ -578,7 +571,7 @@ AssetImpl::DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& as
 AssetImpl::DeleteStatus AssetImpl::deleteAll()
 {
     // get list of all assets (including last datacenter)
-    return deleteList(list(), true);
+    return deleteList(list(), false, true);
 }
 
 /// get internal name from UUID

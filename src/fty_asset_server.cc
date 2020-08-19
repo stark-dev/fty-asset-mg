@@ -980,7 +980,7 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
                     asset.activate();
                 } catch (std::exception& e) {
                     // if activation fails, delete asset
-                    fty::AssetImpl::deleteAsset(asset.getInternalName());
+                    fty::AssetImpl::deleteList({asset.getInternalName()}, false);
                     throw std::runtime_error(e.what());
                 }
             }
