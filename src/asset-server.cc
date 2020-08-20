@@ -133,40 +133,50 @@ void AssetServer::createPublisherClientNg()
     m_publisherCreate.reset(messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-create"));
     log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
         (m_agentNameNg + "-create").c_str());
+
+    m_publisherUpdate.reset(messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-update"));
+    log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
+        (m_agentNameNg + "-update").c_str());
+
+    m_publisherDelete.reset(messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-delete"));
+    log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
+        (m_agentNameNg + "-delete").c_str());
+
+
     m_publisherCreateLight.reset(
         messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-create-light"));
     log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
         (m_agentNameNg + "-create-light").c_str());
 
-    m_publisherUpdate.reset(messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-update"));
-    log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
-        (m_agentNameNg + "-update").c_str());
     m_publisherUpdateLight.reset(
         messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-update-light"));
     log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
         (m_agentNameNg + "-update-light").c_str());
 
-    m_publisherDelete.reset(messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-delete"));
+    m_publisherDeleteLight.reset(
+        messagebus::MlmMessageBus(m_mailboxEndpoint, m_agentNameNg + "-delete-light"));
     log_debug("New publisher client registered to endpoint %s with name %s", m_mailboxEndpoint.c_str(),
-        (m_agentNameNg + "-delete").c_str());
+        (m_agentNameNg + "-delete-light").c_str());
 }
 
 void AssetServer::resetPublisherClientNg()
 {
     m_publisherCreate.reset();
-    m_publisherCreateLight.reset();
     m_publisherUpdate.reset();
-    m_publisherUpdateLight.reset();
     m_publisherDelete.reset();
+    m_publisherCreateLight.reset();
+    m_publisherUpdateLight.reset();
+    m_publisherDeleteLight.reset();
 }
 
 void AssetServer::connectPublisherClientNg()
 {
     m_publisherCreate->connect();
-    m_publisherCreateLight->connect();
     m_publisherUpdate->connect();
-    m_publisherUpdateLight->connect();
     m_publisherDelete->connect();
+    m_publisherCreateLight->connect();
+    m_publisherUpdateLight->connect();
+    m_publisherDeleteLight->connect();
 }
 
 // new generation asset manipulation handler
@@ -180,7 +190,6 @@ void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
         { FTY_ASSET_SUBJECT_CREATE,       [&](const messagebus::Message& msg){ createAsset(msg); } },
         { FTY_ASSET_SUBJECT_UPDATE,       [&](const messagebus::Message& msg){ updateAsset(msg); } },
         { FTY_ASSET_SUBJECT_DELETE,       [&](const messagebus::Message& msg){ deleteAsset(msg); } },
-        { FTY_ASSET_SUBJECT_DELETE_LIST,  [&](const messagebus::Message& msg){ deleteAssetList(msg); } },
         { FTY_ASSET_SUBJECT_GET,          [&](const messagebus::Message& msg){ getAsset(msg); } },
         { FTY_ASSET_SUBJECT_GET_BY_UUID,  [&](const messagebus::Message& msg){ getAsset(msg, true); } },
         { FTY_ASSET_SUBJECT_LIST,         [&](const messagebus::Message& msg){ listAsset(msg); } },
@@ -341,8 +350,6 @@ void AssetServer::sendNotification(const messagebus::Message& msg) const
         fty::conversion::fromJson(msg.userData().back(), asset);
         send_create_or_update_asset(
             *this, asset.getInternalName(), "create", false /* read_only is not used */);
-    } else if (subject == FTY_ASSET_SUBJECT_CREATED_L) {
-        m_publisherCreateLight->publish(FTY_ASSET_TOPIC_CREATED_L, msg);
     } else if (subject == FTY_ASSET_SUBJECT_UPDATED) {
         m_publisherUpdate->publish(FTY_ASSET_TOPIC_UPDATED, msg);
 
@@ -358,10 +365,14 @@ void AssetServer::sendNotification(const messagebus::Message& msg) const
 
         send_create_or_update_asset(
             *this, asset.getInternalName(), "update", false /* read_only is not used */);
-    } else if (subject == FTY_ASSET_SUBJECT_UPDATED_L) {
-        m_publisherUpdateLight->publish(FTY_ASSET_TOPIC_UPDATED_L, msg);
     } else if (subject == FTY_ASSET_SUBJECT_DELETED) {
         m_publisherDelete->publish(FTY_ASSET_TOPIC_DELETED, msg);
+    } else if (subject == FTY_ASSET_SUBJECT_CREATED_L) {
+        m_publisherCreateLight->publish(FTY_ASSET_TOPIC_CREATED_L, msg);
+    } else if (subject == FTY_ASSET_SUBJECT_UPDATED_L) {
+        m_publisherUpdateLight->publish(FTY_ASSET_TOPIC_UPDATED_L, msg);
+    } else if (subject == FTY_ASSET_SUBJECT_DELETED_L) {
+        m_publisherDeleteLight->publish(FTY_ASSET_TOPIC_DELETED_L, msg);
     }
 }
 
@@ -427,7 +438,7 @@ void AssetServer::createAsset(const messagebus::Message& msg)
                 asset.activate();
             } catch (std::exception& e) {
                 // if activation fails, delete asset
-                AssetImpl::deleteAsset(asset.getInternalName());
+                AssetImpl::deleteList({asset.getInternalName()}, false);
                 throw std::runtime_error(e.what());
             }
         }
@@ -582,7 +593,7 @@ static std::string serializeDeleteStatus(AssetImpl::DeleteStatus statusList)
     for (const auto& s : statusList) {
         cxxtools::SerializationInfo& status = si.addMember("");
         status.setCategory(cxxtools::SerializationInfo::Category::Object);
-        status.addMember(s.first) <<= s.second;
+        status.addMember(s.first.getInternalName()) <<= s.second;
     }
 
     si.setCategory(cxxtools::SerializationInfo::Category::Array);
@@ -594,49 +605,9 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
 {
     log_debug("subject DELETE");
 
-    messagebus::Message response;
-    try {
-        // asset manipulation is disabled
-        if (getGlobalConfigurability() == 0) {
-            throw std::runtime_error("Licensing limitation hit - asset manipulation is prohibited");
-        }
-
-        std::string internalName = msg.userData().front();
-
-        AssetImpl::DeleteStatus deleted =
-            AssetImpl::deleteAsset(internalName, value(msg.metaData(), "RECURSIVE") == "YES");
-
-        // send response
-        response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
-            value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
-            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_OK,
-            serializeDeleteStatus(deleted));
-
-        // send one notification for each asset deleted
-        for (const auto& status : deleted) {
-            if (status.second == "OK") {
-                messagebus::Message notification = assetutils::createMessage(
-                    FTY_ASSET_SUBJECT_DELETED, "", m_agentNameNg, "", messagebus::STATUS_OK, status.first);
-                sendNotification(notification);
-            }
-        }
-    } catch (const std::exception& e) {
-        response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
-            value(msg.metaData(), messagebus::Message::CORRELATION_ID), m_agentNameNg,
-            value(msg.metaData(), messagebus::Message::FROM), messagebus::STATUS_KO, e.what());
-    }
-
-    m_assetMsgQueue->sendReply(value(msg.metaData(), messagebus::Message::REPLY_TO), response);
-}
-
-void AssetServer::deleteAssetList(const messagebus::Message& msg)
-{
-    log_debug("subject DELETE_LIST");
-
     cxxtools::SerializationInfo si = assetutils::deserialize(msg.userData().front());
 
     messagebus::Message response;
-
     try {
         // asset manipulation is disabled
         if (getGlobalConfigurability() == 0) {
@@ -646,7 +617,8 @@ void AssetServer::deleteAssetList(const messagebus::Message& msg)
         std::vector<std::string> assetInames;
         si >>= assetInames;
 
-        AssetImpl::DeleteStatus deleted = AssetImpl::deleteList(assetInames);
+        AssetImpl::DeleteStatus deleted =
+            AssetImpl::deleteList(assetInames, value(msg.metaData(), "RECURSIVE") == "YES");
 
         // send response
         response = assetutils::createMessage(value(msg.metaData(), messagebus::Message::SUBJECT),
@@ -657,9 +629,15 @@ void AssetServer::deleteAssetList(const messagebus::Message& msg)
         // send one notification for each asset deleted
         for (const auto& status : deleted) {
             if (status.second == "OK") {
-                messagebus::Message notification = assetutils::createMessage(
-                    FTY_ASSET_SUBJECT_DELETED, "", m_agentNameNg, "", messagebus::STATUS_OK, status.first);
+                // full notification
+                messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_DELETED, "",
+                    m_agentNameNg, "", messagebus::STATUS_OK, fty::conversion::toJson(status.first));
                 sendNotification(notification);
+
+                // light notification
+                messagebus::Message notification_l = assetutils::createMessage(FTY_ASSET_SUBJECT_DELETED_L,
+                    "", m_agentNameNg, "", messagebus::STATUS_OK, status.first.getInternalName());
+                sendNotification(notification_l);
             }
         }
     } catch (const std::exception& e) {
@@ -787,7 +765,7 @@ void AssetServer::restoreAssets(const cxxtools::SerializationInfo& si, bool tryA
                     a.activate();
                 } catch (std::exception& e) {
                     // if activation fails, delete asset
-                    AssetImpl::deleteAsset(a.getInternalName());
+                    AssetImpl::deleteList({a.getInternalName()}, false);
                     throw std::runtime_error(e.what());
                 }
             }

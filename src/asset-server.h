@@ -41,13 +41,15 @@ static constexpr const char* FTY_ASSET_TOPIC_CREATED_L = "FTY.T.ASSET_LIGHT.CREA
 static constexpr const char* FTY_ASSET_TOPIC_UPDATED   = "FTY.T.ASSET.UPDATED";
 static constexpr const char* FTY_ASSET_TOPIC_UPDATED_L = "FTY.T.ASSET_LIGHT.UPDATED";
 static constexpr const char* FTY_ASSET_TOPIC_DELETED   = "FTY.T.ASSET.DELETED";
+static constexpr const char* FTY_ASSET_TOPIC_DELETED_L = "FTY.T.ASSET_LIGHT.DELETED";
 
 // new interface topic subjects
 static constexpr const char* FTY_ASSET_SUBJECT_CREATED   = "CREATED";
-static constexpr const char* FTY_ASSET_SUBJECT_CREATED_L = "CREATED_L";
+static constexpr const char* FTY_ASSET_SUBJECT_CREATED_L = "CREATED_LIGHT";
 static constexpr const char* FTY_ASSET_SUBJECT_UPDATED   = "UPDATED";
-static constexpr const char* FTY_ASSET_SUBJECT_UPDATED_L = "UPDATED_L";
+static constexpr const char* FTY_ASSET_SUBJECT_UPDATED_L = "UPDATED_LIGHT";
 static constexpr const char* FTY_ASSET_SUBJECT_DELETED   = "DELETED";
+static constexpr const char* FTY_ASSET_SUBJECT_DELETED_L = "DELETED_LIGHT";
 
 
 static constexpr const char* METADATA_TRY_ACTIVATE      = "TRY_ACTIVATE";
@@ -188,7 +190,6 @@ private:
     void deleteAsset(const messagebus::Message& msg);
     void getAsset(const messagebus::Message& msg, bool getFromUuid = false);
     void listAsset(const messagebus::Message& msg);
-    void deleteAssetList(const messagebus::Message& msg);
 
     // SRR
     cxxtools::SerializationInfo saveAssets();
@@ -218,6 +219,7 @@ private:
     MsgBusPtr   m_publisherUpdate;
     MsgBusPtr   m_publisherUpdateLight;
     MsgBusPtr   m_publisherDelete;
+    MsgBusPtr   m_publisherDeleteLight;
 
     // topic handlers
     void handleAssetManipulationReq(const messagebus::Message& msg);

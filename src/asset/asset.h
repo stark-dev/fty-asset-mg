@@ -63,10 +63,9 @@ public:
 
     static std::vector<std::string> list();
 
-    using DeleteStatus = std::vector<std::pair<std::string, std::string>>;
+    using DeleteStatus = std::vector<std::pair<Asset, std::string>>;
 
-    static DeleteStatus deleteAsset(const std::string& internalName, bool recursive = false);
-    static DeleteStatus deleteList(const std::vector<std::string>& assets, bool removeLastDC = false);
+    static DeleteStatus deleteList(const std::vector<std::string>& assets, bool recursive, bool removeLastDC = false);
     static DeleteStatus deleteAll();
 
     static std::string getInameFromUuid(const std::string& uuid);
