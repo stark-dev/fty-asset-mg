@@ -586,7 +586,7 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
     }
 }
 
-static std::string serializeDeleteStatus(AssetImpl::DeleteStatus statusList)
+static std::string serializeDeleteStatus(DeleteStatus statusList)
 {
     cxxtools::SerializationInfo si;
 
@@ -617,7 +617,7 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
         std::vector<std::string> assetInames;
         si >>= assetInames;
 
-        AssetImpl::DeleteStatus deleted =
+        DeleteStatus deleted =
             AssetImpl::deleteList(assetInames, value(msg.metaData(), "RECURSIVE") == "YES");
 
         // send response
@@ -692,7 +692,25 @@ void AssetServer::listAsset(const messagebus::Message& msg)
     log_debug("subject LIST");
 
     try {
-        std::vector<std::string> assetList = fty::AssetImpl::list();
+        AssetFilters filters;
+
+        if (!msg.userData().empty()) {
+            cxxtools::SerializationInfo siFilters;
+            siFilters = assetutils::deserialize(msg.userData().front());
+
+            siFilters >>= filters;
+
+            log_debug("Applied filters:");
+            for (const auto& p : filters) {
+                std::string line = p.first + " -";
+                for (const auto& v : p.second) {
+                    line.append(" " + v);
+                }
+                log_debug("%s", line.c_str());
+            }
+        }
+
+        std::vector<std::string> assetList = fty::AssetImpl::list(filters);
 
         cxxtools::SerializationInfo si;
         si <<= assetList;
@@ -725,7 +743,7 @@ cxxtools::SerializationInfo AssetServer::saveAssets()
 {
     using namespace fty::conversion;
 
-    std::vector<std::string> assets = AssetImpl::list();
+    std::vector<std::string> assets = AssetImpl::listAll();
 
     cxxtools::SerializationInfo si;
 
@@ -788,7 +806,7 @@ void AssetServer::restoreAssets(const cxxtools::SerializationInfo& si, bool tryA
     using namespace fty::conversion;
 
     // if database is not empty, can't load assets
-    if (AssetImpl::list().size() != 0) {
+    if (AssetImpl::listAll().size() != 0) {
         throw std::runtime_error("Database already contains assets, impossible to restore from SRR");
     }
 
