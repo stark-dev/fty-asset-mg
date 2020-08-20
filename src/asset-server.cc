@@ -649,6 +649,78 @@ void AssetServer::deleteAsset(const messagebus::Message& msg)
     m_assetMsgQueue->sendReply(value(msg.metaData(), messagebus::Message::REPLY_TO), response);
 }
 
+void AssetServer::getAsset(const messagebus::Message& msg, bool getFromUuid)
+{
+    log_debug("subject GET%s", (getFromUuid ? "_FROM_UUID" : ""));
+
+    try {
+        std::string assetID = msg.userData().front();
+        if (getFromUuid) {
+            assetID = AssetImpl::getInameFromUuid(assetID);
+            if (assetID.empty()) {
+                throw std::runtime_error("requested UUID does not match any asset");
+            }
+        }
+
+        fty::AssetImpl asset(assetID);
+
+        // create response (ok)
+        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_GET,
+            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
+            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK,
+            fty::conversion::toJson(asset));
+
+        // send response
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+    } catch (std::exception& e) {
+        log_error(e.what());
+        // create response (error)
+        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_GET,
+            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
+            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_KO,
+            TRANSLATE_ME(e.what()));
+
+        // send response
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+    }
+}
+
+void AssetServer::listAsset(const messagebus::Message& msg)
+{
+    log_debug("subject LIST");
+
+    try {
+        std::vector<std::string> assetList = fty::AssetImpl::list();
+
+        cxxtools::SerializationInfo si;
+        si <<= assetList;
+
+        // create response (ok)
+        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_LIST,
+            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
+            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK,
+            assetutils::serialize(si));
+
+        // send response
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+    } catch (std::exception& e) {
+        log_error(e.what());
+        // create response (error)
+        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_LIST,
+            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
+            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_KO,
+            std::string(e.what()));
+
+        // send response
+        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
+        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+    }
+}
+
+// SRR
 cxxtools::SerializationInfo AssetServer::saveAssets()
 {
     using namespace fty::conversion;
@@ -786,77 +858,5 @@ void AssetServer::restoreAssets(const cxxtools::SerializationInfo& si, bool tryA
         }
     }
 }
-
-void AssetServer::getAsset(const messagebus::Message& msg, bool getFromUuid)
-{
-    log_debug("subject GET%s", (getFromUuid ? "_FROM_UUID" : ""));
-
-    try {
-        std::string assetID = msg.userData().front();
-        if (getFromUuid) {
-            assetID = AssetImpl::getInameFromUuid(assetID);
-            if (assetID.empty()) {
-                throw std::runtime_error("requested UUID does not match any asset");
-            }
-        }
-
-        fty::AssetImpl asset(assetID);
-
-        // create response (ok)
-        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_GET,
-            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK,
-            fty::conversion::toJson(asset));
-
-        // send response
-        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
-        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-    } catch (std::exception& e) {
-        log_error(e.what());
-        // create response (error)
-        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_GET,
-            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_KO,
-            TRANSLATE_ME(e.what()));
-
-        // send response
-        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
-        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-    }
-}
-
-void AssetServer::listAsset(const messagebus::Message& msg)
-{
-    log_debug("subject LIST");
-
-    try {
-        std::vector<std::string> assetList = fty::AssetImpl::list();
-
-        cxxtools::SerializationInfo si;
-        si <<= assetList;
-
-        // create response (ok)
-        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_LIST,
-            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK,
-            assetutils::serialize(si));
-
-        // send response
-        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
-        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-    } catch (std::exception& e) {
-        log_error(e.what());
-        // create response (error)
-        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_LIST,
-            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_KO,
-            std::string(e.what()));
-
-        // send response
-        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
-        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
-    }
-}
-
 
 } // namespace fty
