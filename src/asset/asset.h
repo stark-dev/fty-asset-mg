@@ -22,6 +22,9 @@
 #pragma once
 
 #include "include/fty_asset_dto.h"
+#include <map>
+#include <string>
+#include <vector>
 
 extern bool g_testMode;
 
@@ -30,6 +33,11 @@ namespace fty {
 static constexpr const char* RC0 = "rackcontroller-0";
 
 class AssetStorage;
+
+using AssetFilters = std::map<std::string, std::vector<std::string>>;
+void operator>>=(const cxxtools::SerializationInfo& si, AssetFilters& filters);
+
+using DeleteStatus = std::vector<std::pair<Asset, std::string>>;
 
 class AssetImpl : public Asset
 {
@@ -60,12 +68,11 @@ public:
     static void assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& si);
     static void srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& asset);
 
+    static std::vector<std::string> list(const AssetFilters& filters);
+    static std::vector<std::string> listAll();
 
-    static std::vector<std::string> list();
-
-    using DeleteStatus = std::vector<std::pair<Asset, std::string>>;
-
-    static DeleteStatus deleteList(const std::vector<std::string>& assets, bool recursive, bool removeLastDC = false);
+    static DeleteStatus deleteList(
+        const std::vector<std::string>& assets, bool recursive, bool removeLastDC = false);
     static DeleteStatus deleteAll();
 
     static std::string getInameFromUuid(const std::string& uuid);

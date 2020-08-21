@@ -124,6 +124,103 @@ std::vector<std::string> getChildren(const AssetImpl& a)
 
 //============================================================================================================
 
+// extract asset filters from SerializationInfo structure
+void operator>>=(const cxxtools::SerializationInfo& si, AssetFilters& filters)
+{
+    try {
+        if (si.findMember("status") != NULL) {
+            const cxxtools::SerializationInfo& status = si.getMember("status");
+
+            std::vector<std::string> v;
+            status >>= v;
+
+            for (const std::string& val : v) {
+                filters["status"].push_back('"' + val + '"');
+            }
+        }
+    } catch (const std::exception& e) {
+        log_error("Invalid filter for status: %s", e.what());
+    }
+
+    try {
+        if (si.findMember("type") != NULL) {
+            const cxxtools::SerializationInfo& type = si.getMember("type");
+
+            std::vector<std::string> v;
+            type >>= v;
+
+            for (const std::string& val : v) {
+                uint32_t typeId = getStorage().getTypeID(val);
+
+                if (typeId) {
+                    filters["id_type"].push_back(std::to_string(typeId));
+                } else {
+                    log_error("Invalid type filter: %s type does not exist", val.c_str());
+                }
+            }
+        }
+    } catch (std::exception& e) {
+        log_error("Invalid filter type: %s", e.what());
+    }
+
+    try {
+        if (si.findMember("sub_type") != NULL) {
+            const cxxtools::SerializationInfo& subtype = si.getMember("sub_type");
+
+            std::vector<std::string> v;
+            subtype >>= v;
+
+            for (const std::string& val : v) {
+                uint32_t subtypeId = getStorage().getSubtypeID(val);
+                if (subtypeId) {
+                    filters["id_subtype"].push_back(std::to_string(subtypeId));
+                } else {
+                    log_error("Invalid subtype filter: %s subtype does not exist", val.c_str());
+                }
+            }
+        }
+    } catch (std::exception& e) {
+        log_error("Invalid filter sub_type: %s", e.what());
+    }
+
+    try {
+        if (si.findMember("priority") != NULL) {
+            const cxxtools::SerializationInfo& priority = si.getMember("priority");
+
+            std::vector<int> v;
+            priority >>= v;
+
+            for (int val : v) {
+                filters["priority"].push_back(std::to_string(val));
+            }
+        }
+    } catch (std::exception& e) {
+        log_error("Invalid filter priority: %s", e.what());
+    }
+
+    try {
+        if (si.findMember("parent") != NULL) {
+            const cxxtools::SerializationInfo& parent = si.getMember("parent");
+
+            std::vector<std::string> v;
+            parent >>= v;
+
+            for (const std::string& val : v) {
+                uint32_t parentId = getStorage().getID(val);
+                if (parentId) {
+                    filters["id_parent"].push_back(std::to_string(parentId));
+                } else {
+                    log_error("Invalid parent filter: %s does not exist", val.c_str());
+                }
+            }
+        }
+    } catch (std::exception& e) {
+        log_error("Invalid filter parent: %s", e.what());
+    }
+}
+
+//============================================================================================================
+
 AssetImpl::AssetImpl()
     : m_storage(getStorage())
 {
@@ -442,7 +539,12 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
     }
 }
 
-std::vector<std::string> AssetImpl::list()
+std::vector<std::string> AssetImpl::list(const AssetFilters& filters)
+{
+    return getStorage().listAssets(filters);
+}
+
+std::vector<std::string> AssetImpl::listAll()
 {
     return getStorage().listAllAssets();
 }
@@ -492,7 +594,7 @@ static void addSubTree(const std::string& internalName, std::vector<AssetImpl>& 
     }
 }
 
-AssetImpl::DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool recursive, bool removeLastDC)
+DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool recursive, bool removeLastDC)
 {
     std::vector<AssetImpl> toDel;
 
@@ -503,7 +605,7 @@ AssetImpl::DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& as
             AssetImpl a(iname);
             toDel.push_back(a);
 
-            if(recursive) {
+            if (recursive) {
                 addSubTree(iname, toDel);
             }
         } catch (std::exception& e) {
@@ -568,10 +670,10 @@ AssetImpl::DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& as
     return deleted;
 }
 
-AssetImpl::DeleteStatus AssetImpl::deleteAll()
+DeleteStatus AssetImpl::deleteAll()
 {
     // get list of all assets (including last datacenter)
-    return deleteList(list(), false, true);
+    return deleteList(listAll(), false, true);
 }
 
 /// get internal name from UUID

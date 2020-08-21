@@ -190,6 +190,69 @@ uint32_t DB::getID(const std::string& internalName)
     return assetID;
 }
 
+uint32_t DB::getTypeID(const std::string& type)
+{
+    // clang-format off
+    auto q = m_conn.prepareCached(R"(
+        SELECT
+            id_asset_element_type
+        FROM
+            t_bios_asset_element_type
+        WHERE
+            name = :type_name
+    )");
+    // clang-format on
+    q.set("type_name", type);
+
+    uint32_t typeID = 0;
+
+    try {
+        m_conn_lock.lock();
+        auto v = q.selectValue();
+        m_conn_lock.unlock();
+
+        typeID = v.getInt32();
+    } catch (tntdb::NotFound&) {
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("database error - " + std::string(e.what()));
+    }
+
+    return typeID;
+}
+uint32_t DB::getSubtypeID(const std::string& subtype)
+{
+    // clang-format off
+    auto q = m_conn.prepareCached(R"(
+        SELECT
+            id_asset_device_type
+        FROM
+            t_bios_asset_device_type
+        WHERE
+            name = :subtype_name
+    )");
+    // clang-format on
+    q.set("subtype_name", subtype);
+
+    uint32_t subtypeID = 0;
+
+    try {
+        m_conn_lock.lock();
+        auto v = q.selectValue();
+        m_conn_lock.unlock();
+
+        subtypeID = v.getInt32();
+    } catch (tntdb::NotFound&) {
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("database error - " + std::string(e.what()));
+    }
+
+    return subtypeID;
+}
+
 void DB::loadLinkedAssets(Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
@@ -636,9 +699,9 @@ void DB::update(Asset& asset)
 
     // if parent name is not empty, check if it exists
     const std::string& parentIname = asset.getParentIname();
-    if(!parentIname.empty()) {
+    if (!parentIname.empty()) {
         parentId = getID(parentIname);
-        if(parentId == 0) {
+        if (parentId == 0) {
             throw std::runtime_error("Could not find parent internal name");
         }
     }
@@ -683,9 +746,9 @@ void DB::insert(Asset& asset)
 
     // if parent name is not empty, check if it exists
     const std::string& parentIname = asset.getParentIname();
-    if(!parentIname.empty()) {
+    if (!parentIname.empty()) {
         parentId = getID(parentIname);
-        if(parentId == 0) {
+        if (parentId == 0) {
             throw std::runtime_error("Could not find parent internal name");
         }
     }
@@ -974,6 +1037,76 @@ void DB::saveExtMap(Asset& asset)
             throw std::runtime_error("database error - " + std::string(e.what()));
         }
     }
+}
+
+static void addFilter(
+    std::stringstream& qs, const std::string& filter, const std::vector<std::string>& values)
+{
+    auto value = values.begin();
+    qs << " ( ";
+    qs << filter << " = " << *value << " ";
+
+    for (auto it = std::next(values.begin()); it != values.end(); it++) {
+        qs << " OR ";
+        qs << filter << " = " << *it << " ";
+    }
+    qs << " ) ";
+}
+
+std::vector<std::string> DB::listAssets(std::map<std::string, std::vector<std::string>> filters)
+{
+    std::vector<std::string> assetList;
+
+    tntdb::Statement q;
+
+    std::stringstream qs;
+
+    qs << " SELECT "
+          " name AS name "
+          " FROM t_bios_asset_element ";
+
+    if (!filters.empty()) {
+        qs << " WHERE ";
+
+        // first filter
+        auto it     = filters.begin();
+        auto filter = it->first;
+        auto values = it->second;
+
+        addFilter(qs, filter, values);
+
+        // next filters
+        for (auto it = std::next(filters.begin()); it != filters.end(); it++) {
+            qs << " AND ";
+            auto filter = it->first;
+            auto values = it->second;
+
+            addFilter(qs, filter, values);
+        }
+    }
+
+    q = m_conn.prepareCached(qs.str().c_str());
+
+    tntdb::Result res;
+
+    try {
+        m_conn_lock.lock();
+        res = q.select();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("database error - " + std::string(e.what()));
+    }
+
+    for (const auto& row : res) {
+        const std::string& assetName = row.getString("name");
+        // discard rackcontroller 0
+        if (assetName != RC0) {
+            assetList.emplace_back(assetName);
+        }
+    }
+
+    return assetList;
 }
 
 std::vector<std::string> DB::listAllAssets()

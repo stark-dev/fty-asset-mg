@@ -20,6 +20,7 @@
 */
 
 #pragma once
+#include <map>
 #include <string>
 #include <vector>
 
@@ -42,10 +43,13 @@ public:
     virtual void                     loadLinkedAssets(Asset& asset)  = 0;
     virtual std::vector<std::string> getChildren(const Asset& asset) = 0;
 
-    virtual uint32_t getID(const std::string& internalName) = 0;
-    virtual bool     hasLinkedAssets(const Asset& asset)    = 0;
-    virtual void     link(
-            Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) = 0;
+    virtual uint32_t getID(const std::string& internalName)   = 0;
+    virtual uint32_t getTypeID(const std::string& type)       = 0;
+    virtual uint32_t getSubtypeID(const std::string& subtype) = 0;
+
+    virtual bool hasLinkedAssets(const Asset& asset) = 0;
+    virtual void link(
+        Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) = 0;
     virtual void unlink(
         Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) = 0;
     virtual void unlinkAll(Asset& dest)                                                              = 0;
@@ -68,7 +72,8 @@ public:
     virtual std::string inameById(uint32_t id)               = 0;
     virtual std::string inameByUuid(const std::string& uuid) = 0;
 
-    virtual std::vector<std::string> listAllAssets() = 0;
+    virtual std::vector<std::string> listAssets(std::map<std::string, std::vector<std::string>> filters) = 0;
+    virtual std::vector<std::string> listAllAssets()                                                     = 0;
 };
 
 } // namespace fty

@@ -110,7 +110,19 @@ void DBTest::clearGroup(Asset& asset)
 
 uint32_t DBTest::getID(const std::string& internalName)
 {
-    std::cout << "DBTest::getID fors asset" << internalName << std::endl;
+    std::cout << "DBTest::getID for asset" << internalName << std::endl;
+    return 1;
+}
+
+uint32_t DBTest::getTypeID(const std::string& type)
+{
+    std::cout << "DBTest::getTypeID for type" << type << std::endl;
+    return 1;
+}
+
+uint32_t DBTest::getSubtypeID(const std::string& subtype)
+{
+    std::cout << "DBTest::getSubtypeID for subtype" << subtype << std::endl;
     return 1;
 }
 
@@ -181,6 +193,26 @@ void DBTest::saveLinkedAssets(Asset& asset)
 void DBTest::saveExtMap(Asset& asset)
 {
     std::cout << "DBTest::saveExtMap" << std::endl;
+}
+
+std::vector<std::string> DBTest::listAssets(std::map<std::string, std::vector<std::string>> filters)
+{
+    std::cout << "DBTest::listAssets" << std::endl;
+
+    for (const auto& p : filters) {
+        std::cout << "Key: " << p.first << std::endl;
+        for (const auto& s : p.second) {
+            std::cout << "\tValue: " << s << std::endl;
+        }
+    }
+
+    std::vector<std::string> assetList;
+
+    assetList.push_back("asset-1");
+    assetList.push_back("asset-2");
+    assetList.push_back("asset-3");
+
+    return assetList;
 }
 
 std::vector<std::string> DBTest::listAllAssets()

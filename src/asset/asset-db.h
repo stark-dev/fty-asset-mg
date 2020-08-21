@@ -21,6 +21,7 @@
 
 #pragma once
 #include "asset-storage.h"
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -45,7 +46,10 @@ public:
     std::vector<std::string> getChildren(const Asset& asset);
 
     uint32_t getID(const std::string& internalName);
-    bool     hasLinkedAssets(const Asset& asset);
+    uint32_t getTypeID(const std::string& type);
+    uint32_t getSubtypeID(const std::string& subtype);
+
+    bool hasLinkedAssets(const Asset& asset);
     void link(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType);
     void unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType);
     void unlinkAll(Asset& dest);
@@ -68,6 +72,7 @@ public:
     std::string inameById(uint32_t id);
     std::string inameByUuid(const std::string& uuid);
 
+    std::vector<std::string> listAssets(std::map<std::string, std::vector<std::string>> filters);
     std::vector<std::string> listAllAssets();
 
 private:
