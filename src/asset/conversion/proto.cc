@@ -34,6 +34,13 @@ namespace fty { namespace conversion {
             map.emplace(zhash_cursor(hash), std::make_pair(static_cast<const char*>(item), readOnly));
         }
 
+        // PQSWPRG-7607 HOTFIX: force RW for friendly name ('name' ext. attribute)
+        if (readOnly) {
+            auto it = map.find("name");
+            if (it != map.end())
+                it->second.second = false;
+        }//
+
         return map;
     }
 
