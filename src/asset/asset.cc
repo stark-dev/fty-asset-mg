@@ -480,6 +480,8 @@ void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& 
     si.addMember("priority") <<= asset.getPriority();
     si.addMember("parent") <<= asset.getParentIname();
     si.addMember("linked") <<= asset.getLinkedAssets();
+    si.addMember("tag") <<= asset.getAssetTag();
+    si.addMember("id_secondary") <<= asset.getSecondaryID();
 
     // ext
     cxxtools::SerializationInfo& ext = si.addMember("");
@@ -527,6 +529,14 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
     std::vector<AssetLink> tmpVector;
     si.getMember("linked") >>= tmpVector;
     asset.setLinkedAssets(tmpVector);
+
+    // asset tag
+    si.getMember("tag") >>= tmpString;
+    asset.setAssetTag(tmpString);
+
+    // id secondary
+    si.getMember("id_secondary") >>= tmpString;
+    asset.setSecondaryID(tmpString);
 
     // ext map
     const cxxtools::SerializationInfo ext = si.getMember("ext");
