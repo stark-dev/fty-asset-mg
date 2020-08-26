@@ -53,6 +53,7 @@ public:
     // asset operations
     bool hasLinkedAssets() const;
     bool hasLogicalAsset() const;
+    bool isVirtual() const;
     void load();
     void create();
     void update();
