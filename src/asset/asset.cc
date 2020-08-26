@@ -402,45 +402,58 @@ bool AssetImpl::isActivable()
         return true;
     }
 
-    mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-    fty::AssetActivator activationAccessor(client);
-
-    // TODO remove as soon as fty::Asset activation is supported
-    fty::FullAsset fa = fty::conversion::toFullAsset(*this);
-
-    return activationAccessor.isActivable(fa);
-}
-
-void AssetImpl::activate()
-{
-    if (!g_testMode) {
+    if (getAssetType() == TYPE_DEVICE) {
         mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
         fty::AssetActivator activationAccessor(client);
 
         // TODO remove as soon as fty::Asset activation is supported
         fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+        return activationAccessor.isActivable(fa);
+    } else {
+        return true;
+    }
+}
 
-        activationAccessor.activate(fa);
+void AssetImpl::activate()
+{
+    if (!g_testMode) {
+        if (getAssetType() == TYPE_DEVICE) {
+            mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
+            fty::AssetActivator activationAccessor(client);
 
-        setAssetStatus(fty::AssetStatus::Active);
-        m_storage.update(*this);
+            // TODO remove as soon as fty::Asset activation is supported
+            fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+
+            activationAccessor.activate(fa);
+
+            setAssetStatus(fty::AssetStatus::Active);
+            m_storage.update(*this);
+        } else {
+            setAssetStatus(fty::AssetStatus::Active);
+            m_storage.update(*this);
+        }
     }
 }
 
 void AssetImpl::deactivate()
 {
     if (!g_testMode) {
-        mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-        fty::AssetActivator activationAccessor(client);
+        if (getAssetType() == TYPE_DEVICE) {
+            mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
+            fty::AssetActivator activationAccessor(client);
 
-        // TODO remove as soon as fty::Asset activation is supported
-        fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+            // TODO remove as soon as fty::Asset activation is supported
+            fty::FullAsset fa = fty::conversion::toFullAsset(*this);
 
-        activationAccessor.deactivate(fa);
-        log_debug("Asset %s deactivated", getInternalName().c_str());
+            activationAccessor.deactivate(fa);
+            log_debug("Asset %s deactivated", getInternalName().c_str());
 
-        setAssetStatus(fty::AssetStatus::Nonactive);
-        m_storage.update(*this);
+            setAssetStatus(fty::AssetStatus::Nonactive);
+            m_storage.update(*this);
+        } else {
+            setAssetStatus(fty::AssetStatus::Nonactive);
+            m_storage.update(*this);
+        }
     }
 }
 
