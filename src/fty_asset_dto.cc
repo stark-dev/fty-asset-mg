@@ -151,6 +151,11 @@ const Asset::ExtMap& Asset::getExt() const
     return m_ext;
 }
 
+const std::string& Asset::getSecondaryID() const
+{
+    return m_secondaryID;
+}
+
 const std::string& Asset::getExtEntry(const std::string& key) const
 {
     static const std::string extNotFound;
@@ -253,14 +258,21 @@ void Asset::setLinkedAssets(const std::vector<AssetLink>& assets)
     m_linkedAssets = assets;
 }
 
+void Asset::setSecondaryID(const std::string& secondaryID)
+{
+    m_secondaryID = secondaryID;
+}
+
 void Asset::dump(std::ostream& os)
 {
-    os << "iname    : " << m_internalName << std::endl;
-    os << "status   : " << assetStatusToString(m_assetStatus) << std::endl;
-    os << "type     : " << m_assetType << std::endl;
-    os << "subtype  : " << m_assetSubtype << std::endl;
-    os << "parent   : " << m_parentIname << std::endl;
-    os << "priority : " << m_priority << std::endl;
+    os << "iname       : " << m_internalName << std::endl;
+    os << "status      : " << assetStatusToString(m_assetStatus) << std::endl;
+    os << "type        : " << m_assetType << std::endl;
+    os << "subtype     : " << m_assetSubtype << std::endl;
+    os << "parent      : " << m_parentIname << std::endl;
+    os << "priority    : " << m_priority << std::endl;
+    os << "tag         : " << m_assetTag << std::endl;
+    os << "secondaryID : " << m_secondaryID << std::endl;
 
     for (const auto& e : m_ext) {
         os << "- key: " << e.first << " - value: " << e.second.first << std::endl;

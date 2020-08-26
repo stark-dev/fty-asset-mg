@@ -202,6 +202,7 @@ public:
     int                  getPriority() const;
     const std::string&   getAssetTag() const;
     const Asset::ExtMap& getExt() const;
+    const std::string&   getSecondaryID() const;
     // ext param getters (return empty string if key not found)
     const std::string&            getExtEntry(const std::string& key) const;
     bool                          isExtEntryReadOnly(const std::string& key) const;
@@ -222,6 +223,7 @@ public:
     void setExt(const Asset::ExtMap& map);
     void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false);
     void setLinkedAssets(const std::vector<AssetLink>& assets);
+    void setSecondaryID(const std::string& secondaryID);
     // dump
     void dump(std::ostream& os);
 
@@ -243,6 +245,8 @@ private:
     int m_priority = 5;
     // asset tag
     std::string m_assetTag;
+    // secondary ID
+    std::string m_secondaryID;
     // ext map storage (asset-specific values with readonly attribute)
     ExtMap                 m_ext;
     std::vector<AssetLink> m_linkedAssets;

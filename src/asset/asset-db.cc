@@ -52,7 +52,8 @@ void DB::loadAsset(const std::string& nameId, Asset& asset)
             p.name             AS parentName,
             a.status           AS status,
             a.priority         AS priority,
-            a.asset_tag        AS tag
+            a.asset_tag        AS tag,
+            a.id_secondary     AS idSecondary
         FROM t_bios_asset_element AS a
             INNER JOIN t_bios_asset_device_type AS d
             INNER JOIN t_bios_asset_element_type AS e
@@ -83,6 +84,9 @@ void DB::loadAsset(const std::string& nameId, Asset& asset)
     asset.setPriority(row.getInt("priority"));
     if (!row.isNull("tag")) {
         asset.setAssetTag(row.getString("tag"));
+    }
+    if (!row.isNull("idSecondary")) {
+        asset.setSecondaryID(row.getString("idSecondary"));
     }
 }
 
@@ -716,7 +720,8 @@ void DB::update(Asset& asset)
             id_parent = :parent_id,
             status = :status,
             priority = :priority,
-            asset_tag = :assetTag
+            asset_tag = :assetTag,
+            id_secondary = :idSecondary
         WHERE
             id_asset_element = :assetId
     )");
@@ -729,6 +734,7 @@ void DB::update(Asset& asset)
     q.set("status", assetStatusToString(asset.getAssetStatus()));
     q.set("priority", asset.getPriority());
     asset.getAssetTag().empty() ? q.setNull("assetTag") : q.set("assetTag", asset.getAssetTag());
+    asset.getSecondaryID().empty() ? q.setNull("idSecondary") : q.set("idSecondary", asset.getSecondaryID());
 
     try {
         m_conn_lock.lock();
@@ -756,7 +762,7 @@ void DB::insert(Asset& asset)
     auto q = m_conn.prepareCached(R"(
         INSERT INTO
             t_bios_asset_element
-            (name, id_type, id_subtype, id_parent, status, priority, asset_tag)
+            (name, id_type, id_subtype, id_parent, status, priority, asset_tag, id_secondary)
         VALUES (
             :name,
             (SELECT id_asset_element_type FROM t_bios_asset_element_type WHERE name = :type),
@@ -764,7 +770,8 @@ void DB::insert(Asset& asset)
             :parent_id,
             :status,
             :priority,
-            :asset_tag
+            :asset_tag,
+            :idSecondary
         )
     )");
     // clang-format on
@@ -777,6 +784,7 @@ void DB::insert(Asset& asset)
     q.set("status", assetStatusToString(fty::AssetStatus::Nonactive));
     q.set("priority", asset.getPriority());
     asset.getAssetTag().empty() ? q.setNull("assetTag") : q.set("assetTag", asset.getAssetTag());
+    asset.getSecondaryID().empty() ? q.setNull("idSecondary") : q.set("idSecondary", asset.getSecondaryID());
 
     try {
         m_conn_lock.lock();
