@@ -1029,7 +1029,6 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
 
             // before update
             cxxtools::SerializationInfo tmpSi;
-            using fty::conversion::operator<<=;
 
             tmpSi <<= currentAsset;
 

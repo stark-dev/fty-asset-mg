@@ -27,6 +27,13 @@
 #include <optional>
 #include <string>
 
+<<<<<<< HEAD
+struct _fty_proto_t;
+typedef struct _fty_proto_t fty_proto_t;
+
+
+=======
+>>>>>>> 42ity/featureimage/fty-asset-srr
 namespace fty {
 
 // extended properties
@@ -161,6 +168,18 @@ static constexpr const char* LINK_DELL_VXRAIL_CONNECTED_TO_MANAGER    = "dell.vx
 static constexpr const char* LINK_MICROSOFT_SERVER_HAS_HYPERV_SERVICE = "microsoft.server.has.hyperv.service"; // 35
 // clang-format on
 
+/// List of valid asset statuses
+enum class AssetStatus
+{
+    Unknown = 0,
+    Active,
+    Nonactive
+};
+
+const std::string assetStatusToString(AssetStatus status);
+AssetStatus       stringToAssetStatus(const std::string& str);
+
+
 class AssetLink
 {
 public:
@@ -177,28 +196,49 @@ bool operator==(const AssetLink& l, const AssetLink& r);
 void operator<<=(cxxtools::SerializationInfo& si, const AssetLink& l);
 void operator>>=(const cxxtools::SerializationInfo& si, AssetLink& l);
 
-/// List of valid asset statuses
-enum class AssetStatus
+class ExtMapElement
 {
-    Unknown = 0,
-    Active,
-    Nonactive
+public:
+    //constrcutors / destructors
+    ExtMapElement(const std::string & val = "", bool readOnly = false);
+    ExtMapElement(const ExtMapElement &element);
+    ExtMapElement(ExtMapElement&& element);
+    ~ExtMapElement(){}
+
+    ExtMapElement& operator=(const ExtMapElement& element);
+    ExtMapElement& operator=(ExtMapElement&& element);
+
+    //getters
+    const std::string&  getValue() const;
+    bool                wasUpdated() const;
+    bool                isReadOnly() const;
+
+    //setters
+    void setValue(const std::string& val);
+    void setReadOnly(bool readOnly);
+
+    // overload equality and inequality check
+    bool operator==(const ExtMapElement& element) const;
+    bool operator!=(const ExtMapElement& element) const;
+
+    //serialization / deserialization for cxxtools
+    void serialize(cxxtools::SerializationInfo& si) const;
+    void deserialize(const cxxtools::SerializationInfo& si);
+
+private:
+    std::string m_value;
+    bool        m_readOnly      = false;
+    bool        m_wasUpdated    = false;  
 };
 
-const std::string assetStatusToString(AssetStatus status);
-AssetStatus       stringToAssetStatus(const std::string& str);
-
-class Asset;
-namespace conversion {
-    void operator<<=(cxxtools::SerializationInfo& si, const fty::Asset& asset);
-    void operator>>=(const cxxtools::SerializationInfo& si, fty::Asset& asset);
-} // namespace conversion
+void operator<<=(cxxtools::SerializationInfo& si, const ExtMapElement& e);
+void operator>>=(const cxxtools::SerializationInfo& si, ExtMapElement& e);  
 
 
 class Asset
 {
 public:
-    using ExtMap = std::map<std::string, std::pair<std::string, bool>>;
+    using ExtMap = std::map<std::string, ExtMapElement>;
 
     virtual ~Asset() = default;
 
@@ -230,7 +270,6 @@ public:
     void setParentIname(const std::string& parentIname);
     void setPriority(int priority);
     void setAssetTag(const std::string& assetTag);
-    void setExt(const Asset::ExtMap& map);
     void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false);
     void setLinkedAssets(const std::vector<AssetLink>& assets);
     void setSecondaryID(const std::string& secondaryID);
@@ -241,11 +280,19 @@ public:
     bool operator==(const Asset& asset) const;
     bool operator!=(const Asset& asset) const;
 
+<<<<<<< HEAD
+    //serialization / deserialization for cxxtools
+    void serialize(cxxtools::SerializationInfo& si) const;
+    void deserialize(const cxxtools::SerializationInfo& si);
+
+protected:
+=======
     // cxxtools serialization
     friend void conversion::operator<<=(cxxtools::SerializationInfo& si, const fty::Asset& asset);
     friend void conversion::operator>>=(const cxxtools::SerializationInfo& si, fty::Asset& asset);
 
 private:
+>>>>>>> 42ity/featureimage/fty-asset-srr
     // internal name = <subtype>-<id>)
     std::string m_internalName;
 
@@ -265,8 +312,26 @@ private:
     ExtMap                 m_ext;
     std::vector<AssetLink> m_linkedAssets;
 
+<<<<<<< HEAD
+    std::optional<std::vector<Asset>> m_parentsList;
+};
+
+void operator<<=(cxxtools::SerializationInfo& si, const fty::Asset& asset);
+void operator>>=(const cxxtools::SerializationInfo& si, fty::Asset& asset);
+
+
+class UIAsset : public Asset
+{
+public:
+    explicit UIAsset(const Asset& a = Asset());
+
+    //serialization / deserialization for cxxtools
+    void serializeUI(cxxtools::SerializationInfo& si) const;
+    void deserializeUI(const cxxtools::SerializationInfo& si);
+=======
 protected:
     std::optional<std::vector<Asset>> m_parentsList;
+>>>>>>> 42ity/featureimage/fty-asset-srr
 };
 
 } // namespace fty

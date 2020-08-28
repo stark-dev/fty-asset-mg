@@ -33,7 +33,7 @@ namespace fty { namespace conversion {
 
         for (const auto& element : asset.getExt()) {
             // FullAsset hash map has no readOnly parameter
-            extMap[element.first] = element.second.first;
+            extMap[element.first] = element.second.getValue();
         }
 
         fty::FullAsset fa(asset.getInternalName(), fty::assetStatusToString(asset.getAssetStatus()),

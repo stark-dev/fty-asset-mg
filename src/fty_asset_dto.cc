@@ -163,7 +163,7 @@ const std::string& Asset::getExtEntry(const std::string& key) const
     auto search = m_ext.find(key);
 
     if (search != m_ext.end()) {
-        return search->second.first;
+        return search->second.getValue();
     }
 
     return extNotFound;
@@ -174,7 +174,7 @@ bool Asset::isExtEntryReadOnly(const std::string& key) const
     auto search = m_ext.find(key);
 
     if (search != m_ext.end()) {
-        return search->second.second;
+        return search->second.isReadOnly();
     }
 
     return false;
@@ -248,14 +248,11 @@ void Asset::setAssetTag(const std::string& assetTag)
     m_assetTag = assetTag;
 }
 
-void Asset::setExt(const Asset::ExtMap& map)
-{
-    m_ext = map;
-}
-
 void Asset::setExtEntry(const std::string& key, const std::string& value, bool readOnly)
 {
-    m_ext[key] = std::make_pair(value, readOnly);
+    ExtMapElement element(value, readOnly);
+
+    m_ext[key] = element;
 }
 
 void Asset::setLinkedAssets(const std::vector<AssetLink>& assets)
@@ -280,7 +277,7 @@ void Asset::dump(std::ostream& os)
     os << "secondaryID : " << m_secondaryID << std::endl;
 
     for (const auto& e : m_ext) {
-        os << "- key: " << e.first << " - value: " << e.second.first << std::endl;
+        os << "- key: " << e.first << " - value: " << e.second.getValue() << (e.second.isReadOnly() ? " [ReadOny]": "") << (e.second.wasUpdated() ? " [Updated]": "") <<std::endl;
     }
 
     for (const auto& l : m_linkedAssets) {
@@ -301,6 +298,189 @@ bool Asset::operator!=(const Asset& asset) const
 {
     return !(*this == asset);
 }
+
+static constexpr const char* SI_STATUS       = "status";
+static constexpr const char* SI_TYPE         = "type";
+static constexpr const char* SI_SUB_TYPE     = "sub_type";
+static constexpr const char* SI_NAME         = "name";
+static constexpr const char* SI_PRIORITY     = "priority";
+static constexpr const char* SI_PARENT       = "parent";
+static constexpr const char* SI_EXT          = "ext";
+static constexpr const char* SI_LINKED       = "linked";
+static constexpr const char* SI_PARENTS_LIST = "parents_list";
+
+void Asset::serialize(cxxtools::SerializationInfo& si) const
+{
+    si.addMember(SI_STATUS)     <<= int(m_assetStatus);
+    si.addMember(SI_TYPE)       <<= m_assetType;
+    si.addMember(SI_SUB_TYPE)   <<= m_assetSubtype;
+    si.addMember(SI_NAME)       <<= m_internalName;
+    si.addMember(SI_PRIORITY)   <<= m_priority;
+    si.addMember(SI_PARENT)     <<= m_parentIname;
+    si.addMember(SI_LINKED)     <<= m_linkedAssets;
+    si.addMember(SI_EXT)        <<= m_ext;
+
+    if(m_parentsList.has_value()) {
+        si.addMember(SI_PARENTS_LIST) <<= m_parentsList.value();
+    }
+}
+
+void Asset::deserialize(const cxxtools::SerializationInfo& si)
+{
+    int tmpInt = 0;
+
+    si.getMember(SI_STATUS) >>= tmpInt;
+    m_assetStatus = AssetStatus(tmpInt);
+
+    si.getMember(SI_TYPE)     >>= m_assetType;
+    si.getMember(SI_SUB_TYPE) >>= m_assetSubtype;
+    si.getMember(SI_NAME)     >>= m_internalName;
+    si.getMember(SI_PRIORITY) >>= m_priority;
+    si.getMember(SI_PARENT)   >>= m_parentIname;
+    si.getMember(SI_LINKED)   >>= m_linkedAssets;
+    si.getMember(SI_EXT)      >>= m_ext;
+
+    if (si.findMember(SI_PARENTS_LIST) != nullptr) {
+        std::vector<Asset> parentsList;
+        si.getMember(SI_PARENTS_LIST) >>= parentsList;
+        m_parentsList = parentsList;
+    }
+}
+
+void operator<<=(cxxtools::SerializationInfo& si, const fty::Asset& asset)
+{
+    asset.serialize(si);
+}
+
+void operator>>=(const cxxtools::SerializationInfo& si, fty::Asset& asset)
+{
+    asset.deserialize(si);
+}
+
+ExtMapElement::ExtMapElement(const std::string & val, bool readOnly)
+{
+    setValue(val);
+    setReadOnly(readOnly);
+}
+
+ExtMapElement::ExtMapElement(const ExtMapElement &element)
+{
+    setValue(element.getValue());
+    setReadOnly(element.isReadOnly());
+}
+
+ExtMapElement::ExtMapElement(ExtMapElement&& element)
+{
+    setValue(element.getValue());
+    setReadOnly(element.isReadOnly());
+
+    element.m_value = std::string();
+    element.m_readOnly = false;
+    element.m_wasUpdated = false;
+}
+
+ExtMapElement& ExtMapElement::operator=(const ExtMapElement& element)
+{
+    setValue(element.getValue());
+    setReadOnly(element.isReadOnly());
+    return *this;
+}
+
+ExtMapElement& ExtMapElement::operator=(ExtMapElement&& element)
+{
+    setValue(element.getValue());
+    setReadOnly(element.isReadOnly());
+
+    element.m_value = std::string();
+    element.m_readOnly = false;
+    element.m_wasUpdated = false;
+
+    return *this;
+}
+
+const std::string& ExtMapElement::getValue() const
+{
+    return m_value;
+}
+
+bool ExtMapElement::wasUpdated() const
+{
+    return m_wasUpdated;
+}
+
+bool ExtMapElement::isReadOnly() const
+{
+    return m_readOnly;
+}
+
+void ExtMapElement::setValue(const std::string& val)
+{
+    m_wasUpdated=(m_value != val);
+    m_value=val;
+}
+
+void ExtMapElement::setReadOnly(bool readOnly)
+{
+    m_wasUpdated=(readOnly != m_readOnly);
+    m_readOnly=readOnly; 
+}
+
+bool ExtMapElement::operator==(const ExtMapElement& element) const
+{
+    return (m_value == element.m_value && m_readOnly == element.m_readOnly);
+}
+
+bool ExtMapElement::operator!=(const ExtMapElement& element) const
+{
+    return !(*this == element);
+}
+
+static constexpr const char* SI_EXT_MAP_ELEMENT_VALUE    = "value";
+static constexpr const char* SI_EXT_MAP_ELEMENT_READONLY = "readOnly";
+static constexpr const char* SI_EXT_MAP_ELEMENT_UPDATED  = "updated";
+
+//serialization / deserialization for cxxtools
+void ExtMapElement::serialize(cxxtools::SerializationInfo& si) const
+{
+    si.addMember(SI_EXT_MAP_ELEMENT_VALUE)    <<= m_value;
+    si.addMember(SI_EXT_MAP_ELEMENT_READONLY) <<= m_readOnly;
+    si.addMember(SI_EXT_MAP_ELEMENT_UPDATED)  <<= m_wasUpdated;
+    
+}
+
+void ExtMapElement::deserialize(const cxxtools::SerializationInfo& si)
+{
+    si.getMember(SI_EXT_MAP_ELEMENT_VALUE)    >>= m_value;
+    si.getMember(SI_EXT_MAP_ELEMENT_READONLY) >>= m_readOnly;
+    si.getMember(SI_EXT_MAP_ELEMENT_UPDATED)  >>= m_wasUpdated;
+}
+
+void operator<<=(cxxtools::SerializationInfo& si, const ExtMapElement& e)
+{
+    e.serialize(si);
+}
+
+void operator>>=(const cxxtools::SerializationInfo& si, ExtMapElement& e)
+{
+    e.deserialize(si);
+} 
+
+
+
+UIAsset::UIAsset(const Asset& a)
+    :  Asset(a)
+{}
+
+void UIAsset::serializeUI(cxxtools::SerializationInfo& /*si*/) const
+{
+
+}
+
+void UIAsset::deserializeUI(const cxxtools::SerializationInfo& /*si*/)
+{
+
+}
+
 
 } // namespace fty
 

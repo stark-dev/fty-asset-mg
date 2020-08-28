@@ -344,13 +344,45 @@ void AssetImpl::remove(bool removeLastDC)
     m_storage.commitTransaction();
 }
 
+// generate asset name
+static std::string createAssetName(const std::string& type, const std::string& subtype)
+{
+    std::string assetName;
+
+    timeval t;
+    gettimeofday(&t, NULL);
+    srand(t.tv_sec * t.tv_usec);
+    // generate 8 digit random integer
+    unsigned long index = rand() % 100000000;
+
+    std::string indexStr = std::to_string(index);
+
+    // create 8 digit index with leading zeros
+    indexStr = std::string(8 - indexStr.length(), '0') + indexStr;
+
+    if (type == fty::TYPE_DEVICE) {
+        assetName = subtype + "-" + indexStr;
+    } else {
+        assetName = type + "-" + indexStr;
+    }
+
+    return assetName;
+}
+
 void AssetImpl::create()
 {
     m_storage.beginTransaction();
     try {
-        if (!g_testMode && m_storage.getID(getInternalName())) {
-            throw(std::runtime_error("Create failed, asset name already exists"));
+        if (!g_testMode) {
+            std::string iname;
+            do {
+                iname = createAssetName(getAssetType(), getAssetSubtype());
+            }
+            while(m_storage.getID(iname));
+
+            setInternalName(iname);
         }
+        
         // set creation timestamp
         setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
         // set uuid
@@ -543,7 +575,8 @@ void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& 
     cxxtools::SerializationInfo data;
     for (const auto& e : asset.getExt()) {
         cxxtools::SerializationInfo& entry = data.addMember(e.first);
-        entry <<= e.second.first;
+        entry.addMember("value") <<= e.second.getValue();
+        entry.addMember("readOnly") <<= e.second.isReadOnly();
     }
     data.setCategory(cxxtools::SerializationInfo::Category::Object);
     ext = data;
@@ -552,7 +585,7 @@ void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& 
 
 void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& asset)
 {
-    int         tmpInt;
+    int         tmpInt = 0;
     std::string tmpString;
 
     // uuid
@@ -597,9 +630,11 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
     for (const auto& si : ext) {
         std::string key = si.name();
         std::string val;
-        si >>= val;
+        bool readOnly = false;
+        si.getMember("value") >>= val;
+        si.getMember("readOnly") >>= readOnly;
 
-        asset.setExtEntry(key, val);
+        asset.setExtEntry(key, val, readOnly);
     }
 }
 
