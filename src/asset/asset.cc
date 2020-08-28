@@ -487,7 +487,8 @@ void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& 
     cxxtools::SerializationInfo data;
     for (const auto& e : asset.getExt()) {
         cxxtools::SerializationInfo& entry = data.addMember(e.first);
-        entry <<= e.second.first;
+        entry.addMember("value") <<= e.second.getValue();
+        entry.addMember("readOnly") <<= e.second.isReadOnly();
     }
     data.setCategory(cxxtools::SerializationInfo::Category::Object);
     ext = data;
@@ -496,7 +497,7 @@ void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& 
 
 void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& asset)
 {
-    int         tmpInt;
+    int         tmpInt = 0;
     std::string tmpString;
 
     // uuid
@@ -533,9 +534,11 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
     for (const auto& si : ext) {
         std::string key = si.name();
         std::string val;
-        si >>= val;
+        bool readOnly = false;
+        si.getMember("value") >>= val;
+        si.getMember("readOnly") >>= readOnly;
 
-        asset.setExtEntry(key, val);
+        asset.setExtEntry(key, val, readOnly);
     }
 }
 

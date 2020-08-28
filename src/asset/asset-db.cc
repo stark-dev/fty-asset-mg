@@ -928,6 +928,12 @@ void DB::saveLinkedAssets(Asset& asset)
 
 void DB::saveExtMap(Asset& asset)
 {
+    /*
+     * Here is the strategy to save the external attributs:
+     * 1. We insert, update or remove only the external attribut which has been modified.
+     * 2. An external attribut with a value set to empty string will be removed from the db
+     */ 
+
     uint32_t assetID = getID(asset.getInternalName());
     if (assetID == 0) {
         throw std::runtime_error("Asset " + asset.getInternalName() + " not found");
@@ -958,41 +964,59 @@ void DB::saveExtMap(Asset& asset)
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
-    using Existing = std::tuple<uint32_t, std::string, std::string, bool>;
+    using ExternalAttributInDB = std::tuple<uint32_t, std::string, std::string, bool>;
 
-    std::vector<Existing> existing;
+    std::vector<ExternalAttributInDB> existing;
     for (const auto& row : res) {
         existing.emplace_back(
             row.getUnsigned32("id"), row.getString("akey"), row.getString("avalue"), row.getBool("readOnly"));
     }
 
+    std::vector<ExternalAttributInDB> toBeRemoved;
+
 
     for (const auto& it : asset.getExt()) {
-        auto found = std::find_if(existing.begin(), existing.end(), [&](const Existing& e) {
+        
+        //skip the none updated attribut
+        if(!it.second.wasUpdated()) {
+            continue;
+        }
+
+        auto found = std::find_if(existing.begin(), existing.end(), [&](const ExternalAttributInDB& e) {
             return std::get<1>(e) == it.first;
         });
 
+
         if (found == existing.end()) {
-            // clang-format off
-            auto q = m_conn.prepareCached(R"(
-                INSERT INTO t_bios_asset_ext_attributes (keytag, value, id_asset_element, read_only)
-                VALUES (:key, :value, :assetId, :readOnly)
-            )");
-            // clang-format on
-            q.set("key", it.first);
-            q.set("value", it.second.first);
-            q.set("readOnly", it.second.second);
-            q.set("assetId", assetID);
-            try {
-                m_conn_lock.lock();
-                q.execute();
-                m_conn_lock.unlock();
-            } catch (std::exception& e) {
-                m_conn_lock.unlock();
-                throw std::runtime_error("database error - " + std::string(e.what()));
+            //The attribut do not exist in the database
+            //if it's not empty we insert it.
+
+            if (!it.second.getValue().empty()) {
+                // clang-format off
+                auto q = m_conn.prepareCached(R"(
+                    INSERT INTO t_bios_asset_ext_attributes (keytag, value, id_asset_element, read_only)
+                    VALUES (:key, :value, :assetId, :readOnly)
+                )");
+                // clang-format on
+                q.set("key", it.first);
+                q.set("value", it.second.getValue());
+                q.set("readOnly", it.second.isReadOnly());
+                q.set("assetId", assetID);
+                try {
+                    m_conn_lock.lock();
+                    q.execute();
+                    m_conn_lock.unlock();
+                } catch (std::exception& e) {
+                    m_conn_lock.unlock();
+                    throw std::runtime_error("database error - " + std::string(e.what()));
+                }
             }
+
         } else {
-            if (std::get<2>(*found) != it.second.first || std::get<3>(*found) != it.second.second) {
+            //The attribut exist in the database
+            //if it's not empty we update it, else remove it.
+
+            if (!it.second.getValue().empty())  {
                 // clang-format off
                 auto q = m_conn.prepareCached(R"(
                     UPDATE t_bios_asset_ext_attributes
@@ -1002,8 +1026,8 @@ void DB::saveExtMap(Asset& asset)
                     WHERE id_asset_ext_attribute = :extId
                 )");
                 // clang-format on
-                q.set("value", it.second.first);
-                q.set("readOnly", it.second.second);
+                q.set("value", it.second.getValue());
+                q.set("readOnly", it.second.isReadOnly());
                 q.set("extId", std::get<0>(*found));
 
                 try {
@@ -1015,11 +1039,13 @@ void DB::saveExtMap(Asset& asset)
                     throw std::runtime_error("database error - " + std::string(e.what()));
                 }
             }
-            existing.erase(found);
+            else {
+                toBeRemoved.push_back(*found);
+            }
         }
     }
 
-    for (const auto& toRem : existing) {
+    for (const auto& toRem : toBeRemoved) {
         // clang-format off
         auto q = m_conn.prepareCached(R"(
             DELETE FROM t_bios_asset_ext_attributes

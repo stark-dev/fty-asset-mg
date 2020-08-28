@@ -36,6 +36,16 @@ namespace fty { namespace conversion {
     static constexpr const char* SI_EXT      = "ext";
     static constexpr const char* SI_LINKED   = "linked";
 
+    /*void operator<<=(cxxtools::SerializationInfo& si, const ExtMapElement& e)
+    {
+        si.
+    }
+
+    void operator>>=(const cxxtools::SerializationInfo& si, ExtMapElement& e)
+    {
+
+    }  */ 
+
     void operator<<=(cxxtools::SerializationInfo& si, const Asset& asset)
     {
         // basic
@@ -52,7 +62,7 @@ namespace fty { namespace conversion {
         cxxtools::SerializationInfo data;
         for (const auto& e : asset.getExt()) {
             cxxtools::SerializationInfo& entry = data.addMember(e.first);
-            entry <<= e.second.first;
+            entry <<= e.second.getValue();
         }
         data.setCategory(cxxtools::SerializationInfo::Category::Object);
         ext = data;
@@ -61,7 +71,7 @@ namespace fty { namespace conversion {
 
     void operator>>=(const cxxtools::SerializationInfo& si, Asset& asset)
     {
-        int         tmpInt;
+        int         tmpInt = 0;
         std::string tmpString;
 
         // status

@@ -25,32 +25,13 @@
 #include <fty_proto.h>
 
 namespace fty { namespace conversion {
-    // for fty-proto conversion helpers
-    static fty::Asset::ExtMap zhashToExtMap(zhash_t* hash, bool readOnly)
-    {
-        fty::Asset::ExtMap map;
-
-        for (auto* item = zhash_first(hash); item; item = zhash_next(hash)) {
-            map.emplace(zhash_cursor(hash), std::make_pair(static_cast<const char*>(item), readOnly));
-        }
-
-        // PQSWPRG-7607 HOTFIX: force RW for friendly name ('name' ext. attribute)
-        if (readOnly) {
-            auto it = map.find("name");
-            if (it != map.end())
-                it->second.second = false;
-        }//
-
-        return map;
-    }
-
 
     static zhash_t* extMapToZhash(const fty::Asset::ExtMap& map)
     {
         zhash_t* hash = zhash_new();
         for (const auto& i : map) {
             zhash_insert(hash, i.first.c_str(),
-                const_cast<void*>(reinterpret_cast<const void*>(i.second.first.c_str())));
+                const_cast<void*>(reinterpret_cast<const void*>(i.second.getValue().c_str())));
         }
 
         return hash;
@@ -122,8 +103,16 @@ namespace fty { namespace conversion {
         }
         asset.setPriority(fty_proto_aux_number(proto, "priority", 5));
 
-        zhash_t* ext = fty_proto_ext(proto);
-        asset.setExt(zhashToExtMap(ext, extAttributeReadOnly));
+        zhash_t* hash = fty_proto_ext(proto);
+
+        for (auto* item = zhash_first(hash); item; item = zhash_next(hash)) {
+            asset.setExtEntry(zhash_cursor(hash), static_cast<const char*>(item), extAttributeReadOnly);
+        }
+
+        // PQSWPRG-7607 HOTFIX: force RW for friendly name ('name' ext. attribute)
+        if (extAttributeReadOnly) {
+            asset.setExtEntry("name", asset.getExtEntry("name"), false);
+        }//
     }
 
 }} // namespace fty::conversion

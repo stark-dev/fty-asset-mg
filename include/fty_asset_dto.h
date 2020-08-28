@@ -26,6 +26,10 @@
 #include <map>
 #include <string>
 
+struct _fty_proto_t;
+typedef struct _fty_proto_t fty_proto_t;
+
+
 namespace fty {
 /// List of valid asset statuses
 enum class AssetStatus
@@ -186,10 +190,49 @@ bool operator==(const AssetLink& l, const AssetLink& r);
 void operator<<=(cxxtools::SerializationInfo& si, const AssetLink& l);
 void operator>>=(const cxxtools::SerializationInfo& si, AssetLink& l);
 
+class ExtMapElement
+{
+public:
+    //constrcutors / destructors
+    ExtMapElement(const std::string & val = "", bool readOnly = false);
+    ExtMapElement(const ExtMapElement &element);
+    ExtMapElement(ExtMapElement&& element);
+    ~ExtMapElement(){}
+
+    ExtMapElement& operator=(const ExtMapElement& element);
+    ExtMapElement& operator=(ExtMapElement&& element);
+
+    //getters
+    const std::string&  getValue() const;
+    bool                wasUpdated() const;
+    bool                isReadOnly() const;
+
+    //setters
+    void setValue(const std::string& val);
+    void setReadOnly(bool readOnly);
+
+    // overload equality and inequality check
+    bool operator==(const ExtMapElement& element) const;
+    bool operator!=(const ExtMapElement& element) const;
+
+    //serialization / deserialization for cxxtools
+    void serialize(cxxtools::SerializationInfo& si) const;
+    void deserialize(const cxxtools::SerializationInfo& si);
+
+private:
+    std::string m_value;
+    bool        m_readOnly      = false;
+    bool        m_wasUpdated    = false;  
+};
+
+void operator<<=(cxxtools::SerializationInfo& si, const ExtMapElement& e);
+void operator>>=(const cxxtools::SerializationInfo& si, ExtMapElement& e);  
+
+
 class Asset
 {
 public:
-    using ExtMap = std::map<std::string, std::pair<std::string, bool>>;
+    using ExtMap = std::map<std::string, ExtMapElement>;
 
     virtual ~Asset() = default;
 
@@ -219,7 +262,6 @@ public:
     void setParentIname(const std::string& parentIname);
     void setPriority(int priority);
     void setAssetTag(const std::string& assetTag);
-    void setExt(const Asset::ExtMap& map);
     void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false);
     void setLinkedAssets(const std::vector<AssetLink>& assets);
     // dump
