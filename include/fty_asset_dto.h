@@ -27,10 +27,13 @@
 #include <optional>
 #include <string>
 
+<<<<<<< HEAD
 struct _fty_proto_t;
 typedef struct _fty_proto_t fty_proto_t;
 
 
+=======
+>>>>>>> 42ity/featureimage/fty-asset-srr
 namespace fty {
 
 // extended properties
@@ -277,11 +280,19 @@ public:
     bool operator==(const Asset& asset) const;
     bool operator!=(const Asset& asset) const;
 
+<<<<<<< HEAD
     //serialization / deserialization for cxxtools
     void serialize(cxxtools::SerializationInfo& si) const;
     void deserialize(const cxxtools::SerializationInfo& si);
 
 protected:
+=======
+    // cxxtools serialization
+    friend void conversion::operator<<=(cxxtools::SerializationInfo& si, const fty::Asset& asset);
+    friend void conversion::operator>>=(const cxxtools::SerializationInfo& si, fty::Asset& asset);
+
+private:
+>>>>>>> 42ity/featureimage/fty-asset-srr
     // internal name = <subtype>-<id>)
     std::string m_internalName;
 
@@ -301,6 +312,7 @@ protected:
     ExtMap                 m_ext;
     std::vector<AssetLink> m_linkedAssets;
 
+<<<<<<< HEAD
     std::optional<std::vector<Asset>> m_parentsList;
 };
 
@@ -316,6 +328,10 @@ public:
     //serialization / deserialization for cxxtools
     void serializeUI(cxxtools::SerializationInfo& si) const;
     void deserializeUI(const cxxtools::SerializationInfo& si);
+=======
+protected:
+    std::optional<std::vector<Asset>> m_parentsList;
+>>>>>>> 42ity/featureimage/fty-asset-srr
 };
 
 } // namespace fty

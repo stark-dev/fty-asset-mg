@@ -433,7 +433,7 @@ void AssetServer::createAsset(const messagebus::Message& msg)
         messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_CREATED, "",
             m_agentNameNg, "", messagebus::STATUS_OK, fty::conversion::toJson(asset));
         sendNotification(notification);
-        
+
         // light notification
         messagebus::Message notification_l = assetutils::createMessage(FTY_ASSET_SUBJECT_CREATED_L, "",
             m_agentNameNg, "", messagebus::STATUS_OK, asset.getInternalName());
