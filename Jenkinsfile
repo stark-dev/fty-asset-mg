@@ -88,10 +88,10 @@ pipeline {
             defaultValue: "`pwd`/tmp/_inst",
             description: 'If attempting a "make install" check in this run, what DESTDIR to specify? (absolute path, defaults to "BUILD_DIR/tmp/_inst")',
             name: 'USE_TEST_INSTALL_DESTDIR')
-        booleanParam (
-            defaultValue: true,
-            description: 'Attempt "cppcheck" analysis before this run? (Note: corresponding tools are required in the build environment)',
-            name: 'DO_CPPCHECK')
+        // booleanParam (
+        //     defaultValue: true,
+        //     description: 'Attempt "cppcheck" analysis before this run? (Note: corresponding tools are required in the build environment)',
+        //     name: 'DO_CPPCHECK')
         booleanParam (
             defaultValue: true,
             description: 'Require that there are no files not discovered changed/untracked via .gitignore after builds and tests?',
@@ -242,41 +242,41 @@ pipeline {
         }
         stage ('check') {
             parallel {
-                stage ('cppcheck') {
-                    when { expression { return ( params.DO_CPPCHECK ) } }
-                    steps {
-                        dir("tmp/test-cppcheck") {
-                            deleteDir()
-                            script {
-                                // We need a configured source codebase to run
-                                // "make", any variant will do. Save some time
-                                // by using a build tree (if exists), but can
-                                // fall back to running the configure script
-                                // explicitly.
-                                if ( params.DO_BUILD_WITH_DRAFT_API ) {
-                                    unstash 'built-draft'
-                                } else if ( params.DO_BUILD_WITHOUT_DRAFT_API ) {
-                                    unstash 'built-nondraft'
-                                } else if ( params.DO_BUILD_DOCS || params.DO_DIST_DOCS ) {
-                                    unstash 'built-docs'
-                                } else {
-                                    unstash 'prepped'
-                                    sh """CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; if test "${params.USE_CCACHE_LOGGING}" = true ; then rm -f ccache.log ; CCACHE_LOGFILE="`pwd`/ccache.log" ; export CCACHE_LOGFILE ; fi ; ./configure --enable-drafts=no --enable-Werror="${params.ENABLE_WERROR}" --with-docs=no"""
-                                }
-                            }
-                            sh 'rm -f cppcheck.xml'
-                            // This make target should produce a cppcheck.xml if tool is available
-                            sh """CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; if test "${params.USE_CCACHE_LOGGING}" = true ; then CCACHE_LOGFILE="`pwd`/ccache.log" ; export CCACHE_LOGFILE ; fi ; make cppcheck"""
-                            archiveArtifacts artifacts: '**/cppcheck.xml', allowEmptyArchive: true
-                            sh 'rm -f cppcheck.xml'
-                            script {
-                                if ( params.DO_CLEANUP_AFTER_BUILD ) {
-                                    deleteDir()
-                                }
-                            }
-                        }
-                    }
-                }
+                // stage ('cppcheck') {
+                //     when { expression { return ( params.DO_CPPCHECK ) } }
+                //     steps {
+                //         dir("tmp/test-cppcheck") {
+                //             deleteDir()
+                //             script {
+                //                 // We need a configured source codebase to run
+                //                 // "make", any variant will do. Save some time
+                //                 // by using a build tree (if exists), but can
+                //                 // fall back to running the configure script
+                //                 // explicitly.
+                //                 if ( params.DO_BUILD_WITH_DRAFT_API ) {
+                //                     unstash 'built-draft'
+                //                 } else if ( params.DO_BUILD_WITHOUT_DRAFT_API ) {
+                //                     unstash 'built-nondraft'
+                //                 } else if ( params.DO_BUILD_DOCS || params.DO_DIST_DOCS ) {
+                //                     unstash 'built-docs'
+                //                 } else {
+                //                     unstash 'prepped'
+                //                     sh """CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; if test "${params.USE_CCACHE_LOGGING}" = true ; then rm -f ccache.log ; CCACHE_LOGFILE="`pwd`/ccache.log" ; export CCACHE_LOGFILE ; fi ; ./configure --enable-drafts=no --enable-Werror="${params.ENABLE_WERROR}" --with-docs=no"""
+                //                 }
+                //             }
+                //             sh 'rm -f cppcheck.xml'
+                //             // This make target should produce a cppcheck.xml if tool is available
+                //             sh """CCACHE_BASEDIR="`pwd`" ; export CCACHE_BASEDIR; if test "${params.USE_CCACHE_LOGGING}" = true ; then CCACHE_LOGFILE="`pwd`/ccache.log" ; export CCACHE_LOGFILE ; fi ; make cppcheck"""
+                //             archiveArtifacts artifacts: '**/cppcheck.xml', allowEmptyArchive: true
+                //             sh 'rm -f cppcheck.xml'
+                //             script {
+                //                 if ( params.DO_CLEANUP_AFTER_BUILD ) {
+                //                     deleteDir()
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
                 stage ('clang-format-check') {
                     when { expression { return ( params.DO_CHECK_CLANG_FORMAT ) } }
                     steps {
