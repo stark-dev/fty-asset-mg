@@ -27,14 +27,15 @@
 
 namespace fty { namespace conversion {
 
-    static constexpr const char* SI_STATUS   = "status";
-    static constexpr const char* SI_TYPE     = "type";
-    static constexpr const char* SI_SUB_TYPE = "sub_type";
-    static constexpr const char* SI_NAME     = "name";
-    static constexpr const char* SI_PRIORITY = "priority";
-    static constexpr const char* SI_PARENT   = "parent";
-    static constexpr const char* SI_EXT      = "ext";
-    static constexpr const char* SI_LINKED   = "linked";
+    static constexpr const char* SI_STATUS       = "status";
+    static constexpr const char* SI_TYPE         = "type";
+    static constexpr const char* SI_SUB_TYPE     = "sub_type";
+    static constexpr const char* SI_NAME         = "name";
+    static constexpr const char* SI_PRIORITY     = "priority";
+    static constexpr const char* SI_PARENT       = "parent";
+    static constexpr const char* SI_EXT          = "ext";
+    static constexpr const char* SI_LINKED       = "linked";
+    static constexpr const char* SI_PARENTS_LIST = "parents_list";
 
     void operator<<=(cxxtools::SerializationInfo& si, const Asset& asset)
     {
@@ -57,9 +58,26 @@ namespace fty { namespace conversion {
         data.setCategory(cxxtools::SerializationInfo::Category::Object);
         ext = data;
         ext.setName(SI_EXT);
+
+        if(asset.m_parentsList.has_value()) {
+            // parents list
+            cxxtools::SerializationInfo data;
+
+            [[maybe_unused]] std::vector<Asset> v = asset.m_parentsList.value();
+            for (const Asset& a : v) {
+                cxxtools::SerializationInfo& entry = data.addMember("");
+                entry <<= a;
+            }
+            data.setCategory(cxxtools::SerializationInfo::Category::Object);
+
+            cxxtools::SerializationInfo& parents = si.addMember("");
+            parents                              = data;
+            parents.setName(SI_PARENTS_LIST);
+            parents.setCategory(cxxtools::SerializationInfo::Category::Array);
+        }
     }
 
-    void operator>>=(const cxxtools::SerializationInfo& si, Asset& asset)
+    void operator>>=(const cxxtools::SerializationInfo& si, fty::Asset& asset)
     {
         int         tmpInt;
         std::string tmpString;
@@ -100,6 +118,18 @@ namespace fty { namespace conversion {
             std::string val;
             si >>= val;
             asset.setExtEntry(key, val);
+        }
+
+        if (si.findMember(SI_PARENTS_LIST) != NULL) {
+            std::vector<fty::Asset> parentsList;
+            const cxxtools::SerializationInfo parents = si.getMember(SI_PARENTS_LIST);
+            for (const auto& si : parents) {
+                fty::Asset a;
+                si >>= a;
+                parentsList.push_back(a);
+            }
+
+            asset.m_parentsList = parentsList;
         }
     }
 
