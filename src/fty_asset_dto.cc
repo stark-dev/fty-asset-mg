@@ -206,6 +206,11 @@ const std::vector<AssetLink>& Asset::getLinkedAssets() const
     return m_linkedAssets;
 }
 
+const std::optional<std::vector<Asset>> Asset::getParentsList() const
+{
+    return m_parentsList;
+}
+
 // setters
 
 void Asset::setInternalName(const std::string& internalName)
