@@ -24,6 +24,7 @@
 #include <cxxtools/serializationinfo.h>
 #include <fty_common.h>
 #include <map>
+#include <optional>
 #include <string>
 
 struct _fty_proto_t;
@@ -31,16 +32,6 @@ typedef struct _fty_proto_t fty_proto_t;
 
 
 namespace fty {
-/// List of valid asset statuses
-enum class AssetStatus
-{
-    Unknown = 0,
-    Active,
-    Nonactive
-};
-
-const std::string assetStatusToString(AssetStatus status);
-AssetStatus       stringToAssetStatus(const std::string& str);
 
 // extended properties
 static constexpr const char* EXT_UUID         = "uuid";
@@ -174,6 +165,18 @@ static constexpr const char* LINK_DELL_VXRAIL_CONNECTED_TO_MANAGER    = "dell.vx
 static constexpr const char* LINK_MICROSOFT_SERVER_HAS_HYPERV_SERVICE = "microsoft.server.has.hyperv.service"; // 35
 // clang-format on
 
+/// List of valid asset statuses
+enum class AssetStatus
+{
+    Unknown = 0,
+    Active,
+    Nonactive
+};
+
+const std::string assetStatusToString(AssetStatus status);
+AssetStatus       stringToAssetStatus(const std::string& str);
+
+
 class AssetLink
 {
 public:
@@ -245,14 +248,16 @@ public:
     int                  getPriority() const;
     const std::string&   getAssetTag() const;
     const Asset::ExtMap& getExt() const;
+    const std::string&   getSecondaryID() const;
     // ext param getters (return empty string if key not found)
-    const std::string&            getExtEntry(const std::string& key) const;
-    bool                          isExtEntryReadOnly(const std::string& key) const;
-    const std::string&            getUuid() const;
-    const std::string&            getManufacturer() const;
-    const std::string&            getModel() const;
-    const std::string&            getSerialNo() const;
-    const std::vector<AssetLink>& getLinkedAssets() const;
+    const std::string&                      getExtEntry(const std::string& key) const;
+    bool                                    isExtEntryReadOnly(const std::string& key) const;
+    const std::string&                      getUuid() const;
+    const std::string&                      getManufacturer() const;
+    const std::string&                      getModel() const;
+    const std::string&                      getSerialNo() const;
+    const std::vector<AssetLink>&           getLinkedAssets() const;
+    const std::optional<std::vector<Asset>> getParentsList() const;
 
     // setters
     void setInternalName(const std::string& internalName);
@@ -264,6 +269,7 @@ public:
     void setAssetTag(const std::string& assetTag);
     void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false);
     void setLinkedAssets(const std::vector<AssetLink>& assets);
+    void setSecondaryID(const std::string& secondaryID);
     // dump
     void dump(std::ostream& os);
 
@@ -271,7 +277,11 @@ public:
     bool operator==(const Asset& asset) const;
     bool operator!=(const Asset& asset) const;
 
-private:
+    //serialization / deserialization for cxxtools
+    void serialize(cxxtools::SerializationInfo& si) const;
+    void deserialize(const cxxtools::SerializationInfo& si);
+
+protected:
     // internal name = <subtype>-<id>)
     std::string m_internalName;
 
@@ -285,9 +295,27 @@ private:
     int m_priority = 5;
     // asset tag
     std::string m_assetTag;
+    // secondary ID
+    std::string m_secondaryID;
     // ext map storage (asset-specific values with readonly attribute)
     ExtMap                 m_ext;
     std::vector<AssetLink> m_linkedAssets;
+
+    std::optional<std::vector<Asset>> m_parentsList;
+};
+
+void operator<<=(cxxtools::SerializationInfo& si, const fty::Asset& asset);
+void operator>>=(const cxxtools::SerializationInfo& si, fty::Asset& asset);
+
+
+class UIAsset : public Asset
+{
+public:
+    explicit UIAsset(const Asset& a = Asset());
+
+    //serialization / deserialization for cxxtools
+    void serializeUI(cxxtools::SerializationInfo& si) const;
+    void deserializeUI(const cxxtools::SerializationInfo& si);
 };
 
 } // namespace fty

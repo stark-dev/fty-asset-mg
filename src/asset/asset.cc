@@ -261,6 +261,21 @@ bool AssetImpl::hasLogicalAsset() const
     return getExt().find("logical_asset") != getExt().end();
 }
 
+bool AssetImpl::isVirtual() const
+{
+    return (
+        (getAssetType() == TYPE_CLUSTER) ||
+        (getAssetType() == TYPE_HYPERVISOR) ||
+        (getAssetType() == TYPE_VIRTUAL_MACHINE) ||
+        (getAssetType() == TYPE_STORAGE_SERVICE) ||
+        (getAssetType() == TYPE_VAPP) ||
+        (getAssetType() == TYPE_CONNECTOR) ||
+        (getAssetType() == TYPE_SERVER) ||
+        (getAssetType() == TYPE_PLANNER) ||
+        (getAssetType() == TYPE_PLAN)
+    );
+}
+
 bool AssetImpl::hasLinkedAssets() const
 {
     return m_storage.hasLinkedAssets(*this);
@@ -402,45 +417,58 @@ bool AssetImpl::isActivable()
         return true;
     }
 
-    mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-    fty::AssetActivator activationAccessor(client);
-
-    // TODO remove as soon as fty::Asset activation is supported
-    fty::FullAsset fa = fty::conversion::toFullAsset(*this);
-
-    return activationAccessor.isActivable(fa);
-}
-
-void AssetImpl::activate()
-{
-    if (!g_testMode) {
+    if (getAssetType() == TYPE_DEVICE) {
         mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
         fty::AssetActivator activationAccessor(client);
 
         // TODO remove as soon as fty::Asset activation is supported
         fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+        return activationAccessor.isActivable(fa);
+    } else {
+        return true;
+    }
+}
 
-        activationAccessor.activate(fa);
+void AssetImpl::activate()
+{
+    if (!g_testMode) {
+        if (getAssetType() == TYPE_DEVICE) {
+            mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
+            fty::AssetActivator activationAccessor(client);
 
-        setAssetStatus(fty::AssetStatus::Active);
-        m_storage.update(*this);
+            // TODO remove as soon as fty::Asset activation is supported
+            fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+
+            activationAccessor.activate(fa);
+
+            setAssetStatus(fty::AssetStatus::Active);
+            m_storage.update(*this);
+        } else {
+            setAssetStatus(fty::AssetStatus::Active);
+            m_storage.update(*this);
+        }
     }
 }
 
 void AssetImpl::deactivate()
 {
     if (!g_testMode) {
-        mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-        fty::AssetActivator activationAccessor(client);
+        if (getAssetType() == TYPE_DEVICE) {
+            mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
+            fty::AssetActivator activationAccessor(client);
 
-        // TODO remove as soon as fty::Asset activation is supported
-        fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+            // TODO remove as soon as fty::Asset activation is supported
+            fty::FullAsset fa = fty::conversion::toFullAsset(*this);
 
-        activationAccessor.deactivate(fa);
-        log_debug("Asset %s deactivated", getInternalName().c_str());
+            activationAccessor.deactivate(fa);
+            log_debug("Asset %s deactivated", getInternalName().c_str());
 
-        setAssetStatus(fty::AssetStatus::Nonactive);
-        m_storage.update(*this);
+            setAssetStatus(fty::AssetStatus::Nonactive);
+            m_storage.update(*this);
+        } else {
+            setAssetStatus(fty::AssetStatus::Nonactive);
+            m_storage.update(*this);
+        }
     }
 }
 
@@ -470,6 +498,32 @@ void AssetImpl::unlinkAll()
     m_storage.unlinkAll(*this);
 }
 
+static std::vector<fty::Asset> buildParentsList(const std::string iname)
+{
+    // avoid infinite loop
+    const unsigned short maxLevels = 255;
+
+    std::vector<fty::Asset> parents;
+
+    fty::AssetImpl a(iname);
+
+    unsigned short level   = 0;
+
+    while ((!a.getParentIname().empty()) && (level < maxLevels)) {
+        a = fty::AssetImpl(a.getParentIname());
+        parents.push_back(a);
+
+        level++;
+    }
+
+    return parents;
+}
+
+void AssetImpl::updateParentsList()
+{
+    m_parentsList = buildParentsList(getInternalName());
+}
+
 void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& si)
 {
     // basic
@@ -480,6 +534,8 @@ void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& 
     si.addMember("priority") <<= asset.getPriority();
     si.addMember("parent") <<= asset.getParentIname();
     si.addMember("linked") <<= asset.getLinkedAssets();
+    si.addMember("tag") <<= asset.getAssetTag();
+    si.addMember("id_secondary") <<= asset.getSecondaryID();
 
     // ext
     cxxtools::SerializationInfo& ext = si.addMember("");
@@ -528,6 +584,14 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
     std::vector<AssetLink> tmpVector;
     si.getMember("linked") >>= tmpVector;
     asset.setLinkedAssets(tmpVector);
+
+    // asset tag
+    si.getMember("tag") >>= tmpString;
+    asset.setAssetTag(tmpString);
+
+    // id secondary
+    si.getMember("id_secondary") >>= tmpString;
+    asset.setSecondaryID(tmpString);
 
     // ext map
     const cxxtools::SerializationInfo ext = si.getMember("ext");
