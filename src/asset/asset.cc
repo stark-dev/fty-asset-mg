@@ -498,6 +498,32 @@ void AssetImpl::unlinkAll()
     m_storage.unlinkAll(*this);
 }
 
+static std::vector<fty::Asset> buildParentsList(const std::string iname)
+{
+    // avoid infinite loop
+    const unsigned short maxLevels = 255;
+
+    std::vector<fty::Asset> parents;
+
+    fty::AssetImpl a(iname);
+
+    unsigned short level   = 0;
+
+    while ((!a.getParentIname().empty()) && (level < maxLevels)) {
+        a = fty::AssetImpl(a.getParentIname());
+        parents.push_back(a);
+
+        level++;
+    }
+
+    return parents;
+}
+
+void AssetImpl::updateParentsList()
+{
+    m_parentsList = buildParentsList(getInternalName());
+}
+
 void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& si)
 {
     // basic

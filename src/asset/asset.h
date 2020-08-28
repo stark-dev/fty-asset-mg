@@ -66,6 +66,8 @@ public:
         const std::string& src, const std::string& srcOut, const std::string& destIn, int linkType);
     void unlinkAll();
 
+    void updateParentsList();
+
     static void assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& si);
     static void srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& asset);
 
