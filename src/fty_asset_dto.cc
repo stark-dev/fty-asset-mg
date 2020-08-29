@@ -320,7 +320,19 @@ void Asset::serialize(cxxtools::SerializationInfo& si) const
     si.addMember(SI_PRIORITY) <<= m_priority;
     si.addMember(SI_PARENT) <<= m_parentIname;
     si.addMember(SI_LINKED) <<= m_linkedAssets;
-    si.addMember(SI_EXT) <<= m_ext;
+    // ext
+    cxxtools::SerializationInfo& ext = si.addMember("");
+
+    cxxtools::SerializationInfo data;
+    for (const auto& e : m_ext) {
+        cxxtools::SerializationInfo& entry = data.addMember(e.first);
+        entry.addMember("value") <<= e.second.getValue();
+        entry.addMember("readOnly") <<= e.second.isReadOnly();
+        entry.addMember("updated") <<= e.second.wasUpdated();
+    }
+    data.setCategory(cxxtools::SerializationInfo::Category::Object);
+    ext = data;
+    ext.setName(SI_EXT);
 
     if (m_parentsList.has_value()) {
         si.addMember(SI_PARENTS_LIST) <<= m_parentsList.value();
@@ -340,7 +352,20 @@ void Asset::deserialize(const cxxtools::SerializationInfo& si)
     si.getMember(SI_PRIORITY) >>= m_priority;
     si.getMember(SI_PARENT) >>= m_parentIname;
     si.getMember(SI_LINKED) >>= m_linkedAssets;
-    si.getMember(SI_EXT) >>= m_ext;
+
+    // ext map
+    const cxxtools::SerializationInfo ext = si.getMember(SI_EXT);
+    for (const auto& si : ext) {
+        std::string key = si.name();
+        std::string val;
+        bool        readOnly = false;
+        bool        updated  = false;
+        si.getMember("value") >>= val;
+        si.getMember("readOnly") >>= readOnly;
+        si.getMember("updated") >>= updated;
+
+        setExtEntry(key, val, readOnly);
+    }
 
     if (si.findMember(SI_PARENTS_LIST) != nullptr) {
         std::vector<Asset> parentsList;
