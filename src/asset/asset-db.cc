@@ -720,8 +720,6 @@ void DB::update(Asset& asset)
         UPDATE
             t_bios_asset_element
         SET
-            id_type = (SELECT id_asset_element_type FROM t_bios_asset_element_type WHERE name = :type),
-            id_subtype = (SELECT id_asset_device_type FROM t_bios_asset_device_type WHERE name = :subtype),
             id_parent = :parent_id,
             status = :status,
             priority = :priority,
@@ -732,8 +730,6 @@ void DB::update(Asset& asset)
     )");
     // clang-format on
     q.set("assetId", getID(asset.getInternalName()));
-    q.set("type", asset.getAssetType());
-    q.set("subtype", asset.getAssetSubtype());
     // name field can't be null, parent id is set to NULL if parentIname is empty
     parentId == 0 ? q.setNull("parent_id") : q.set("parent_id", parentId);
     q.set("status", assetStatusToString(asset.getAssetStatus()));
