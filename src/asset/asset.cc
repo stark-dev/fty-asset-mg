@@ -230,7 +230,7 @@ AssetImpl::AssetImpl(const std::string& nameId, bool loadLinks)
     : m_storage(getStorage())
 {
     m_storage.loadAsset(nameId, *this);
-    m_storage.loadExtMap(*this);
+    m_ext = m_storage.getExtMap(m_internalName);
     if (loadLinks) {
         m_storage.loadLinkedAssets(*this);
     }
@@ -651,7 +651,7 @@ std::vector<std::string> AssetImpl::listAll()
 void AssetImpl::load()
 {
     m_storage.loadAsset(getInternalName(), *this);
-    m_storage.loadExtMap(*this);
+    m_ext = m_storage.getExtMap(m_internalName);
     m_storage.loadLinkedAssets(*this);
 }
 

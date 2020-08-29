@@ -90,9 +90,9 @@ void DB::loadAsset(const std::string& nameId, Asset& asset)
     }
 }
 
-void DB::loadExtMap(Asset& asset)
+fty::Asset::ExtMap DB::getExtMap(const std::string& iname)
 {
-    uint32_t assetID = getID(asset.getInternalName());
+    uint32_t assetID = getID(iname);
     assert(assetID);
 
     // clang-format off
@@ -120,9 +120,14 @@ void DB::loadExtMap(Asset& asset)
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
+    fty::Asset::ExtMap extMap;
+
     for (const auto& row : res) {
-        asset.setExtEntry(row.getString("keytag"), row.getString("value"), row.getBool("read_only"));
+        extMap[row.getString("keytag")] =
+            ExtMapElement(row.getString("value"), row.getBool("read_only"), true);
     }
+
+    return extMap;
 }
 
 std::vector<std::string> DB::getChildren(const Asset& asset)
@@ -937,10 +942,10 @@ void DB::saveLinkedAssets(Asset& asset)
 void DB::saveExtMap(Asset& asset)
 {
     /*
-     * Here is the strategy to save the external attributs:
-     * 1. We insert, update or remove only the external attribut which has been modified.
-     * 2. An external attribut with a value set to empty string will be removed from the db
-     */ 
+     * Here is the strategy to save the external attributes:
+     * 1. We insert, update or remove only the external attribute which has been modified.
+     * 2. An external attribute with a value set to empty string will be removed from the db
+     */
 
     uint32_t assetID = getID(asset.getInternalName());
     if (assetID == 0) {
@@ -984,9 +989,9 @@ void DB::saveExtMap(Asset& asset)
 
 
     for (const auto& it : asset.getExt()) {
-        
-        //skip the none updated attribut
-        if(!it.second.wasUpdated()) {
+
+        // skip the none updated attribute
+        if (!it.second.wasUpdated()) {
             continue;
         }
 
@@ -996,8 +1001,8 @@ void DB::saveExtMap(Asset& asset)
 
 
         if (found == existing.end()) {
-            //The attribut do not exist in the database
-            //if it's not empty we insert it.
+            // The attribute do not exist in the database
+            // if it's not empty we insert it.
 
             if (!it.second.getValue().empty()) {
                 // clang-format off
@@ -1021,10 +1026,10 @@ void DB::saveExtMap(Asset& asset)
             }
 
         } else {
-            //The attribut exist in the database
-            //if it's not empty we update it, else remove it.
+            // The attribute exist in the database
+            // if it's not empty we update it, else remove it.
 
-            if (!it.second.getValue().empty())  {
+            if (!it.second.getValue().empty()) {
                 // clang-format off
                 auto q = m_conn.prepareCached(R"(
                     UPDATE t_bios_asset_ext_attributes
@@ -1046,8 +1051,7 @@ void DB::saveExtMap(Asset& asset)
                     m_conn_lock.unlock();
                     throw std::runtime_error("database error - " + std::string(e.what()));
                 }
-            }
-            else {
+            } else {
                 toBeRemoved.push_back(*found);
             }
         }

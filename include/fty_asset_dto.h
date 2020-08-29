@@ -196,21 +196,23 @@ void operator>>=(const cxxtools::SerializationInfo& si, AssetLink& l);
 class ExtMapElement
 {
 public:
-    //constrcutors / destructors
-    ExtMapElement(const std::string & val = "", bool readOnly = false);
-    ExtMapElement(const ExtMapElement &element);
+    // constrcutors / destructors
+    ExtMapElement(const std::string& val = "", bool readOnly = false, bool forceToFalse = false);
+    ExtMapElement(const ExtMapElement& element);
     ExtMapElement(ExtMapElement&& element);
-    ~ExtMapElement(){}
+    ~ExtMapElement()
+    {
+    }
 
     ExtMapElement& operator=(const ExtMapElement& element);
     ExtMapElement& operator=(ExtMapElement&& element);
 
-    //getters
-    const std::string&  getValue() const;
-    bool                wasUpdated() const;
-    bool                isReadOnly() const;
+    // getters
+    const std::string& getValue() const;
+    bool               wasUpdated() const;
+    bool               isReadOnly() const;
 
-    //setters
+    // setters
     void setValue(const std::string& val);
     void setReadOnly(bool readOnly);
 
@@ -218,18 +220,18 @@ public:
     bool operator==(const ExtMapElement& element) const;
     bool operator!=(const ExtMapElement& element) const;
 
-    //serialization / deserialization for cxxtools
+    // serialization / deserialization for cxxtools
     void serialize(cxxtools::SerializationInfo& si) const;
     void deserialize(const cxxtools::SerializationInfo& si);
 
 private:
     std::string m_value;
-    bool        m_readOnly      = false;
-    bool        m_wasUpdated    = false;  
+    bool        m_readOnly   = false;
+    bool        m_wasUpdated = false;
 };
 
 void operator<<=(cxxtools::SerializationInfo& si, const ExtMapElement& e);
-void operator>>=(const cxxtools::SerializationInfo& si, ExtMapElement& e);  
+void operator>>=(const cxxtools::SerializationInfo& si, ExtMapElement& e);
 
 
 class Asset
@@ -277,7 +279,7 @@ public:
     bool operator==(const Asset& asset) const;
     bool operator!=(const Asset& asset) const;
 
-    //serialization / deserialization for cxxtools
+    // serialization / deserialization for cxxtools
     void serialize(cxxtools::SerializationInfo& si) const;
     void deserialize(const cxxtools::SerializationInfo& si);
 
@@ -313,7 +315,7 @@ class UIAsset : public Asset
 public:
     explicit UIAsset(const Asset& a = Asset());
 
-    //serialization / deserialization for cxxtools
+    // serialization / deserialization for cxxtools
     void serializeUI(cxxtools::SerializationInfo& si) const;
     void deserializeUI(const cxxtools::SerializationInfo& si);
 };
