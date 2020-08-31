@@ -20,7 +20,6 @@
 */
 
 #pragma once
-#include "fty_asset_dto.h"
 #include <map>
 #include <string>
 #include <vector>
@@ -40,9 +39,9 @@ public:
 
     virtual void loadAsset(const std::string& nameId, Asset& asset) = 0;
 
-    virtual fty::Asset::ExtMap       getExtMap(const std::string& iname) = 0;
-    virtual void                     loadLinkedAssets(Asset& asset)      = 0;
-    virtual std::vector<std::string> getChildren(const Asset& asset)     = 0;
+    virtual void                     loadExtMap(Asset& asset)        = 0;
+    virtual void                     loadLinkedAssets(Asset& asset)  = 0;
+    virtual std::vector<std::string> getChildren(const Asset& asset) = 0;
 
     virtual uint32_t getID(const std::string& internalName)   = 0;
     virtual uint32_t getTypeID(const std::string& type)       = 0;

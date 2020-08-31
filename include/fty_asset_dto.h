@@ -200,21 +200,20 @@ public:
     ExtMapElement(const std::string& val = "", bool readOnly = false, bool forceToFalse = false);
     ExtMapElement(const ExtMapElement& element);
     ExtMapElement(ExtMapElement&& element);
-    ~ExtMapElement()
-    {
-    }
+    ~ExtMapElement() = default;
 
     ExtMapElement& operator=(const ExtMapElement& element);
     ExtMapElement& operator=(ExtMapElement&& element);
 
     // getters
     const std::string& getValue() const;
-    bool               wasUpdated() const;
     bool               isReadOnly() const;
+    bool               wasUpdated() const;
 
     // setters
     void setValue(const std::string& val);
     void setReadOnly(bool readOnly);
+    void setWasUpdated(bool wasUpdated);
 
     // overload equality and inequality check
     bool operator==(const ExtMapElement& element) const;
@@ -269,7 +268,10 @@ public:
     void setParentIname(const std::string& parentIname);
     void setPriority(int priority);
     void setAssetTag(const std::string& assetTag);
-    void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false);
+    void setExtMap(const ExtMap& map);
+    void clearExtMap();
+    void setExtEntry(
+        const std::string& key, const std::string& value, bool readOnly = true, bool wasUpdated = false);
     void setLinkedAssets(const std::vector<AssetLink>& assets);
     void setSecondaryID(const std::string& secondaryID);
     // dump

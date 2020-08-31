@@ -41,7 +41,7 @@ public:
 
     void loadAsset(const std::string& nameId, Asset& asset);
 
-    fty::Asset::ExtMap       getExtMap(const std::string& iname);
+    void                     loadExtMap(Asset& asset);
     void                     loadLinkedAssets(Asset& asset);
     std::vector<std::string> getChildren(const Asset& asset);
 

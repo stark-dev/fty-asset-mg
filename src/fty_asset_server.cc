@@ -1833,7 +1833,7 @@ void fty_asset_server_test(bool /*verbose*/)
         asset.setAssetType(fty::TYPE_DEVICE);
         asset.setAssetSubtype(fty::SUB_UPS);
         asset.setParentIname("abc123");
-        asset.setExtEntry("testKey", "testValue");
+        asset.setExtEntry("testKey", "testValue", false, false);
         asset.setPriority(4);
 
         std::string jsonStr = fty::conversion::toJson(asset);
@@ -1856,8 +1856,10 @@ void fty_asset_server_test(bool /*verbose*/)
         asset.setAssetType(fty::TYPE_DEVICE);
         asset.setAssetSubtype(fty::SUB_UPS);
         asset.setParentIname("test-parent");
-        asset.setExtEntry("testKey", "testValue");
+        asset.setExtEntry("testKey", "testValue", false, false);
         asset.setPriority(4);
+
+        asset.dump(std::cout);
 
         fty_proto_t* p = fty::conversion::toFtyProto(asset, "UPDATE", true);
 
@@ -1865,6 +1867,8 @@ void fty_asset_server_test(bool /*verbose*/)
 
         fty::conversion::fromFtyProto(p, asset2, false, true);
         fty_proto_destroy(&p);
+
+        asset2.dump(std::cout);
 
         assert(asset == asset2);
 
@@ -1896,7 +1900,7 @@ void fty_asset_server_test(bool /*verbose*/)
         asset.setAssetSubtype("ups");
         asset.setParentIname("");
         asset.setPriority(4);
-        asset.setExtEntry("name", "Test asset", false);
+        asset.setExtEntry("name", "Test asset", false, false);
 
         publisher->connect();
 
