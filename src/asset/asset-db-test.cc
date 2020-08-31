@@ -47,16 +47,12 @@ void DBTest::loadAsset(const std::string& nameId, Asset& asset)
     asset.setPriority(4);
 }
 
-fty::Asset::ExtMap DBTest::getExtMap(const std::string& iname)
+void DBTest::loadExtMap(Asset& asset)
 {
-    std::cout << "DBTest::getExtMap" << std::endl;
+    std::cout << "DBTest::loadExtMap" << std::endl;
 
-    fty::Asset::ExtMap extMap;
-
-    extMap["uuid"] = ExtMapElement("123-456-789", true, true);
-    extMap["name"] = ExtMapElement("My Asset", false, true);
-
-    return extMap;
+    asset.setExtEntry("uuid", "123-456-789", true);
+    asset.setExtEntry("name", "My Asset", false);
 }
 
 std::vector<std::string> DBTest::getChildren(const Asset& asset)
