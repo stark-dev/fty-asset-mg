@@ -62,30 +62,7 @@ static V value(const std::map<K, V>& map, const typename identify<K>::type& key,
 
 // ===========================================================================================================
 
-// generate asset name
-static std::string createAssetName(const std::string& type, const std::string& subtype)
-{
-    std::string assetName;
 
-    timeval t;
-    gettimeofday(&t, NULL);
-    srand(t.tv_sec * t.tv_usec);
-    // generate 8 digit random integer
-    unsigned long index = rand() % 100000000;
-
-    std::string indexStr = std::to_string(index);
-
-    // create 8 digit index with leading zeros
-    indexStr = std::string(8 - indexStr.length(), '0') + indexStr;
-
-    if (type == fty::TYPE_DEVICE) {
-        assetName = subtype + "-" + indexStr;
-    } else {
-        assetName = type + "-" + indexStr;
-    }
-
-    return assetName;
-}
 
 // ===========================================================================================================
 
@@ -192,7 +169,7 @@ void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
         { FTY_ASSET_SUBJECT_DELETE,       [&](const messagebus::Message& msg){ deleteAsset(msg); } },
         { FTY_ASSET_SUBJECT_GET,          [&](const messagebus::Message& msg){ getAsset(msg); } },
         { FTY_ASSET_SUBJECT_GET_BY_UUID,  [&](const messagebus::Message& msg){ getAsset(msg, true); } },
-        { FTY_ASSET_SUBJECT_LIST,         [&](const messagebus::Message& msg){ listAsset(msg); } },
+        { FTY_ASSET_SUBJECT_LIST,         [&](const messagebus::Message& msg){ listAsset(msg); } }
     };
     // clang-format on
 
@@ -360,7 +337,6 @@ void AssetServer::sendNotification(const messagebus::Message& msg) const
 
         fty::Asset asset;
         // old interface replies only with updated asset
-        using conversion::operator>>=;
         after >>= asset;
 
         send_create_or_update_asset(
@@ -427,11 +403,9 @@ void AssetServer::createAsset(const messagebus::Message& msg)
             }
         }
 
-        // internal name provided in the JSON payload is discarded
-        // set internal name (<type/subtype>-<random id>)
-        asset.setInternalName(createAssetName(asset.getAssetType(), asset.getAssetSubtype()));
         // store asset to db
         asset.create();
+
         // activate asset
         if (requestActivation) {
             try {
@@ -459,10 +433,13 @@ void AssetServer::createAsset(const messagebus::Message& msg)
         messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_CREATED, "",
             m_agentNameNg, "", messagebus::STATUS_OK, fty::conversion::toJson(asset));
         sendNotification(notification);
+
         // light notification
         messagebus::Message notification_l = assetutils::createMessage(FTY_ASSET_SUBJECT_CREATED_L, "",
             m_agentNameNg, "", messagebus::STATUS_OK, asset.getInternalName());
         sendNotification(notification_l);
+
+
     } catch (std::exception& e) {
         log_error(e.what());
         // create response (error)
@@ -535,7 +512,6 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
 
         // before update
         cxxtools::SerializationInfo tmpSi;
-        using conversion::          operator<<=;
 
         tmpSi <<= currentAsset;
 
@@ -664,6 +640,10 @@ void AssetServer::getAsset(const messagebus::Message& msg, bool getFromUuid)
 
         fty::AssetImpl asset(assetID);
 
+        if (value(msg.metaData(), METADATA_WITH_PARENTS_LIST) == "true") {
+            asset.updateParentsList();
+        }
+
         // create response (ok)
         auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_GET,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
@@ -710,10 +690,34 @@ void AssetServer::listAsset(const messagebus::Message& msg)
             }
         }
 
-        std::vector<std::string> assetList = fty::AssetImpl::list(filters);
+        bool idOnly = true;
+        if (value(msg.metaData(), METADATA_ID_ONLY) == "false") {
+            idOnly = false;
+        }
 
+        std::vector<std::string> inameList = fty::AssetImpl::list(filters);
         cxxtools::SerializationInfo si;
-        si <<= assetList;
+
+        if (idOnly) {
+            si <<= inameList;
+        } else {
+            bool withParentsList = value(msg.metaData(), METADATA_WITH_PARENTS_LIST) == "true";
+
+            for (const auto& iname : inameList) {
+                try {
+                    fty::AssetImpl asset(iname);
+                    if (withParentsList) {
+                        asset.updateParentsList();
+                    }
+                    cxxtools::SerializationInfo& data = si.addMember("");
+                    data <<= asset;
+                    data.setCategory(cxxtools::SerializationInfo::Category::Object);
+                } catch (std::exception& e) {
+                    log_error("Could not retrieve asset %s: %s", iname.c_str(), e.what());
+                }
+            }
+            si.setCategory(cxxtools::SerializationInfo::Category::Array);
+        }
 
         // create response (ok)
         auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_LIST,
@@ -753,6 +757,10 @@ cxxtools::SerializationInfo AssetServer::saveAssets()
 
     for (const std::string assetName : assets) {
         AssetImpl a(assetName);
+
+        if (a.isVirtual()) {
+            continue;
+        }
 
         log_debug("Saving asset %s...", a.getInternalName().c_str());
 

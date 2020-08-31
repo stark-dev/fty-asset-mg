@@ -31,7 +31,4 @@ class Asset;
 namespace fty { namespace conversion {
     std::string toJson(const Asset& asset);
     void        fromJson(const std::string& json, fty::Asset& asset);
-
-    void operator<<=(cxxtools::SerializationInfo& si, const Asset& asset);
-    void operator>>=(const cxxtools::SerializationInfo& si, Asset& asset);
 }} // namespace fty::conversion
