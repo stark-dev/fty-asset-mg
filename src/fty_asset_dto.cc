@@ -206,9 +206,14 @@ const std::vector<AssetLink>& Asset::getLinkedAssets() const
     return m_linkedAssets;
 }
 
-const std::optional<std::vector<Asset>> Asset::getParentsList() const
+bool Asset::hasParentsList() const
 {
-    return m_parentsList;
+    return m_parentsList.has_value();
+}
+
+const std::vector<Asset>& Asset::getParentsList() const
+{
+    return m_parentsList.value();
 }
 
 // setters
@@ -263,6 +268,124 @@ void Asset::setLinkedAssets(const std::vector<AssetLink>& assets)
 void Asset::setSecondaryID(const std::string& secondaryID)
 {
     m_secondaryID = secondaryID;
+}
+
+//wrapper for address
+Asset::AddressMap Asset::getAddressMap() const
+{
+    Asset::AddressMap addresses;
+
+    for(uint16_t index = 0; index <= 255; index++ )
+    {
+        const std::string & address = getAddress(index);
+
+        if(!address.empty()){
+            addresses[index] = address;
+        }
+    }
+
+    return addresses;
+}
+
+const std::string& Asset::getAddress(uint8_t index) const
+{
+    return getExtEntry("ip."+std::to_string(index));
+}
+
+void Asset::setAddress(uint8_t index, const std::string & address)
+{
+    setExtEntry("ip."+std::to_string(index), address);
+}
+
+void Asset::removeAddress(uint8_t index)
+{
+    setAddress(index, "");
+}
+
+//Wrapper for Endpoints
+Asset::ProtocolMap  Asset::getProtocolMap() const
+{
+    Asset::ProtocolMap protocols;
+
+    for(uint16_t index = 0; index <= 255; index++ )
+    {
+        const std::string & protocol = getEndpointProtocol(index);
+
+        if(!protocol.empty()){
+            protocols[index] = protocol;
+        }
+    }
+
+    return protocols;
+}
+
+const std::string&  Asset::getEndpointProtocol(uint8_t index) const { return getEndpointData(index, "protocol"); }
+const std::string&  Asset::getEndpointPort(uint8_t index) const { return getEndpointData(index, "port"); }
+const std::string&  Asset::getEndpointSubAddress(uint8_t index) const { return getEndpointData(index, "sub_address"); }
+const std::string&  Asset::getEndpointOperatingStatus(uint8_t index) const { return getEndpointData(index, "status.operating"); }
+const std::string&  Asset::getEndpointErrorMessage(uint8_t index) const { return getEndpointData(index, "status.error_msg"); }
+
+const std::string&  Asset::getEndpointProtocolAttribut(uint8_t index, const std::string & attributName) const 
+{
+    static std::string noProtocol;
+
+    std::string protocol = getEndpointProtocol(index);
+    if(protocol.empty()) {
+        return noProtocol;
+    }
+
+    return getEndpointData(index, "."+protocol+"."+attributName);
+}
+
+void Asset::setEndpointProtocol(uint8_t index, const std::string & val) { return setEndpointData(index, "protocol", val); }
+void Asset::setEndpointPort(uint8_t index, const std::string & val) { return setEndpointData(index, "port", val); }
+void Asset::setEndpointSubAddress(uint8_t index, const std::string & val) { return setEndpointData(index, "sub_address", val); }
+void Asset::setEndpointOperatingStatus(uint8_t index, const std::string & val) { return setEndpointData(index, "status.operating", val); }
+void Asset::setEndpointErrorMessage(uint8_t index, const std::string & val) { return setEndpointData(index, "status.error_msg", val); }
+
+void Asset::setEndpointProtocolAttribut(uint8_t index, const std::string & attributName, const std::string & val)
+{
+    std::string protocol = getEndpointProtocol(index);
+    if(protocol.empty()) {
+        return;
+    }
+
+    return setEndpointData(index, "."+protocol+"."+attributName, val);
+}
+
+void Asset::removeEndpoint(uint8_t index)
+{
+    setEndpointProtocol(index, "");
+    setEndpointPort(index, "");
+    setEndpointSubAddress(index, "");
+    setEndpointOperatingStatus(index, "");
+    setEndpointErrorMessage(index, "");
+}
+
+const std::string&  Asset::getEndpointData(uint8_t index, const std::string &field) const
+{
+    return getExtEntry("endpoint."+std::to_string(index)+"."+field);
+}
+
+void  Asset::setEndpointData(uint8_t index, const std::string &field, const std::string & val)
+{
+    setExtEntry("endpoint."+std::to_string(index)+"."+field, val);
+}
+
+//friendly name
+const std::string& getFriendlyName() const
+{
+    return getEx
+}
+
+const std::string& Asset::getFriendlyName() const
+{
+    return getExtEntry("name");
+}
+
+void Asset::setFriendlyName(const std::string & friendlyName)
+{
+    setExtEntry("name", friendlyName);
 }
 
 void Asset::dump(std::ostream& os)
@@ -505,8 +628,44 @@ UIAsset::UIAsset(const Asset& a)
 {
 }
 
-void UIAsset::serializeUI(cxxtools::SerializationInfo& /*si*/) const
+static constexpr const char* UI_ASSET_ID  = "id";
+static constexpr const char* UI_ASSET_LOCATION  = "location_id";
+static constexpr const char* UI_ASSET_LOCATION_URI  = "location_uri";
+static constexpr const char* UI_ASSET_ID  = "id";
+
+void UIAsset::serializeUI(cxxtools::SerializationInfo& si) const
 {
+    si.addMember(UI_ASSET_ID) <<= m_internalName;
+
+    if(!m_parentIname.empty())
+    {
+        si.addMember(UI_ASSET_LOCATION) <<= m_parentIname;
+        si.addMember(UI_ASSET_LOCATION) <<= ("/api/v1/asset/"+ m_parentIname);
+    }
+
+    si.addMember(SI_TYPE) <<= m_assetType;
+    si.addMember(SI_SUB_TYPE) <<= m_assetSubtype;
+    si.addMember(SI_NAME) <<= m_internalName;
+    si.addMember(SI_PRIORITY) <<= m_priority;
+    si.addMember(SI_PARENT) <<= m_parentIname;
+    si.addMember(SI_LINKED) <<= m_linkedAssets;
+    // ext
+    cxxtools::SerializationInfo& ext = si.addMember("");
+
+    cxxtools::SerializationInfo data;
+    for (const auto& e : m_ext) {
+        cxxtools::SerializationInfo& entry = data.addMember(e.first);
+        entry.addMember("value") <<= e.second.getValue();
+        entry.addMember("readOnly") <<= e.second.isReadOnly();
+        entry.addMember("updated") <<= e.second.wasUpdated();
+    }
+    data.setCategory(cxxtools::SerializationInfo::Category::Object);
+    ext = data;
+    ext.setName(SI_EXT);
+
+    if (m_parentsList.has_value()) {
+        si.addMember(SI_PARENTS_LIST) <<= m_parentsList.value();
+    }
 }
 
 void UIAsset::deserializeUI(const cxxtools::SerializationInfo& /*si*/)

@@ -233,7 +233,6 @@ private:
 void operator<<=(cxxtools::SerializationInfo& si, const ExtMapElement& e);
 void operator>>=(const cxxtools::SerializationInfo& si, ExtMapElement& e);
 
-
 class Asset
 {
 public:
@@ -251,15 +250,21 @@ public:
     const std::string&   getAssetTag() const;
     const Asset::ExtMap& getExt() const;
     const std::string&   getSecondaryID() const;
+
     // ext param getters (return empty string if key not found)
-    const std::string&                      getExtEntry(const std::string& key) const;
-    bool                                    isExtEntryReadOnly(const std::string& key) const;
-    const std::string&                      getUuid() const;
-    const std::string&                      getManufacturer() const;
-    const std::string&                      getModel() const;
-    const std::string&                      getSerialNo() const;
-    const std::vector<AssetLink>&           getLinkedAssets() const;
-    const std::optional<std::vector<Asset>> getParentsList() const;
+    const std::string&              getExtEntry(const std::string& key) const;
+    bool                            isExtEntryReadOnly(const std::string& key) const;
+    const std::string&              getUuid() const;
+    const std::string&              getManufacturer() const;
+    const std::string&              getModel() const;
+    const std::string&              getSerialNo() const;
+    const std::vector<AssetLink>&   getLinkedAssets() const;
+    bool                            hasParentsList() const;
+    const std::vector<Asset>&       getParentsList() const;
+
+    const std::string&              getFriendlyName() const; 
+    std::vector<std::string>        getAddresses() const;
+
 
     // setters
     void setInternalName(const std::string& internalName);
@@ -272,6 +277,41 @@ public:
     void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false);
     void setLinkedAssets(const std::vector<AssetLink>& assets);
     void setSecondaryID(const std::string& secondaryID);
+    void setFriendlyName(const std::string& friendlyName);
+
+    //Wrapper for addresses => max 256
+    using AddressMap = std::map<uint8_t, std::string>;
+
+    AddressMap          getAddressMap() const;
+    const std::string&  getAddress(uint8_t index) const;
+
+    void setAddress(uint8_t index, const std::string & address);
+    void removeAddress(uint8_t index);
+
+    //Wrapper Endpoints => max 256
+    using ProtocolMap = std::map<uint8_t, std::string>;
+    
+    ProtocolMap         getProtocolMap() const;
+
+    const std::string&  getEndpointProtocol(uint8_t index) const;
+    const std::string&  getEndpointPort(uint8_t index) const;
+    const std::string&  getEndpointSubAddress(uint8_t index) const;
+    const std::string&  getEndpointOperatingStatus(uint8_t index) const;
+    const std::string&  getEndpointErrorMessage(uint8_t index) const;
+
+    const std::string&  getEndpointProtocolAttribut(uint8_t index, const std::string & attributName) const;
+
+    void setEndpointProtocol(uint8_t index, const std::string & val);
+    void setEndpointPort(uint8_t index, const std::string & val);
+    void setEndpointSubAddress(uint8_t index, const std::string & val);
+    void setEndpointOperatingStatus(uint8_t index, const std::string & val);
+    void setEndpointErrorMessage(uint8_t index, const std::string & val);
+
+    void setEndpointProtocolAttribut(uint8_t index, const std::string & attributName, const std::string & val);
+
+    void removeEndpoint(uint8_t index);
+
+    //
     // dump
     void dump(std::ostream& os);
 
@@ -304,6 +344,10 @@ protected:
     std::vector<AssetLink> m_linkedAssets;
 
     std::optional<std::vector<Asset>> m_parentsList;
+
+    const std::string&  getEndpointData(uint8_t index, const std::string &field) const;
+    void  setEndpointData(uint8_t index, const std::string &field, const std::string & val);
+
 };
 
 void operator<<=(cxxtools::SerializationInfo& si, const fty::Asset& asset);
