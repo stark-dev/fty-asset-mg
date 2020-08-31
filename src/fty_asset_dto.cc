@@ -631,7 +631,10 @@ UIAsset::UIAsset(const Asset& a)
 static constexpr const char* UI_ASSET_ID  = "id";
 static constexpr const char* UI_ASSET_LOCATION  = "location_id";
 static constexpr const char* UI_ASSET_LOCATION_URI  = "location_uri";
-static constexpr const char* UI_ASSET_ID  = "id";
+static constexpr const char* UI_ASSET_FRIENDLY_NAME  = "name";
+static constexpr const char* UI_TYPE  = "type";
+static constexpr const char* UI_SUBTYPE  = "sub_type";
+static constexpr const char* UI_PRIORITY  = "priority";
 
 void UIAsset::serializeUI(cxxtools::SerializationInfo& si) const
 {
@@ -643,12 +646,16 @@ void UIAsset::serializeUI(cxxtools::SerializationInfo& si) const
         si.addMember(UI_ASSET_LOCATION) <<= ("/api/v1/asset/"+ m_parentIname);
     }
 
-    si.addMember(SI_TYPE) <<= m_assetType;
-    si.addMember(SI_SUB_TYPE) <<= m_assetSubtype;
-    si.addMember(SI_NAME) <<= m_internalName;
-    si.addMember(SI_PRIORITY) <<= m_priority;
-    si.addMember(SI_PARENT) <<= m_parentIname;
+    si.addMember(UI_ASSET_FRIENDLY_NAME) <<= getFriendlyName();
+
+    si.addMember(UI_TYPE) <<= m_assetType;
+    si.addMember(UI_SUBTYPE) <<= m_assetSubtype;
+    
+    si.addMember(UI_PRIORITY) <<= "P"+std::to_string(m_priority);
+
+
     si.addMember(SI_LINKED) <<= m_linkedAssets;
+    
     // ext
     cxxtools::SerializationInfo& ext = si.addMember("");
 
