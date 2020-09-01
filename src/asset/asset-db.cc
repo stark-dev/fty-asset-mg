@@ -123,7 +123,7 @@ void DB::loadExtMap(Asset& asset)
     asset.clearExtMap();
 
     for (const auto& row : res) {
-        asset.setExtEntry(row.getString("keytag"), row.getString("value"), row.getBool("read_only"), false);
+        asset.setExtEntry(row.getString("keytag"), row.getString("value"), row.getBool("read_only"), true);
     }
 }
 

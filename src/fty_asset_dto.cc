@@ -258,11 +258,17 @@ void Asset::clearExtMap()
     m_ext.clear();
 }
 
-void Asset::setExtEntry(const std::string& key, const std::string& value, bool readOnly, bool wasUpdated)
+void Asset::setExtEntry(
+    const std::string& key, const std::string& value, bool readOnly, bool forceUpdatedFalse)
 {
-    ExtMapElement element(value, readOnly, wasUpdated);
-
-    m_ext[key] = element;
+    if (m_ext.find(key) != m_ext.end()) {
+        // key already exists, update values
+        m_ext.at(key).setValue(value);
+        m_ext.at(key).setReadOnly(readOnly);
+    } else {
+        ExtMapElement element(value, readOnly, forceUpdatedFalse);
+        m_ext[key] = element;
+    }
 }
 
 void Asset::setLinkedAssets(const std::vector<AssetLink>& assets)
@@ -362,9 +368,10 @@ void Asset::deserialize(const cxxtools::SerializationInfo& si)
     si.getMember(SI_LINKED) >>= m_linkedAssets;
 
     // ext map
+    m_ext.clear();
     const cxxtools::SerializationInfo ext = si.getMember(SI_EXT);
     for (const auto& si : ext) {
-        std::string key = si.name();
+        std::string   key = si.name();
         ExtMapElement element;
         si >>= element;
         m_ext[key] = element;
@@ -387,11 +394,14 @@ void operator>>=(const cxxtools::SerializationInfo& si, fty::Asset& asset)
     asset.deserialize(si);
 }
 
-ExtMapElement::ExtMapElement(const std::string& val, bool readOnly, bool wasUpdated)
+ExtMapElement::ExtMapElement(const std::string& val, bool readOnly, bool forceToFalse)
 {
-    m_value      = val;
-    m_readOnly   = readOnly;
-    m_wasUpdated = wasUpdated;
+    setValue(val);
+    setReadOnly(readOnly);
+
+    if (forceToFalse) {
+        m_wasUpdated = false;
+    }
 }
 
 ExtMapElement::ExtMapElement(const ExtMapElement& element)
@@ -445,17 +455,14 @@ bool ExtMapElement::wasUpdated() const
 
 void ExtMapElement::setValue(const std::string& val)
 {
+    m_wasUpdated |= (m_value != val);
     m_value = val;
 }
 
 void ExtMapElement::setReadOnly(bool readOnly)
 {
+    m_wasUpdated |= (m_readOnly != readOnly);
     m_readOnly = readOnly;
-}
-
-void ExtMapElement::setWasUpdated(bool wasUpdated)
-{
-    m_wasUpdated = wasUpdated;
 }
 
 bool ExtMapElement::operator==(const ExtMapElement& element) const

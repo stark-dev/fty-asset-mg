@@ -213,7 +213,6 @@ public:
     // setters
     void setValue(const std::string& val);
     void setReadOnly(bool readOnly);
-    void setWasUpdated(bool wasUpdated);
 
     // overload equality and inequality check
     bool operator==(const ExtMapElement& element) const;
@@ -270,8 +269,8 @@ public:
     void setAssetTag(const std::string& assetTag);
     void setExtMap(const ExtMap& map);
     void clearExtMap();
-    void setExtEntry(
-        const std::string& key, const std::string& value, bool readOnly = true, bool wasUpdated = false);
+    void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false,
+        bool forceUpdatedFalse = false);
     void setLinkedAssets(const std::vector<AssetLink>& assets);
     void setSecondaryID(const std::string& secondaryID);
     // dump
