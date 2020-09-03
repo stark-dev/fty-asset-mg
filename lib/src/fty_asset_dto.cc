@@ -491,8 +491,8 @@ void Asset::deserialize(const cxxtools::SerializationInfo& si)
     // ext map
     m_ext.clear();
     const cxxtools::SerializationInfo ext = si.getMember(SI_EXT);
-    for (const auto& si : ext) {
-        std::string   key = si.name();
+    for (const auto& siExt : ext) {
+        std::string   key = siExt.name();
         ExtMapElement element;
         si >>= element;
         m_ext[key] = element;

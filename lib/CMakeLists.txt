@@ -18,7 +18,7 @@ etn_target(shared ${PROJECT_NAME}
     PUBLIC_INCLUDE_DIR
         public_includes
     PUBLIC
-        *.h
+        fty_asset_dto.h
     USES_PRIVATE
         cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
 )
