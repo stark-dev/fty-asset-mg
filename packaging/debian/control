@@ -24,7 +24,7 @@ Maintainer:     fty-asset Developers <eatonipcopensource@eaton.com>
 Standards-Version: 4.0.1.0
 Build-Depends: debhelper (>= 9),
     pkg-config,
-    fty-cmake,
+    fty-cmake-dev,
     libsodium-dev,
     libzmq3-dev,
     libczmq-dev (>= 3.0.2),
