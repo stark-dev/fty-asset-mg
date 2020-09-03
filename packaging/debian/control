@@ -24,6 +24,7 @@ Maintainer:     fty-asset Developers <eatonipcopensource@eaton.com>
 Standards-Version: 4.0.1.0
 Build-Depends: debhelper (>= 9),
     pkg-config,
+    fty-cmake,
     libsodium-dev,
     libzmq3-dev,
     libczmq-dev (>= 3.0.2),
@@ -46,53 +47,27 @@ Build-Depends: debhelper (>= 9),
     asciidoc-base | asciidoc, xmlto,
     dh-autoreconf
 
-Package: libfty-asset1
+Package: libfty-asset
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: fty-asset shared library
- This package contains shared library for fty-asset:
- agent managing information about assets
-
+Depends:
+    ${shlibs:Depends},
+    ${misc:Depends}
+Description: fty-asset shared library with dto
+ 
 Package: libfty-asset-dev
 Architecture: any
 Section: libdevel
 Depends:
+    ${shlibs:Depends},
     ${misc:Depends},
-    libsodium-dev,
-    libzmq3-dev,
-    libczmq-dev (>= 3.0.2),
-    libcxxtools-dev,
-    libtntdb-dev,
-    libmlm-dev (>= 1.0.0),
-    libmagic-dev,
-    libssl-dev,
-    uuid-dev,
-    libfty-common-logging-dev,
-    libfty-proto-dev (>= 1.0.0),
-    libfty-common-db-dev,
-    libfty-common-mlm-dev,
-    libfty-common-dto-dev,
-    libfty-common-messagebus-dev,
-    libfty-asset-activator-dev,
-    libfty-asset1 (= ${binary:Version})
+    libfty-asset
 Description: fty-asset development tools
- This package contains development files for fty-asset:
- agent managing information about assets
 
-Package: fty-asset
+Package: fty-asset-server
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends},
-Description: runnable binaries from fty-asset
- Main package for fty-asset:
- agent managing information about assets
-
-Package: fty-asset-dbg
-Architecture: any
-Section: debug
-Priority: optional
 Depends:
-    fty-asset (= ${binary:Version}),
-    ${misc:Depends}
-Description: fty-asset debugging symbols
- This package contains the debugging symbols for fty-asset:
- agent managing information about assets.
+    libfty-asset,
+   ${shlibs:Depends},
+   ${misc:Depends}
+Description: fty-asset-server 
+ This package contains fty asset agent

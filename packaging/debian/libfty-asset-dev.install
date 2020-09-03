@@ -1,3 +1,3 @@
-usr/include/*
-usr/lib/*/libfty_asset.so
-usr/lib/*/pkgconfig/libfty_asset.pc
+usr/include/fty-asset/*
+usr/share/*/cmake/*
+usr/lib/*/pkgconfig/fty-asset.pc
