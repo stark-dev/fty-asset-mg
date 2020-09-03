@@ -135,18 +135,7 @@ bool DBTest::hasLinkedAssets(const Asset& /*asset*/)
     return true;
 }
 
-void DBTest::link(Asset& /*src*/, const std::string& /*srcOut*/, Asset& /*dest*/, const std::string& /*destIn*/, int /*linkType*/)
-{
-    std::cout << "DBTest::link" << std::endl;
-}
-
-void DBTest::unlink(
-    Asset& /*src*/, const std::string& /*srcOut*/, Asset& /*dest*/, const std::string& /*destIn*/, int /*linkType*/)
-{
-    std::cout << "DBTest::unlink" << std::endl;
-}
-
-void DBTest::unlinkAll(Asset& /*dest*/)
+void DBTest::unlinkAll(Asset& dest)
 {
     std::cout << "DBTest::unlinkAll" << std::endl;
 }

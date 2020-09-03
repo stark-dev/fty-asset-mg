@@ -38,45 +38,176 @@
 namespace fty {
 
 AssetLink::AssetLink(const std::string& s, std::string o, std::string i, int t)
-    : sourceId(s)
-    , srcOut(o)
-    , destIn(i)
-    , linkType(t)
+    : m_sourceId(s)
+    , m_srcOut(o)
+    , m_destIn(i)
+    , m_linkType(t)
 {
+}
+
+static constexpr const char* SI_LINK_SOURCE  = "source";
+static constexpr const char* SI_LINK_TYPE    = "link_type";
+static constexpr const char* SI_LINK_SRC_OUT = "src_out";
+static constexpr const char* SI_LINK_DEST_IN = "dest_in";
+static constexpr const char* SI_LINK_EXT     = "link_ext";
+
+const std::string& AssetLink::sourceId() const
+{
+    return m_sourceId;
+}
+
+const std::string& AssetLink::srcOut() const
+{
+    return m_srcOut;
+}
+
+const std::string& AssetLink::destIn() const
+{
+    return m_destIn;
+}
+
+const int AssetLink::linkType() const
+{
+    return m_linkType;
+}
+
+const AssetLink::ExtMap& AssetLink::ext() const
+{
+    return m_ext;
+}
+
+const std::string& AssetLink::extEntry(const std::string& key) const
+{
+    static const std::string extNotFound;
+
+    auto search = m_ext.find(key);
+
+    if (search != m_ext.end()) {
+        return search->second.getValue();
+    }
+
+    return extNotFound;
+}
+
+bool AssetLink::isReadOnly(const std::string& key) const
+{
+    auto search = m_ext.find(key);
+
+    if (search != m_ext.end()) {
+        return search->second.isReadOnly();
+    }
+
+    return false;
+}
+
+
+void AssetLink::setSourceId(const std::string& sourceId)
+{
+    m_sourceId = sourceId;
+}
+
+void AssetLink::setSrcOut(const std::string& srcOut)
+{
+    m_srcOut = srcOut;
+}
+
+void AssetLink::setDestIn(const std::string& destIn)
+{
+    m_destIn = destIn;
+}
+
+void AssetLink::setLinkType(const int linkType)
+{
+    m_linkType = linkType;
+}
+
+void AssetLink::setExt(const AssetLink::ExtMap& ext)
+{
+    m_ext = ext;
+}
+
+void AssetLink::setExtEntry(
+    const std::string& key, const std::string& value, bool readOnly, bool forceUpdatedFalse)
+{
+    if (m_ext.find(key) != m_ext.end()) {
+        // key already exists, update values
+        m_ext.at(key).setValue(value);
+        m_ext.at(key).setReadOnly(readOnly);
+    } else {
+        ExtMapElement element(value, readOnly, forceUpdatedFalse);
+        m_ext[key] = element;
+    }
+}
+
+void AssetLink::clearExtMap()
+{
+    m_ext.clear();
+}
+
+void AssetLink::serialize(cxxtools::SerializationInfo& si) const
+{
+    si.addMember(SI_LINK_SOURCE) <<= m_sourceId;
+    si.addMember(SI_LINK_TYPE) <<= m_linkType;
+    if (!m_srcOut.empty()) {
+        si.addMember(SI_LINK_SRC_OUT) <<= m_srcOut;
+    }
+    if (!m_destIn.empty()) {
+        si.addMember(SI_LINK_DEST_IN) <<= m_destIn;
+    }
+
+    if (!m_ext.empty()) {
+        cxxtools::SerializationInfo& ext = si.addMember("");
+        cxxtools::SerializationInfo  data;
+        for (const auto& e : m_ext) {
+            cxxtools::SerializationInfo& entry = data.addMember(e.first);
+            entry <<= e.second;
+        }
+        data.setCategory(cxxtools::SerializationInfo::Category::Object);
+        ext = data;
+        ext.setName(SI_LINK_EXT);
+    }
+}
+
+void AssetLink::deserialize(const cxxtools::SerializationInfo& si)
+{
+    si.getMember(SI_LINK_SOURCE) >>= m_sourceId;
+    si.getMember(SI_LINK_TYPE) >>= m_linkType;
+    if (si.findMember(SI_LINK_SRC_OUT) != NULL) {
+        si.getMember(SI_LINK_SRC_OUT) >>= m_srcOut;
+    }
+    if (si.findMember(SI_LINK_DEST_IN) != NULL) {
+        si.getMember(SI_LINK_DEST_IN) >>= m_destIn;
+    }
+
+    // ext map
+    m_ext.clear();
+    if (si.findMember(SI_LINK_EXT) != NULL) {
+        const cxxtools::SerializationInfo ext = si.getMember(SI_LINK_EXT);
+        for (const auto& si : ext) {
+            std::string   key = si.name();
+            ExtMapElement element;
+            si >>= element;
+            m_ext[key] = element;
+        }
+    }
 }
 
 bool operator==(const AssetLink& l, const AssetLink& r)
 {
-    return (
-        l.sourceId == r.sourceId && l.srcOut == r.srcOut && l.destIn == r.destIn && r.linkType == l.linkType);
+    // note that the external map of attributes does not determine if two links are equal
+    return ((l.sourceId() == r.sourceId()) && (l.srcOut() == r.srcOut()) && (l.destIn() == r.destIn()) &&
+            (l.linkType() == r.linkType()));
 }
 
 void operator<<=(cxxtools::SerializationInfo& si, const AssetLink& l)
 {
-    si.addMember("source") <<= l.sourceId;
-    si.addMember("link_type") <<= l.linkType;
-    if (!l.srcOut.empty()) {
-        si.addMember("src_out") <<= l.srcOut;
-    }
-    if (!l.destIn.empty()) {
-        si.addMember("dest_in") <<= l.destIn;
-    }
+    l.serialize(si);
 }
 
 void operator>>=(const cxxtools::SerializationInfo& si, AssetLink& l)
 {
-    si.getMember("source") >>= l.sourceId;
-    si.getMember("link_type") >>= l.linkType;
-
-    std::string tmpStr;
-    if (si.getMember("src_out", tmpStr)) {
-        l.srcOut = tmpStr;
-    }
-
-    if (si.getMember("dest_in", tmpStr)) {
-        l.destIn = tmpStr;
-    }
-} // namespace fty
+    l.deserialize(si);
+}
 
 
 const std::string assetStatusToString(AssetStatus status)
@@ -279,6 +410,31 @@ void Asset::setExtEntry(
     }
 }
 
+void Asset::addLink(const std::string& sourceId, const std::string& scrOut, const std::string& destIn,
+    int linkType, const AssetLink::ExtMap& attributes)
+{
+    AssetLink l(sourceId, scrOut, destIn, linkType);
+    l.setExt(attributes);
+
+    auto found = std::find(m_linkedAssets.begin(), m_linkedAssets.end(), l);
+    if (found != m_linkedAssets.end()) {
+        log_error("Link already exists");
+    } else {
+        m_linkedAssets.push_back(l);
+    }
+}
+
+void Asset::removeLink(
+    const std::string& sourceId, const std::string& scrOut, const std::string& destIn, int linkType)
+{
+    AssetLink l(sourceId, scrOut, destIn, linkType);
+    auto      found = std::find(m_linkedAssets.begin(), m_linkedAssets.end(), l);
+
+    if (found != m_linkedAssets.end()) {
+        m_linkedAssets.erase(found);
+    }
+}
+
 void Asset::setLinkedAssets(const std::vector<AssetLink>& assets)
 {
     m_linkedAssets = assets;
@@ -412,6 +568,7 @@ void Asset::dump(std::ostream& os)
     os << "priority    : " << m_priority << std::endl;
     os << "tag         : " << m_assetTag << std::endl;
     os << "secondaryID : " << m_secondaryID << std::endl;
+    os << "ext attrib  : " << m_secondaryID << std::endl;
 
     for (const auto& e : m_ext) {
         os << "- key: " << e.first << " - value: " << e.second.getValue()
@@ -420,8 +577,21 @@ void Asset::dump(std::ostream& os)
     }
 
     for (const auto& l : m_linkedAssets) {
-        os << "- linked to: " << l.sourceId << " on port: " << l.srcOut << " from port " << l.destIn
-           << std::endl;
+        os << "- linked to: " << l.sourceId() << " ( link type : " << l.linkType() << ")";
+        if (!l.srcOut().empty()) {
+            os << " on port: " << l.srcOut();
+        }
+        if (!l.destIn().empty()) {
+            os << " from port " << l.destIn() << std::endl;
+        }
+
+        os << "- ext attrib  : " << m_secondaryID << std::endl;
+
+        for (const auto& e : l.ext()) {
+            os << "  - key: " << e.first << " - value: " << e.second.getValue()
+               << (e.second.isReadOnly() ? " [ReadOny]" : "") << (e.second.wasUpdated() ? " [Updated]" : "")
+               << std::endl;
+        }
     }
 }
 

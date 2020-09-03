@@ -69,7 +69,6 @@ static V value(const std::map<K, V>& map, const typename identify<K>::type& key,
 // ===========================================================================================================
 
 
-
 // ===========================================================================================================
 
 void AssetServer::destroyMlmClient(mlm_client_t* client)
@@ -701,7 +700,7 @@ void AssetServer::listAsset(const messagebus::Message& msg)
             idOnly = false;
         }
 
-        std::vector<std::string> inameList = fty::AssetImpl::list(filters);
+        std::vector<std::string>    inameList = fty::AssetImpl::list(filters);
         cxxtools::SerializationInfo si;
 
         if (idOnly) {
@@ -881,10 +880,8 @@ void AssetServer::restoreAssets(const cxxtools::SerializationInfo& si, bool tryA
     // restore links
     for (AssetImpl& a : assetsToRestore) {
         try {
-            auto links = a.getLinkedAssets();
-            for (const auto& l : links) {
-                a.linkTo(l.sourceId, l.srcOut, l.destIn, l.linkType);
-            }
+            // save links
+            a.update();
         } catch (std::exception& e) {
             log_error(e.what());
         }
