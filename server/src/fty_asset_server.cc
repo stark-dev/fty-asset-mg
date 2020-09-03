@@ -1877,12 +1877,16 @@ void fty_asset_server_test(bool /*verbose*/)
         asset.setExtEntry("testKey", "testValue");
         asset.setPriority(4);
 
+        asset.dump(std::cout);
+
         fty_proto_t* p = fty::conversion::toFtyProto(asset, "UPDATE", true);
 
         fty::Asset asset2;
 
         fty::conversion::fromFtyProto(p, asset2, false, true);
         fty_proto_destroy(&p);
+
+        asset2.dump(std::cout);
 
         assert(asset == asset2);
 
@@ -1914,7 +1918,7 @@ void fty_asset_server_test(bool /*verbose*/)
         asset.setAssetSubtype("ups");
         asset.setParentIname("");
         asset.setPriority(4);
-        asset.setExtEntry("name", "Test asset", false);
+        asset.setExtEntry("name", "Test asset");
 
         publisher->connect();
 

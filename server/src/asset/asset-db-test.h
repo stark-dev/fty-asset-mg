@@ -38,7 +38,7 @@ public:
 
     void loadAsset(const std::string& nameId, Asset& asset) override;
 
-    fty::Asset::ExtMap       getExtMap(const std::string& iname) override;
+    void                     loadExtMap(Asset& asset) override;
     void                     loadLinkedAssets(Asset& asset) override;
     std::vector<std::string> getChildren(const Asset& asset) override;
 

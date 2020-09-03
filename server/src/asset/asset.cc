@@ -230,7 +230,7 @@ AssetImpl::AssetImpl(const std::string& nameId, bool loadLinks)
     : m_storage(getStorage())
 {
     m_storage.loadAsset(nameId, *this);
-    m_ext = m_storage.getExtMap(m_internalName);
+    m_storage.loadExtMap(*this);
     if (loadLinks) {
         m_storage.loadLinkedAssets(*this);
     }
@@ -263,17 +263,11 @@ bool AssetImpl::hasLogicalAsset() const
 
 bool AssetImpl::isVirtual() const
 {
-    return (
-        (getAssetType() == TYPE_CLUSTER) ||
-        (getAssetType() == TYPE_HYPERVISOR) ||
-        (getAssetType() == TYPE_VIRTUAL_MACHINE) ||
-        (getAssetType() == TYPE_STORAGE_SERVICE) ||
-        (getAssetType() == TYPE_VAPP) ||
-        (getAssetType() == TYPE_CONNECTOR) ||
-        (getAssetType() == TYPE_SERVER) ||
-        (getAssetType() == TYPE_PLANNER) ||
-        (getAssetType() == TYPE_PLAN)
-    );
+    return ((getAssetType() == TYPE_CLUSTER) || (getAssetType() == TYPE_HYPERVISOR) ||
+            (getAssetType() == TYPE_VIRTUAL_MACHINE) || (getAssetType() == TYPE_STORAGE_SERVICE) ||
+            (getAssetType() == TYPE_VAPP) || (getAssetType() == TYPE_CONNECTOR) ||
+            (getAssetType() == TYPE_SERVER) || (getAssetType() == TYPE_PLANNER) ||
+            (getAssetType() == TYPE_PLAN));
 }
 
 bool AssetImpl::hasLinkedAssets() const
@@ -377,12 +371,11 @@ void AssetImpl::create()
             std::string iname;
             do {
                 iname = createAssetName(getAssetType(), getAssetSubtype());
-            }
-            while(m_storage.getID(iname));
+            } while (m_storage.getID(iname));
 
             setInternalName(iname);
         }
-        
+
         // set creation timestamp
         setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
         // set uuid
@@ -539,7 +532,7 @@ static std::vector<fty::Asset> buildParentsList(const std::string iname)
 
     fty::AssetImpl a(iname);
 
-    unsigned short level   = 0;
+    unsigned short level = 0;
 
     while ((!a.getParentIname().empty()) && (level < maxLevels)) {
         a = fty::AssetImpl(a.getParentIname());
@@ -631,9 +624,9 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
     for (const auto& siExt : ext) {
         std::string key = siExt.name();
         std::string val;
-        bool readOnly = false;
-        siExt.getMember("value") >>= val;
-        siExt.getMember("readOnly") >>= readOnly;
+        bool        readOnly = false;
+        si.getMember("value") >>= val;
+        si.getMember("readOnly") >>= readOnly;
 
         asset.setExtEntry(key, val, readOnly);
     }
@@ -652,7 +645,7 @@ std::vector<std::string> AssetImpl::listAll()
 void AssetImpl::load()
 {
     m_storage.loadAsset(getInternalName(), *this);
-    m_ext = m_storage.getExtMap(m_internalName);
+    m_storage.loadExtMap(*this);
     m_storage.loadLinkedAssets(*this);
 }
 

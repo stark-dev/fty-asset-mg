@@ -93,9 +93,9 @@ void DB::loadAsset(const std::string& nameId, Asset& asset)
     }
 }
 
-fty::Asset::ExtMap DB::getExtMap(const std::string& iname)
+void DB::loadExtMap(Asset& asset)
 {
-    uint32_t assetID = getID(iname);
+    uint32_t assetID = getID(asset.getInternalName());
     assert(assetID);
 
     // clang-format off
@@ -123,14 +123,11 @@ fty::Asset::ExtMap DB::getExtMap(const std::string& iname)
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
-    fty::Asset::ExtMap extMap;
+    asset.clearExtMap();
 
     for (const auto& row : res) {
-        extMap[row.getString("keytag")] =
-            ExtMapElement(row.getString("value"), row.getBool("read_only"), true);
+        asset.setExtEntry(row.getString("keytag"), row.getString("value"), row.getBool("read_only"), true);
     }
-
-    return extMap;
 }
 
 std::vector<std::string> DB::getChildren(const Asset& asset)
