@@ -326,7 +326,7 @@ uint32_t DB::getLinkID(const uint32_t destId, const AssetLink& l)
         auto v = q.selectValue();
         m_conn_lock.unlock();
 
-        linkID = v.getInt32();
+        linkID = v.getUnsigned32();
     } catch (tntdb::NotFound&) {
         m_conn_lock.unlock();
     } catch (std::exception& e) {
@@ -440,18 +440,18 @@ void DB::saveLinkExtMap(const uint32_t linkID, const AssetLink& link)
 
             if (!it.second.getValue().empty()) {
                 // clang-format off
-                auto q = m_conn.prepareCached(R"(
+                auto q_ext_link = m_conn.prepareCached(R"(
                     INSERT INTO t_bios_asset_link_attributes (keytag, value, id_link, read_only)
                     VALUES (:key, :value, :linkId, :readOnly)
                 )");
                 // clang-format on
-                q.set("key", it.first);
-                q.set("value", it.second.getValue());
-                q.set("readOnly", it.second.isReadOnly());
-                q.set("linkId", linkID);
+                q_ext_link.set("key", it.first);
+                q_ext_link.set("value", it.second.getValue());
+                q_ext_link.set("readOnly", it.second.isReadOnly());
+                q_ext_link.set("linkId", linkID);
                 try {
                     m_conn_lock.lock();
-                    q.execute();
+                    q_ext_link.execute();
                     m_conn_lock.unlock();
                 } catch (std::exception& e) {
                     m_conn_lock.unlock();
@@ -465,7 +465,7 @@ void DB::saveLinkExtMap(const uint32_t linkID, const AssetLink& link)
 
             if (!it.second.getValue().empty()) {
                 // clang-format off
-                auto q = m_conn.prepareCached(R"(
+                auto q_ext_link = m_conn.prepareCached(R"(
                     UPDATE t_bios_asset_link_attributes
                     SET
                         value = :value,
@@ -473,13 +473,13 @@ void DB::saveLinkExtMap(const uint32_t linkID, const AssetLink& link)
                     WHERE id_asset_link_attribute = :extId
                 )");
                 // clang-format on
-                q.set("value", it.second.getValue());
-                q.set("readOnly", it.second.isReadOnly());
-                q.set("extId", std::get<0>(*found));
+                q_ext_link.set("value", it.second.getValue());
+                q_ext_link.set("readOnly", it.second.isReadOnly());
+                q_ext_link.set("extId", std::get<0>(*found));
 
                 try {
                     m_conn_lock.lock();
-                    q.execute();
+                    q_ext_link.execute();
                     m_conn_lock.unlock();
                 } catch (std::exception& e) {
                     m_conn_lock.unlock();
@@ -493,16 +493,16 @@ void DB::saveLinkExtMap(const uint32_t linkID, const AssetLink& link)
 
     for (const auto& toRem : toBeRemoved) {
         // clang-format off
-        auto q = m_conn.prepareCached(R"(
+        auto q_ext_link = m_conn.prepareCached(R"(
             DELETE FROM t_bios_asset_link_attributes
             WHERE id_asset_link_attribute = :extId
         )");
         // clang-format on
-        q.set("extId", std::get<0>(toRem));
+        q_ext_link.set("extId", std::get<0>(toRem));
 
         try {
             m_conn_lock.lock();
-            q.execute();
+            q_ext_link.execute();
             m_conn_lock.unlock();
         } catch (std::exception& e) {
             m_conn_lock.unlock();
@@ -710,7 +710,7 @@ void DB::saveLink(const uint32_t destId, const AssetLink& l)
     try {
         m_conn_lock.lock();
         q1.execute();
-        linkId = m_conn.lastInsertId();
+        linkId = static_cast<uint32_t>(m_conn.lastInsertId());
         m_conn_lock.unlock();
     } catch (std::exception& e) {
         m_conn_lock.unlock();

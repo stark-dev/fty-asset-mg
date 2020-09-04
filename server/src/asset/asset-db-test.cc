@@ -137,7 +137,7 @@ bool DBTest::hasLinkedAssets(const Asset& /*asset*/)
 
 void DBTest::unlinkAll(Asset& dest)
 {
-    std::cout << "DBTest::unlinkAll" << std::endl;
+    std::cout << "DBTest::unlinkAll from asset " << dest.getInternalName() << std::endl;
 }
 
 void DBTest::beginTransaction()

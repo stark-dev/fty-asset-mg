@@ -640,7 +640,7 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
             // link ext map
             const cxxtools::SerializationInfo link_ext = link_si.getMember("ext");
             for (const auto& link_ext_si : link_ext) {
-                std::string key = link_ext_si.name();
+                std::string ext_key = link_ext_si.name();
                 std::string val;
                 bool        readOnly = false;
                 link_ext_si.getMember("value") >>= val;
@@ -648,7 +648,7 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
 
                 ExtMapElement extElement(val, readOnly);
 
-                linkAttributes[key] = extElement;
+                linkAttributes[ext_key] = extElement;
             }
         }
 
