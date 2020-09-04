@@ -614,8 +614,9 @@ static constexpr const char* SI_SUB_TYPE     = "sub_type";
 static constexpr const char* SI_NAME         = "name";
 static constexpr const char* SI_PRIORITY     = "priority";
 static constexpr const char* SI_PARENT       = "parent";
-static constexpr const char* SI_EXT          = "ext";
 static constexpr const char* SI_LINKED       = "linked";
+static constexpr const char* SI_EXT          = "ext";
+static constexpr const char* SI_SECONDARY_ID = "secondary_id";
 static constexpr const char* SI_PARENTS_LIST = "parents_list";
 
 void Asset::serialize(cxxtools::SerializationInfo& si) const
@@ -638,6 +639,10 @@ void Asset::serialize(cxxtools::SerializationInfo& si) const
     data.setCategory(cxxtools::SerializationInfo::Category::Object);
     ext = data;
     ext.setName(SI_EXT);
+
+    if(!m_secondaryID.empty()) {
+        si.addMember(SI_SECONDARY_ID) <<= m_secondaryID;
+    }
 
     if (m_parentsList.has_value()) {
         si.addMember(SI_PARENTS_LIST) <<= m_parentsList.value();
@@ -666,6 +671,10 @@ void Asset::deserialize(const cxxtools::SerializationInfo& si)
         ExtMapElement element;
         si >>= element;
         m_ext[key] = element;
+    }
+
+    if(si.findMember(SI_SECONDARY_ID) != NULL) {
+        si.getMember(SI_SECONDARY_ID) >>= m_secondaryID;
     }
 
     if (si.findMember(SI_PARENTS_LIST) != nullptr) {
