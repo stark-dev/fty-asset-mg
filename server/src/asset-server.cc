@@ -276,13 +276,13 @@ dto::srr::RestoreResponse AssetServer::handleRestore(const dto::srr::RestoreQuer
                 cxxtools::SerializationInfo si = assetutils::deserialize(feature.data());
                 log_debug("Si=\n%s", feature.data().c_str());
                 // clear database
-                AssetImpl::deleteAll();
+                AssetImpl::deleteAll(false);
                 restoreAssets(si);
 
                 featureStatus.set_status(Status::SUCCESS);
             } catch (std::exception& e) {
                 // if restore fails, recover previous status
-                AssetImpl::deleteAll();
+                AssetImpl::deleteAll(false);
                 restoreAssets(assetBackup);
 
                 featureStatus.set_status(Status::FAILED);
@@ -748,7 +748,7 @@ void AssetServer::listAsset(const messagebus::Message& msg)
 }
 
 // SRR
-cxxtools::SerializationInfo AssetServer::saveAssets()
+cxxtools::SerializationInfo AssetServer::saveAssets(bool saveVirtualAssets)
 {
     using namespace fty::conversion;
 
@@ -763,7 +763,7 @@ cxxtools::SerializationInfo AssetServer::saveAssets()
     for (const std::string assetName : assets) {
         AssetImpl a(assetName);
 
-        if (a.isVirtual()) {
+        if (a.isVirtual() && !saveVirtualAssets) {
             continue;
         }
 

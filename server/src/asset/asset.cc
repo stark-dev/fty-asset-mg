@@ -732,7 +732,7 @@ static void addSubTree(const std::string& internalName, std::vector<AssetImpl>& 
     }
 }
 
-DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool recursive, bool removeLastDC)
+DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool recursive, bool deleteVirtualAssets, bool removeLastDC)
 {
     std::vector<AssetImpl> toDel;
 
@@ -741,6 +741,9 @@ DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool 
     for (const std::string& iname : assets) {
         try {
             AssetImpl a(iname);
+            if(a.isVirtual() && !deleteVirtualAssets) {
+                continue;
+            }
             toDel.push_back(a);
 
             if (recursive) {
@@ -808,10 +811,10 @@ DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool 
     return deleted;
 }
 
-DeleteStatus AssetImpl::deleteAll()
+DeleteStatus AssetImpl::deleteAll(bool deleteVirtualAsset)
 {
     // get list of all assets (including last datacenter)
-    return deleteList(listAll(), false, true);
+    return deleteList(listAll(), false, deleteVirtualAsset, true);
 }
 
 /// get internal name from UUID

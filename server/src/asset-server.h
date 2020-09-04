@@ -194,7 +194,7 @@ private:
     void listAsset(const messagebus::Message& msg);
 
     // SRR
-    cxxtools::SerializationInfo saveAssets();
+    cxxtools::SerializationInfo saveAssets(bool saveVirtualAssets = false);
     void                        restoreAssets(const cxxtools::SerializationInfo& si, bool tryActivate = true);
 
 private:

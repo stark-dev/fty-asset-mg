@@ -72,8 +72,8 @@ public:
     static std::vector<std::string> listAll();
 
     static DeleteStatus deleteList(
-        const std::vector<std::string>& assets, bool recursive, bool removeLastDC = false);
-    static DeleteStatus deleteAll();
+        const std::vector<std::string>& assets, bool recursive, bool deleteVirtualAssets = true, bool removeLastDC = false);
+    static DeleteStatus deleteAll(bool deleteVirtualAsset = false);
 
     static std::string getInameFromUuid(const std::string& uuid);
 
