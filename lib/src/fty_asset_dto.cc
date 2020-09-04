@@ -67,7 +67,7 @@ const std::string& AssetLink::destIn() const
     return m_destIn;
 }
 
-const int AssetLink::linkType() const
+int AssetLink::linkType() const
 {
     return m_linkType;
 }
@@ -197,16 +197,16 @@ void AssetLink::deserialize(const cxxtools::SerializationInfo& si)
     m_ext.clear();
     if (si.findMember(SI_LINK_EXT) != NULL) {
         const cxxtools::SerializationInfo ext = si.getMember(SI_LINK_EXT);
-        for (const auto& si : ext) {
-            std::string   key = si.name();
+        for (const auto& si_link_ext : ext) {
+            std::string   key = si_link_ext.name();
             ExtMapElement element;
-            si >>= element;
+            si_link_ext >>= element;
             m_ext[key] = element;
         }
     }
 
-    if (si.findMember(SI_SECONDARY_ID) != NULL) {
-        si.getMember(SI_SECONDARY_ID) >>= m_secondaryID;
+    if (si.findMember(SI_LINK_SECONDARY_ID) != NULL) {
+        si.getMember(SI_LINK_SECONDARY_ID) >>= m_secondaryID;
     }
 }
 
@@ -435,9 +435,7 @@ void Asset::addLink(const std::string& sourceId, const std::string& scrOut, cons
     l.setExt(attributes);
 
     auto found = std::find(m_linkedAssets.begin(), m_linkedAssets.end(), l);
-    if (found != m_linkedAssets.end()) {
-        log_error("Link already exists");
-    } else {
+    if (found == m_linkedAssets.end()) {
         m_linkedAssets.push_back(l);
     }
 }

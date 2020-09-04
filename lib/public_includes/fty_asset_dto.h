@@ -221,7 +221,7 @@ public:
     const std::string&       sourceId() const;
     const std::string&       srcOut() const;
     const std::string&       destIn() const;
-    const int                linkType() const;
+    int                      linkType() const;
     const AssetLink::ExtMap& ext() const;
     const std::string&       extEntry(const std::string& key) const;
     bool                     isReadOnly(const std::string& key) const;
@@ -236,7 +236,7 @@ public:
 
     void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false,
         bool forceUpdatedFalse = false);
-    
+
     void setSecondaryID(const std::string& secondaryID);
 
     void serialize(cxxtools::SerializationInfo& si) const;
