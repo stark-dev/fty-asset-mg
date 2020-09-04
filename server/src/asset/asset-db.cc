@@ -724,9 +724,6 @@ void DB::saveLink(const uint32_t destId, const AssetLink& l)
 
 void DB::removeLink(const uint32_t destId, const AssetLink& l)
 {
-    uint32_t srcId = getID(l.sourceId());
-    assert(srcId);
-
     assert(destId);
 
     uint32_t linkId = getLinkID(destId, l);
