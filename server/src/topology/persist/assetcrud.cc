@@ -34,7 +34,8 @@
 // 0 would be return as rowid
 
 #include <exception>
-#include <assert.h>
+
+#include <cassert>
 
 #include <czmq.h>
 #include <tntdb/connect.h>

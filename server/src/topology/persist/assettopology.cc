@@ -29,6 +29,7 @@
 #include "assettopology.h"
 
 #include <cassert>
+
 #include <cstring>
 #include <set>
 #include <tuple>
@@ -490,7 +491,7 @@ zmsg_t* select_group_elements(
 
         log_debug("rows selected %u", result.size());
         int i = 0;
-        int rv = 0;
+        [[maybe_unused]] int rv = 0;
 
         _scoped_zmsg_t* dcss     = zmsg_new();
         _scoped_zmsg_t* roomss   = zmsg_new();
@@ -683,7 +684,7 @@ zframe_t* select_childs(
                         select();
         }
         log_debug("rows selected %u", result.size());
-        int rv = 0;
+        [[maybe_unused]] int rv = 0;
         _scoped_zmsg_t* ret = zmsg_new();
         int i = 0;
         for ( auto &row: result )
@@ -1482,7 +1483,7 @@ zmsg_t* convert_powerchain_devices2matryoshka (
         _scoped_zmsg_t* el = asset_msg_encode_powerchain_device
                     (std::get<0>(adevice), (std::get<2>(adevice)).c_str(),
                     (std::get<1>(adevice)).c_str() );
-        int rv = zmsg_addmsg (ret, &el);
+        [[maybe_unused]] int rv = zmsg_addmsg (ret, &el);
         assert ( rv != -1 );
         assert ( el == NULL );
     }
@@ -1515,7 +1516,7 @@ zmsg_t* generate_return_power (std::set < device_info_t >    const &devices,
     _scoped_zlist_t *powers_list = convert_powerchain_powerlink2list     (powerlinks);
 
     _scoped_zframe_t *devices_frame = NULL;
-    int rv = matryoshka2frame (&devices_msg, &devices_frame);
+    [[maybe_unused]] int rv = matryoshka2frame (&devices_msg, &devices_frame);
     assert ( rv == 0 );
     zmsg_t *result = asset_msg_encode_return_power
                                                 (devices_frame, powers_list);

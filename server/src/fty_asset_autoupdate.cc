@@ -215,7 +215,7 @@ autoupdate_request_all_rcs (fty_asset_autoupdate_t *self)
     zmsg_addstr (msg, "GET");
     zmsg_addstr (msg, "");
     zmsg_addstr (msg, "rack controller");
-    int rv = mlm_client_sendto (self->client, self->asset_agent_name, "ASSETS_IN_CONTAINER", NULL, 5000, &msg);
+    [[maybe_unused]] int rv = mlm_client_sendto (self->client, self->asset_agent_name, "ASSETS_IN_CONTAINER", NULL, 5000, &msg);
     if (rv != 0) {
         log_error ("%s:\tRequest RC list failed", self->name);
         zmsg_destroy (&msg);
@@ -306,7 +306,7 @@ fty_asset_autoupdate_server (zsock_t *pipe, void *args)
             else
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
-                int rv = mlm_client_connect (self->client, endpoint, 1000, self->name);
+                [[maybe_unused]] int rv = mlm_client_connect (self->client, endpoint, 1000, self->name);
                 if (rv == -1) {
                     log_error ("%s:\tCan't connect to malamute endpoint '%s'", self->name, endpoint);
                 }
@@ -316,7 +316,7 @@ fty_asset_autoupdate_server (zsock_t *pipe, void *args)
             else
             if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
-                int rv = mlm_client_set_producer (self->client, stream);
+                [[maybe_unused]] int rv = mlm_client_set_producer (self->client, stream);
                 if (rv == -1) {
                     log_error ("%s:\tCan't set producer on stream '%s'", self->name, stream);
                 }
@@ -327,7 +327,7 @@ fty_asset_autoupdate_server (zsock_t *pipe, void *args)
             if (streq (cmd, "CONSUMER")) {
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
-                int rv = mlm_client_set_consumer (self->client, stream, pattern);
+                [[maybe_unused]] int rv = mlm_client_set_consumer (self->client, stream, pattern);
                 if (rv == -1) {
                     log_error ("%s:\tCan't set consumer on stream '%s', '%s'", self->name, stream, pattern);
                 }

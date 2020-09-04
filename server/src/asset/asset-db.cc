@@ -25,9 +25,10 @@
 #include <fty_common_db_dbpath.h>
 #include <sstream>
 #include <tntdb.h>
-#include <cassert>
 #include <map>
 #include <algorithm>
+
+#include <cassert>
 
 namespace fty {
 
@@ -96,7 +97,7 @@ void DB::loadAsset(const std::string& nameId, Asset& asset)
 void DB::loadExtMap(Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
-    assert(assetID);
+    assert (assetID);
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -133,7 +134,7 @@ void DB::loadExtMap(Asset& asset)
 std::vector<std::string> DB::getChildren(const Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
-    assert(assetID);
+    assert (assetID);
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -265,7 +266,7 @@ uint32_t DB::getSubtypeID(const std::string& subtype)
 void DB::loadLinkedAssets(Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
-    assert(assetID);
+    assert (assetID);
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -316,7 +317,7 @@ void DB::loadLinkedAssets(Asset& asset)
 bool DB::isLastDataCenter(Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
-    assert(assetID);
+    assert (assetID);
 
     // clang-format off
     auto q = m_conn.prepare(R"(
@@ -352,7 +353,7 @@ bool DB::isLastDataCenter(Asset& asset)
 void DB::removeFromGroups(Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
-    assert(assetID);
+    assert (assetID);
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -377,7 +378,7 @@ void DB::removeFromGroups(Asset& asset)
 void DB::removeFromRelations(Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
-    assert(assetID);
+    assert (assetID);
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -402,7 +403,7 @@ void DB::removeFromRelations(Asset& asset)
 void DB::removeAsset(Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
-    assert(assetID);
+    assert (assetID);
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -427,7 +428,7 @@ void DB::removeAsset(Asset& asset)
 void DB::removeExtMap(Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
-    assert(assetID);
+    assert (assetID);
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -452,7 +453,7 @@ void DB::removeExtMap(Asset& asset)
 void DB::clearGroup(Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
-    assert(assetID);
+    assert (assetID);
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -477,7 +478,7 @@ void DB::clearGroup(Asset& asset)
 bool DB::hasLinkedAssets(const Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
-    assert(assetID);
+    assert (assetID);
 
     // clang-format off
     auto q = m_conn.prepare(R"(
@@ -507,10 +508,10 @@ bool DB::hasLinkedAssets(const Asset& asset)
 void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType)
 {
     uint32_t srcID = getID(src.getInternalName());
-    assert(srcID);
+    assert (srcID);
 
     uint32_t destID = getID(dest.getInternalName());
-    assert(destID);
+    assert (destID);
 
     // clang-format off
     tntdb::Result res;
@@ -602,10 +603,10 @@ void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::str
 void DB::unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType)
 {
     uint32_t srcID = getID(src.getInternalName());
-    assert(srcID);
+    assert (srcID);
 
     uint32_t destID = getID(dest.getInternalName());
-    assert(destID);
+    assert (destID);
 
     tntdb::Statement q;
 
@@ -659,7 +660,7 @@ void DB::unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::s
 void DB::unlinkAll(Asset& dest)
 {
     uint32_t destID = getID(dest.getInternalName());
-    assert(destID);
+    assert (destID);
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(

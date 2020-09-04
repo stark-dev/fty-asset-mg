@@ -58,7 +58,7 @@ int select_assets_by_container(const std::string& container_name, const std::set
     if (test)
         return 0;
     tntdb::Connection conn = tntdb::connectCached(DBConn::url);
-    int rv = DBAssets::select_assets_by_container_name_filter(conn, container_name, filter, assets);
+    [[maybe_unused]] int rv = DBAssets::select_assets_by_container_name_filter(conn, container_name, filter, assets);
     return rv;
 }
 

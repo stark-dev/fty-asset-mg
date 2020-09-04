@@ -27,7 +27,7 @@
 
 //  Asserts check the invariants of methods. If they're not
 //  fulfilled the program should fail fast. Therefore enforce them!
-#include <assert.h>
+#include <cassert>
 
 
 //  Opaque class structures to allow forward references

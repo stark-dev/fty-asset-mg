@@ -74,7 +74,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
             else
             if (streq (cmd, "CONNECT")) {
                 char* endpoint = zmsg_popstr (msg);
-                int rv = mlm_client_connect (client, endpoint, 1000, name);
+                [[maybe_unused]] int rv = mlm_client_connect (client, endpoint, 1000, name);
                 if (rv == -1) {
                     log_error ("%s:\tCan't connect to malamute endpoint '%s'", name, endpoint);
                 }
@@ -84,7 +84,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
             else
             if (streq (cmd, "PRODUCER")) {
                 char* stream = zmsg_popstr (msg);
-                int rv = mlm_client_set_producer (client, stream);
+                [[maybe_unused]] int rv = mlm_client_set_producer (client, stream);
                 if (rv == -1) {
                     log_error ("%s:\tCan't set producer on stream '%s'", name, stream);
                 }
@@ -96,7 +96,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
                 char* stream = zmsg_popstr (msg);
                 char* pattern = zmsg_popstr (msg);
                 test = streq (stream, "ASSETS-TEST");
-                int rv = mlm_client_set_consumer (client, stream, pattern);
+                [[maybe_unused]] int rv = mlm_client_set_consumer (client, stream, pattern);
                 if (rv == -1) {
                     log_error ("%s:\tCan't set consumer on stream '%s', '%s'", name, stream, pattern);
                 }
@@ -125,7 +125,7 @@ fty_asset_inventory_server (zsock_t *pipe, void *args)
 
             if (streq (operation, "inventory")) {
                 zhash_t *ext = fty_proto_ext (proto);
-                int rv = process_insert_inventory (device_name, ext, true, ext_map_cache, test);
+                [[maybe_unused]] int rv = process_insert_inventory (device_name, ext, true, ext_map_cache, test);
                 if (rv != 0)
                     log_error ("Could not insert inventory data into DB");
             } else if (streq (operation, "delete")) {
@@ -188,7 +188,7 @@ fty_asset_inventory_test (bool /*verbose*/)
                 "MyDC",
                 "inventory",
                 NULL);
-        int rv = mlm_client_send (ui, "inventory@dc-1", &msg);
+        [[maybe_unused]] int rv = mlm_client_send (ui, "inventory@dc-1", &msg);
         assert (rv == 0);
         zclock_sleep (200);
         log_info ("fty-asset-server-test:Test #2: OK");

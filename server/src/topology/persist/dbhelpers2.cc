@@ -28,7 +28,7 @@
 
 #include "dbhelpers2.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include <czmq.h>
 #include <tntdb/connect.h>

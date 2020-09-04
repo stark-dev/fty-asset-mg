@@ -52,7 +52,7 @@ int main (int argc, char *argv [])
     mlm_client_t *client = mlm_client_new ();
     assert (client);
 
-    int rv = mlm_client_connect (client, endpoint, 1000, "CLI");
+    [[maybe_unused]] int rv = mlm_client_connect (client, endpoint, 1000, "CLI");
     if ( rv == -1 ) {
         log_error ("agent-rt-cli:\tCannot connect to malamute on '%s'", endpoint);
         mlm_client_destroy (&client);
