@@ -225,6 +225,7 @@ public:
     const AssetLink::ExtMap& ext() const;
     const std::string&       extEntry(const std::string& key) const;
     bool                     isReadOnly(const std::string& key) const;
+    const std::string&       secondaryID() const;
 
     void setSourceId(const std::string& sourceId);
     void setSrcOut(const std::string& srcOut);
@@ -235,6 +236,8 @@ public:
 
     void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false,
         bool forceUpdatedFalse = false);
+    
+    void setSecondaryID(const std::string& secondaryID);
 
     void serialize(cxxtools::SerializationInfo& si) const;
     void deserialize(const cxxtools::SerializationInfo& si);
@@ -245,6 +248,7 @@ private:
     std::string m_destIn;
     int         m_linkType = 0;
     ExtMap      m_ext;
+    std::string m_secondaryID;
 };
 
 bool operator==(const AssetLink& l, const AssetLink& r);

@@ -45,11 +45,12 @@ AssetLink::AssetLink(const std::string& s, std::string o, std::string i, int t)
 {
 }
 
-static constexpr const char* SI_LINK_SOURCE  = "source";
-static constexpr const char* SI_LINK_TYPE    = "link_type";
-static constexpr const char* SI_LINK_SRC_OUT = "src_out";
-static constexpr const char* SI_LINK_DEST_IN = "dest_in";
-static constexpr const char* SI_LINK_EXT     = "link_ext";
+static constexpr const char* SI_LINK_SOURCE       = "source";
+static constexpr const char* SI_LINK_TYPE         = "link_type";
+static constexpr const char* SI_LINK_SRC_OUT      = "src_out";
+static constexpr const char* SI_LINK_DEST_IN      = "dest_in";
+static constexpr const char* SI_LINK_EXT          = "link_ext";
+static constexpr const char* SI_LINK_SECONDARY_ID = "id_secondary";
 
 const std::string& AssetLink::sourceId() const
 {
@@ -100,6 +101,10 @@ bool AssetLink::isReadOnly(const std::string& key) const
     return false;
 }
 
+const std::string& AssetLink::secondaryID() const
+{
+    return m_secondaryID;
+}
 
 void AssetLink::setSourceId(const std::string& sourceId)
 {
@@ -139,6 +144,11 @@ void AssetLink::setExtEntry(
     }
 }
 
+void AssetLink::setSecondaryID(const std::string& secondaryID)
+{
+    m_secondaryID = secondaryID;
+}
+
 void AssetLink::clearExtMap()
 {
     m_ext.clear();
@@ -166,6 +176,10 @@ void AssetLink::serialize(cxxtools::SerializationInfo& si) const
         ext = data;
         ext.setName(SI_LINK_EXT);
     }
+
+    if(!m_secondaryID.empty()) {
+        si.addMember(SI_LINK_SECONDARY_ID) <<= m_secondaryID;
+    }
 }
 
 void AssetLink::deserialize(const cxxtools::SerializationInfo& si)
@@ -189,6 +203,10 @@ void AssetLink::deserialize(const cxxtools::SerializationInfo& si)
             si >>= element;
             m_ext[key] = element;
         }
+    }
+
+    if (si.findMember(SI_SECONDARY_ID) != NULL) {
+        si.getMember(SI_SECONDARY_ID) >>= m_secondaryID;
     }
 }
 
