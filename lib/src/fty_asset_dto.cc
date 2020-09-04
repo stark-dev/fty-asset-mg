@@ -50,7 +50,7 @@ static constexpr const char* SI_LINK_TYPE         = "link_type";
 static constexpr const char* SI_LINK_SRC_OUT      = "src_out";
 static constexpr const char* SI_LINK_DEST_IN      = "dest_in";
 static constexpr const char* SI_LINK_EXT          = "link_ext";
-static constexpr const char* SI_LINK_SECONDARY_ID = "id_secondary";
+static constexpr const char* SI_LINK_SECONDARY_ID = "secondary_id";
 
 const std::string& AssetLink::sourceId() const
 {
