@@ -27,13 +27,8 @@
 
 //  Asserts check the invariants of methods. If they're not
 //  fulfilled the program should fail fast. Therefore enforce them!
-#ifdef NDEBUG
-  #undef NDEBUG
-  #include <assert.h>
-  #define NDEBUG
-#else
-  #include <assert.h>
-#endif
+#include <assert.h>
+
 
 //  Opaque class structures to allow forward references
 #ifndef TOPOLOGY_DB_TOPOLOGY2_T_DEFINED
