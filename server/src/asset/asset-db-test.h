@@ -47,10 +47,6 @@ public:
     uint32_t getSubtypeID(const std::string& subtype);
 
     bool hasLinkedAssets(const Asset& asset) override;
-    void link(
-        Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) override;
-    void unlink(
-        Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) override;
     void unlinkAll(Asset& dest) override;
     void clearGroup(Asset& asset) override;
     void removeAsset(Asset& asset) override;

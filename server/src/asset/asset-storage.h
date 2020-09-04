@@ -27,6 +27,7 @@
 namespace fty {
 
 class Asset;
+class AssetLink;
 
 class AssetStorage
 {
@@ -50,17 +51,13 @@ public:
     virtual uint32_t getSubtypeID(const std::string& subtype) = 0;
 
     virtual bool hasLinkedAssets(const Asset& asset) = 0;
-    virtual void link(
-        Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) = 0;
-    virtual void unlink(
-        Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType) = 0;
-    virtual void unlinkAll(Asset& dest)                                                              = 0;
-    virtual void clearGroup(Asset& asset)                                                            = 0;
-    virtual void removeAsset(Asset& asset)                                                           = 0;
-    virtual void removeFromRelations(Asset& asset)                                                   = 0;
-    virtual void removeFromGroups(Asset& asset)                                                      = 0;
-    virtual void removeExtMap(Asset& asset)                                                          = 0;
-    virtual bool isLastDataCenter(Asset& asset)                                                      = 0;
+    virtual void unlinkAll(Asset& dest)              = 0;
+    virtual void clearGroup(Asset& asset)            = 0;
+    virtual void removeAsset(Asset& asset)           = 0;
+    virtual void removeFromRelations(Asset& asset)   = 0;
+    virtual void removeFromGroups(Asset& asset)      = 0;
+    virtual void removeExtMap(Asset& asset)          = 0;
+    virtual bool isLastDataCenter(Asset& asset)      = 0;
 
     virtual void beginTransaction()    = 0;
     virtual void rollbackTransaction() = 0;

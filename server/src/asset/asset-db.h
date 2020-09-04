@@ -49,10 +49,14 @@ public:
     uint32_t getTypeID(const std::string& type);
     uint32_t getSubtypeID(const std::string& subtype);
 
+    uint32_t getLinkID(const uint32_t destId, const AssetLink& l);
+    void saveLink(const uint32_t destId, const AssetLink& l);
+    void removeLink(const uint32_t destId, const AssetLink& l);
+
     bool hasLinkedAssets(const Asset& asset);
-    void link(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType);
-    void unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType);
     void unlinkAll(Asset& dest);
+    void loadLinkExtMap(const uint32_t linkID, AssetLink& link);
+    void saveLinkExtMap(const uint32_t linkID, const AssetLink& link);
     void clearGroup(Asset& asset);
     void removeAsset(Asset& asset);
     void removeFromRelations(Asset& asset);

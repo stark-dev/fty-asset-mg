@@ -226,14 +226,12 @@ AssetImpl::AssetImpl()
 {
 }
 
-AssetImpl::AssetImpl(const std::string& nameId, bool loadLinks)
+AssetImpl::AssetImpl(const std::string& nameId)
     : m_storage(getStorage())
 {
     m_storage.loadAsset(nameId, *this);
     m_storage.loadExtMap(*this);
-    if (loadLinks) {
-        m_storage.loadLinkedAssets(*this);
-    }
+    m_storage.loadLinkedAssets(*this);
 }
 
 AssetImpl::~AssetImpl()
@@ -263,7 +261,8 @@ bool AssetImpl::hasLogicalAsset() const
 
 bool AssetImpl::isVirtual() const
 {
-    return ((getAssetType() == TYPE_CLUSTER) || (getAssetType() == TYPE_HYPERVISOR) ||
+
+    return ((getAssetType() == TYPE_INFRA_SERVICE) || (getAssetType() == TYPE_CLUSTER) || (getAssetType() == TYPE_HYPERVISOR) ||
             (getAssetType() == TYPE_VIRTUAL_MACHINE) || (getAssetType() == TYPE_STORAGE_SERVICE) ||
             (getAssetType() == TYPE_VAPP) || (getAssetType() == TYPE_CONNECTOR) ||
             (getAssetType() == TYPE_SERVER) || (getAssetType() == TYPE_PLANNER) ||
@@ -497,27 +496,6 @@ void AssetImpl::deactivate()
     }
 }
 
-void AssetImpl::linkTo(
-    const std::string& src, const std::string& srcOut, const std::string& destIn, int linkType)
-{
-    try {
-        AssetImpl s(src);
-        m_storage.link(s, srcOut, *this, destIn, linkType);
-    } catch (std::exception& ex) {
-        log_error("%s", ex.what());
-    }
-    m_storage.loadLinkedAssets(*this);
-}
-
-void AssetImpl::unlinkFrom(
-    const std::string& src, const std::string& srcOut, const std::string& destIn, int linkType)
-{
-    AssetImpl s(src);
-    m_storage.unlink(s, srcOut, *this, destIn, linkType);
-
-    m_storage.loadLinkedAssets(*this);
-}
-
 void AssetImpl::unlinkAll()
 {
     m_storage.unlinkAll(*this);
@@ -558,21 +536,57 @@ void AssetImpl::assetToSrr(const AssetImpl& asset, cxxtools::SerializationInfo& 
     si.addMember("subtype") <<= asset.getAssetSubtype();
     si.addMember("priority") <<= asset.getPriority();
     si.addMember("parent") <<= asset.getParentIname();
-    si.addMember("linked") <<= asset.getLinkedAssets();
+
+    // linked assets
+    cxxtools::SerializationInfo& linked = si.addMember("");
+
+    cxxtools::SerializationInfo tmpSiLinks;
+    for (const auto& l : asset.getLinkedAssets()) {
+        cxxtools::SerializationInfo& link = tmpSiLinks.addMember("");
+        link.addMember("source") <<= l.sourceId();
+
+        if (!l.srcOut().empty()) {
+            link.addMember("src_out") <<= l.srcOut();
+        }
+        if (!l.destIn().empty()) {
+            link.addMember("dest_in") <<= l.destIn();
+        }
+
+        link.addMember("link_type") <<= l.linkType();
+
+        if (!l.ext().empty()) {
+            cxxtools::SerializationInfo& link_ext = link.addMember("");
+            cxxtools::SerializationInfo  tmp_link_ext;
+            for (const auto& e : l.ext()) {
+                cxxtools::SerializationInfo& link_ext_entry = tmp_link_ext.addMember(e.first);
+                link_ext_entry.addMember("value") <<= e.second.getValue();
+                link_ext_entry.addMember("readOnly") <<= e.second.isReadOnly();
+            }
+            tmp_link_ext.setCategory(cxxtools::SerializationInfo::Category::Object);
+            link_ext = tmp_link_ext;
+            link_ext.setName("ext");
+        }
+
+        link.setCategory(cxxtools::SerializationInfo::Category::Object);
+    }
+    tmpSiLinks.setCategory(cxxtools::SerializationInfo::Category::Array);
+    linked = tmpSiLinks;
+    linked.setName("linked");
+
     si.addMember("tag") <<= asset.getAssetTag();
     si.addMember("id_secondary") <<= asset.getSecondaryID();
 
     // ext
     cxxtools::SerializationInfo& ext = si.addMember("");
 
-    cxxtools::SerializationInfo data;
+    cxxtools::SerializationInfo tmpSiExt;
     for (const auto& e : asset.getExt()) {
-        cxxtools::SerializationInfo& entry = data.addMember(e.first);
+        cxxtools::SerializationInfo& entry = tmpSiExt.addMember(e.first);
         entry.addMember("value") <<= e.second.getValue();
         entry.addMember("readOnly") <<= e.second.isReadOnly();
     }
-    data.setCategory(cxxtools::SerializationInfo::Category::Object);
-    ext = data;
+    tmpSiExt.setCategory(cxxtools::SerializationInfo::Category::Object);
+    ext = tmpSiExt;
     ext.setName("ext");
 }
 
@@ -606,9 +620,41 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
     asset.setParentIname(tmpString);
 
     // linked assets
-    std::vector<AssetLink> tmpVector;
-    si.getMember("linked") >>= tmpVector;
-    asset.setLinkedAssets(tmpVector);
+    const cxxtools::SerializationInfo linked = si.getMember("linked");
+    for (const auto& link_si : linked) {
+        std::string key = link_si.name();
+        std::string sourceId, srcOut, destIn;
+        int linkType = 0;
+
+        link_si.getMember("source") >>= sourceId;
+        if(link_si.findMember("src_out") != NULL) {
+            link_si.getMember("src_out") >>= srcOut;
+        }
+        if(link_si.findMember("dest_in") != NULL) {
+            link_si.getMember("dest_in") >>= destIn;
+        }
+        link_si.getMember("link_type") >>= linkType;
+
+        AssetLink::ExtMap linkAttributes;
+
+        if(link_si.findMember("ext") != NULL) {
+            // link ext map
+            const cxxtools::SerializationInfo link_ext = link_si.getMember("ext");
+            for (const auto& link_ext_si : link_ext) {
+                std::string ext_key = link_ext_si.name();
+                std::string val;
+                bool        readOnly = false;
+                link_ext_si.getMember("value") >>= val;
+                link_ext_si.getMember("readOnly") >>= readOnly;
+
+                ExtMapElement extElement(val, readOnly);
+
+                linkAttributes[ext_key] = extElement;
+            }
+        }
+
+        asset.addLink(sourceId, srcOut, destIn, linkType, linkAttributes);
+    }
 
     // asset tag
     si.getMember("tag") >>= tmpString;
@@ -687,7 +733,7 @@ static void addSubTree(const std::string& internalName, std::vector<AssetImpl>& 
     }
 }
 
-DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool recursive, bool removeLastDC)
+DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool recursive, bool deleteVirtualAssets, bool removeLastDC)
 {
     std::vector<AssetImpl> toDel;
 
@@ -696,6 +742,9 @@ DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool 
     for (const std::string& iname : assets) {
         try {
             AssetImpl a(iname);
+            if(a.isVirtual() && !deleteVirtualAssets) {
+                continue;
+            }
             toDel.push_back(a);
 
             if (recursive) {
@@ -763,10 +812,10 @@ DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool 
     return deleted;
 }
 
-DeleteStatus AssetImpl::deleteAll()
+DeleteStatus AssetImpl::deleteAll(bool deleteVirtualAsset)
 {
     // get list of all assets (including last datacenter)
-    return deleteList(listAll(), false, true);
+    return deleteList(listAll(), false, deleteVirtualAsset, true);
 }
 
 /// get internal name from UUID

@@ -263,6 +263,254 @@ uint32_t DB::getSubtypeID(const std::string& subtype)
     return subtypeID;
 }
 
+uint32_t DB::getLinkID(const uint32_t destId, const AssetLink& l)
+{
+    uint32_t linkID = 0;
+
+    uint32_t srcId = getID(l.sourceId());
+    assert(srcId);
+
+    assert(destId);
+
+    tntdb::Statement q;
+
+    std::stringstream qs;
+
+    // clang-format off
+    qs << 
+        " SELECT "                          \
+        "    id_link as id "                \
+        " FROM "                            \
+        "    t_bios_asset_link"             \
+        " WHERE"                            \
+        "    id_asset_device_src = :src"    \
+        "    AND"                           \
+        "    id_asset_device_dest = :dest";
+    if(!l.srcOut().empty()) {
+        qs <<
+        "    AND"                   \
+        "    src_out = :srcOut";
+    } else {
+        qs <<
+        "    AND"                   \
+        "    src_out is NULL";
+    }
+    if(!l.destIn().empty()) {
+        qs <<
+        "    AND"                   \
+        "    dest_in = :destIn";
+    } else {
+        qs <<
+        "    AND"                   \
+        "    dest_in is NULL";
+    }
+    qs <<
+        "    AND" \
+        "    id_asset_link_type = :linkType";
+    // clang-format off
+
+    q = m_conn.prepareCached(qs.str().c_str());
+
+    q.set("src", srcId);
+    q.set("dest", destId);
+
+    if (!l.srcOut().empty())
+        q.set("srcOut", l.srcOut());
+    if (!l.destIn().empty())
+        q.set("destIn", l.destIn());
+
+    q.set("linkType", l.linkType());
+
+    try {
+        m_conn_lock.lock();
+        auto v = q.selectValue();
+        m_conn_lock.unlock();
+
+        linkID = v.getUnsigned32();
+    } catch (tntdb::NotFound&) {
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("database error - " + std::string(e.what()));
+    }
+
+    return linkID;
+}
+
+void DB::loadLinkExtMap(const uint32_t linkID, AssetLink& link)
+{
+    assert(linkID);
+
+    // clang-format off
+    auto q = m_conn.prepareCached(R"(
+        SELECT
+            keytag,
+            value,
+            read_only
+        FROM
+            t_bios_asset_link_attributes
+        WHERE
+            id_link = :link_id
+    )");
+    // clang-format on
+    q.set("link_id", linkID);
+
+    tntdb::Result res;
+
+    try {
+        m_conn_lock.lock();
+        res = q.select();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("database error - " + std::string(e.what()));
+    }
+
+    link.clearExtMap();
+
+    for (const auto& row : res) {
+        link.setExtEntry(row.getString("keytag"), row.getString("value"), row.getBool("read_only"), true);
+    }
+}
+
+void DB::saveLinkExtMap(const uint32_t linkID, const AssetLink& link)
+{
+    /*
+     * Here is the strategy to save the external attributes:
+     * 1. We insert, update or remove only the external attribute which has been modified.
+     * 2. An external attribute with a value set to empty string will be removed from the db
+     */
+
+    if (linkID == 0) {
+        throw std::runtime_error("Link with ID = " + std::to_string(linkID) + " not found");
+    }
+
+    // clang-format off
+    auto q = m_conn.prepareCached(R"(
+        SELECT
+            id_asset_link_attribute AS id,
+            keytag                  AS keytag,
+            value                   AS val,
+            read_only               AS read_only
+        FROM
+            t_bios_asset_link_attributes
+        WHERE
+            id_link = :link_id
+    )");
+    // clang-format on
+    q.set("link_id", linkID);
+
+    tntdb::Result res;
+
+    try {
+        m_conn_lock.lock();
+        res = q.select();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("database error - " + std::string(e.what()));
+    }
+
+    using ExternalAttributeInDB = std::tuple<uint32_t, std::string, std::string, bool>;
+
+    std::vector<ExternalAttributeInDB> existing;
+    for (const auto& row : res) {
+        existing.emplace_back(
+            row.getUnsigned32("id"), row.getString("keytag"), row.getString("val"), row.getBool("read_only"));
+    }
+
+    std::vector<ExternalAttributeInDB> toBeRemoved;
+
+
+    for (const auto& it : link.ext()) {
+
+        // skip the none updated attribute
+        if (!it.second.wasUpdated()) {
+            continue;
+        }
+
+        auto found = std::find_if(existing.begin(), existing.end(), [&](const ExternalAttributeInDB& e) {
+            return std::get<1>(e) == it.first;
+        });
+
+
+        if (found == existing.end()) {
+            // The attribute do not exist in the database
+            // if it's not empty we insert it.
+
+            if (!it.second.getValue().empty()) {
+                // clang-format off
+                auto q_ext_link = m_conn.prepareCached(R"(
+                    INSERT INTO t_bios_asset_link_attributes (keytag, value, id_link, read_only)
+                    VALUES (:key, :value, :linkId, :readOnly)
+                )");
+                // clang-format on
+                q_ext_link.set("key", it.first);
+                q_ext_link.set("value", it.second.getValue());
+                q_ext_link.set("readOnly", it.second.isReadOnly());
+                q_ext_link.set("linkId", linkID);
+                try {
+                    m_conn_lock.lock();
+                    q_ext_link.execute();
+                    m_conn_lock.unlock();
+                } catch (std::exception& e) {
+                    m_conn_lock.unlock();
+                    throw std::runtime_error("database error - " + std::string(e.what()));
+                }
+            }
+
+        } else {
+            // The attribute exist in the database
+            // if it's not empty we update it, else remove it.
+
+            if (!it.second.getValue().empty()) {
+                // clang-format off
+                auto q_ext_link = m_conn.prepareCached(R"(
+                    UPDATE t_bios_asset_link_attributes
+                    SET
+                        value = :value,
+                        read_only = :readOnly
+                    WHERE id_asset_link_attribute = :extId
+                )");
+                // clang-format on
+                q_ext_link.set("value", it.second.getValue());
+                q_ext_link.set("readOnly", it.second.isReadOnly());
+                q_ext_link.set("extId", std::get<0>(*found));
+
+                try {
+                    m_conn_lock.lock();
+                    q_ext_link.execute();
+                    m_conn_lock.unlock();
+                } catch (std::exception& e) {
+                    m_conn_lock.unlock();
+                    throw std::runtime_error("database error - " + std::string(e.what()));
+                }
+            } else {
+                toBeRemoved.push_back(*found);
+            }
+        }
+    }
+
+    for (const auto& toRem : toBeRemoved) {
+        // clang-format off
+        auto q_ext_link = m_conn.prepareCached(R"(
+            DELETE FROM t_bios_asset_link_attributes
+            WHERE id_asset_link_attribute = :extId
+        )");
+        // clang-format on
+        q_ext_link.set("extId", std::get<0>(toRem));
+
+        try {
+            m_conn_lock.lock();
+            q_ext_link.execute();
+            m_conn_lock.unlock();
+        } catch (std::exception& e) {
+            m_conn_lock.unlock();
+            throw std::runtime_error("database error - " + std::string(e.what()));
+        }
+    }
+}
+
 void DB::loadLinkedAssets(Asset& asset)
 {
     uint32_t assetID = getID(asset.getInternalName());
@@ -271,17 +519,17 @@ void DB::loadLinkedAssets(Asset& asset)
     // clang-format off
     auto q = m_conn.prepareCached(R"(
         SELECT
-            l.id_asset_element_src  AS id,
+            l.id_link               AS link_id,
             e.name                  AS name,
             l.src_out               AS srcOut,
             l.dest_in               AS destIn,
             l.id_asset_link_type    AS linkType
         FROM
-            v_bios_asset_link AS l
+            t_bios_asset_link AS l
         INNER JOIN
-            t_bios_asset_element AS e ON l.id_asset_element_src = e.id_asset_element
+            t_bios_asset_element AS e ON l.id_asset_device_src = e.id_asset_element
         WHERE
-            l.id_asset_element_dest = :asset_id
+            l.id_asset_device_dest = :asset_id
     )");
     // clang-format on
     q.set("asset_id", assetID);
@@ -299,6 +547,7 @@ void DB::loadLinkedAssets(Asset& asset)
 
     std::vector<AssetLink> links;
     for (const auto& row : res) {
+        uint32_t    linkID = row.getUnsigned32("link_id");
         std::string srcOut, destIn;
         // may be NULL
         if (!row.isNull("srcOut")) {
@@ -308,11 +557,232 @@ void DB::loadLinkedAssets(Asset& asset)
             row.getString("destIn", destIn);
         }
 
-        links.push_back(AssetLink(row.getString("name"), srcOut, destIn, row.getInt("linkType")));
+        AssetLink l(row.getString("name"), srcOut, destIn, row.getInt("linkType"));
+        loadLinkExtMap(linkID, l);
+
+        links.push_back(l);
     }
     asset.setLinkedAssets(links);
 }
 
+void DB::saveLinkedAssets(Asset& asset)
+{
+    uint32_t assetID = getID(asset.getInternalName());
+
+    if (assetID == 0) {
+        throw std::runtime_error("Asset " + asset.getInternalName() + " not found");
+    }
+
+    // clang-format off
+    auto q = m_conn.prepareCached(R"(
+        SELECT
+            e.id_asset_element   AS srcId,
+            e.name               AS srcName,
+            l.src_out            AS srcOut,
+            l.dest_in            AS destIn,
+            l.id_asset_link_type AS linkType
+        FROM t_bios_asset_link   AS l
+        INNER JOIN
+            t_bios_asset_element AS e
+            ON e.id_asset_element = l.id_asset_device_src
+        WHERE
+             id_asset_device_dest = :assetId
+    )");
+    // clang-format on
+    q.set("assetId", assetID);
+
+    tntdb::Result res;
+    try {
+        m_conn_lock.lock();
+        res = q.select();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("database error - " + std::string(e.what()));
+    }
+
+    using Existing = std::pair<uint32_t, AssetLink>;
+
+    // get existings links from database
+    std::vector<Existing> toRemove;
+    for (const auto& row : res) {
+        std::string tmpOut, tmpIn;
+
+        // may be NULL
+        if (!row.isNull("srcOut")) {
+            row.getString("srcOut", tmpOut);
+        }
+        if (!row.isNull("destIn")) {
+            row.getString("destIn", tmpIn);
+        }
+
+        toRemove.emplace_back(row.getUnsigned32("srcId"),
+            AssetLink(row.getString("srcName"), tmpOut, tmpIn, row.getInt("linkType")));
+    }
+
+    // add new links
+    for (const AssetLink l : asset.getLinkedAssets()) {
+        // delete link from the list of links to remove
+        auto found = std::find_if(toRemove.begin(), toRemove.end(), [&](const Existing& e) {
+            return e.second == l;
+        });
+
+        if (found != toRemove.end()) {
+            // link is required, do not remove
+            toRemove.erase(found);
+        } else {
+            // save new link
+            saveLink(assetID, l);
+        }
+    }
+
+    // remove links not present in DTO
+    for (const auto& entry : toRemove) {
+        const AssetLink& l = entry.second;
+
+        // remove all remaining links
+        removeLink(assetID, l);
+    }
+}
+
+bool DB::hasLinkedAssets(const Asset& asset)
+{
+    uint32_t assetID = getID(asset.getInternalName());
+    assert(assetID);
+
+    // clang-format off
+    auto q = m_conn.prepare(R"(
+        SELECT
+            COUNT(id_link)
+        FROM
+            t_bios_asset_link
+        WHERE
+            id_asset_device_src = :src
+    )");
+    // clang-format on
+    q.set("src", assetID);
+
+    int linkedAssets;
+    try {
+        m_conn_lock.lock();
+        linkedAssets = q.selectValue().getInt();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("database error - " + std::string(e.what()));
+    }
+
+    return linkedAssets != 0;
+}
+
+void DB::saveLink(const uint32_t destId, const AssetLink& l)
+{
+    uint32_t srcId = getID(l.sourceId());
+    assert(srcId);
+
+    assert(destId);
+
+    uint32_t linkId = 0;
+
+    // clang-format off
+    auto q1 = m_conn.prepareCached(R"(
+        INSERT INTO
+            t_bios_asset_link
+            (id_asset_device_src, src_out, id_asset_device_dest, dest_in, id_asset_link_type)
+        VALUES (
+            :src,
+            :srcOut,
+            :dest,
+            :destIn,
+            :linkType
+        )
+    )");
+    // clang-format on
+
+    q1.set("src", srcId);
+    q1.set("dest", destId);
+
+    l.srcOut().empty() ? q1.setNull("srcOut") : q1.set("srcOut", l.srcOut());
+    l.destIn().empty() ? q1.setNull("destIn") : q1.set("destIn", l.destIn());
+
+    q1.set("linkType", l.linkType());
+
+    try {
+        m_conn_lock.lock();
+        q1.execute();
+        linkId = static_cast<uint32_t>(m_conn.lastInsertId());
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("database error - " + std::string(e.what()));
+    }
+
+    if (!l.ext().empty()) {
+        saveLinkExtMap(linkId, l);
+    }
+}
+
+void DB::removeLink(const uint32_t destId, const AssetLink& l)
+{
+    uint32_t srcId = getID(l.sourceId());
+    assert(srcId);
+
+    assert(destId);
+
+    uint32_t linkId = getLinkID(destId, l);
+
+    if (linkId) {
+        // clang-format off
+        auto q_ext_attrib = m_conn.prepareCached(R"(
+            DELETE FROM
+                t_bios_asset_link_attributes
+            WHERE
+                id_link = :link_id
+        )");
+        // clang-format on
+
+        q_ext_attrib.set("link_id", linkId);
+
+        try {
+            m_conn_lock.lock();
+            q_ext_attrib.execute();
+            m_conn_lock.unlock();
+        } catch (std::exception& e) {
+            m_conn_lock.unlock();
+            throw std::runtime_error("database error - " + std::string(e.what()));
+        }
+
+        // clang-format off
+        auto q_link = m_conn.prepareCached(R"(
+            DELETE FROM
+                t_bios_asset_link
+            WHERE
+                id_link = :link_id
+        )");
+        // clang-format on
+
+        q_link.set("link_id", linkId);
+
+        try {
+            m_conn_lock.lock();
+            q_link.execute();
+            m_conn_lock.unlock();
+        } catch (std::exception& e) {
+            m_conn_lock.unlock();
+            throw std::runtime_error("database error - " + std::string(e.what()));
+        }
+    }
+}
+
+void DB::unlinkAll(Asset& dest)
+{
+    uint32_t destID = getID(dest.getInternalName());
+    assert(destID);
+
+    for (const auto& link : dest.getLinkedAssets()) {
+        removeLink(destID, link);
+    }
+}
 
 bool DB::isLastDataCenter(Asset& asset)
 {
@@ -464,213 +934,6 @@ void DB::clearGroup(Asset& asset)
     )");
     // clang-format on
     q.set("grp", assetID);
-
-    try {
-        m_conn_lock.lock();
-        q.execute();
-        m_conn_lock.unlock();
-    } catch (std::exception& e) {
-        m_conn_lock.unlock();
-        throw std::runtime_error("database error - " + std::string(e.what()));
-    }
-}
-
-bool DB::hasLinkedAssets(const Asset& asset)
-{
-    uint32_t assetID = getID(asset.getInternalName());
-    assert (assetID);
-
-    // clang-format off
-    auto q = m_conn.prepare(R"(
-        SELECT
-            COUNT(id_link)
-        FROM
-            t_bios_asset_link
-        WHERE
-            id_asset_device_src = :src
-    )");
-    // clang-format on
-    q.set("src", assetID);
-
-    int linkedAssets;
-    try {
-        m_conn_lock.lock();
-        linkedAssets = q.selectValue().getInt();
-        m_conn_lock.unlock();
-    } catch (std::exception& e) {
-        m_conn_lock.unlock();
-        throw std::runtime_error("database error - " + std::string(e.what()));
-    }
-
-    return linkedAssets != 0;
-}
-
-void DB::link(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType)
-{
-    uint32_t srcID = getID(src.getInternalName());
-    assert (srcID);
-
-    uint32_t destID = getID(dest.getInternalName());
-    assert (destID);
-
-    // clang-format off
-    tntdb::Result res;
-    auto q1 = m_conn.prepareCached(R"(
-        SELECT
-            e.id_asset_element   AS srcId,
-            e.name               AS srcName,
-            l.src_out            AS srcOut,
-            l.dest_in            AS destIn,
-            l.id_asset_link_type AS linkType
-        FROM
-            t_bios_asset_element AS e
-        INNER JOIN
-            t_bios_asset_link AS l
-        ON
-            e.id_asset_element = l.id_asset_device_src
-        WHERE
-             id_asset_device_dest = :assetId
-    )");
-    // clang-format on
-    q1.set("assetId", destID);
-
-    try {
-        m_conn_lock.lock();
-        res = q1.select();
-        m_conn_lock.unlock();
-    } catch (std::exception& e) {
-        m_conn_lock.unlock();
-        throw std::runtime_error("database error - " + std::string(e.what()));
-    }
-
-    std::vector<AssetLink> existing;
-    for (const auto& row : res) {
-        std::string tmpOut, tmpIn;
-
-        // may be NULL
-        if (!row.isNull("srcOut")) {
-            row.getString("srcOut", tmpOut);
-        }
-        if (!row.isNull("destIn")) {
-            row.getString("destIn", tmpIn);
-        }
-
-        existing.push_back(AssetLink(row.getString("srcName"), tmpOut, tmpIn, row.getInt("linkType")));
-    }
-
-    // new link to insert
-    const AssetLink l(src.getInternalName(), srcOut, destIn, linkType);
-
-    auto found = std::find(existing.begin(), existing.end(), l);
-
-    if (found != existing.end()) {
-        throw std::logic_error("Link to asset " + src.getInternalName() + " already exists");
-    }
-
-    // clang-format off
-    auto q2 = m_conn.prepareCached(R"(
-        INSERT INTO
-            t_bios_asset_link
-            (id_asset_device_src, src_out, id_asset_device_dest, dest_in, id_asset_link_type)
-        VALUES (
-            :src,
-            :srcOut,
-            :dest,
-            :destIn,
-            :linkType
-        )
-    )");
-    // clang-format on
-
-    q2.set("src", srcID);
-    q2.set("dest", destID);
-
-    srcOut.empty() ? q2.setNull("srcOut") : q2.set("srcOut", srcOut);
-    destIn.empty() ? q2.setNull("destIn") : q2.set("destIn", destIn);
-
-    q2.set("linkType", linkType);
-
-    try {
-        m_conn_lock.lock();
-        q2.execute();
-        m_conn_lock.unlock();
-    } catch (std::exception& e) {
-        m_conn_lock.unlock();
-        throw std::runtime_error("database error - " + std::string(e.what()));
-    }
-}
-
-void DB::unlink(Asset& src, const std::string& srcOut, Asset& dest, const std::string& destIn, int linkType)
-{
-    uint32_t srcID = getID(src.getInternalName());
-    assert (srcID);
-
-    uint32_t destID = getID(dest.getInternalName());
-    assert (destID);
-
-    tntdb::Statement q;
-
-    std::stringstream qs;
-
-    // clang-format off
-    qs << 
-        " DELETE FROM "                     \
-        "    t_bios_asset_link"             \
-        " WHERE"                            \
-        "    id_asset_device_src = :src"    \
-        "    AND"                           \
-        "    id_asset_device_dest = :dest";
-    if(!srcOut.empty()) {
-        qs <<
-        "    AND"                   \
-        "    src_out = :srcOut";
-    }
-    if(!destIn.empty()) {
-        qs <<
-        "    AND"                   \
-        "    dest_in = :destIn";
-    }
-    qs <<
-        "    AND" \
-        "    id_asset_link_type = :linkType";
-    // clang-format on
-
-    q = m_conn.prepareCached(qs.str().c_str());
-
-    q.set("src", srcID);
-    q.set("dest", destID);
-
-    if (!srcOut.empty())
-        q.set("srcOut", srcOut);
-    if (!destIn.empty())
-        q.set("destIn", destIn);
-
-    q.set("linkType", linkType);
-
-    try {
-        m_conn_lock.lock();
-        q.execute();
-        m_conn_lock.unlock();
-    } catch (std::exception& e) {
-        m_conn_lock.unlock();
-        throw std::runtime_error("database error - " + std::string(e.what()));
-    }
-}
-
-void DB::unlinkAll(Asset& dest)
-{
-    uint32_t destID = getID(dest.getInternalName());
-    assert (destID);
-
-    // clang-format off
-    auto q = m_conn.prepareCached(R"(
-        DELETE FROM
-            t_bios_asset_link
-        WHERE
-            id_asset_device_dest = :dest
-    )");
-    // clang-format on
-    q.set("dest", destID);
 
     try {
         m_conn_lock.lock();
@@ -855,87 +1118,6 @@ std::string DB::inameByUuid(const std::string& uuid)
     return res;
 }
 
-void DB::saveLinkedAssets(Asset& asset)
-{
-    uint32_t assetID = getID(asset.getInternalName());
-    if (assetID == 0) {
-        throw std::runtime_error("Asset " + asset.getInternalName() + " not found");
-    }
-
-    // clang-format off
-    auto q = m_conn.prepareCached(R"(
-        SELECT
-            e.id_asset_element   AS srcId,
-            e.name               AS srcName,
-            l.src_out            AS srcOut,
-            l.dest_in            AS destIn,
-            l.id_asset_link_type AS linkType
-        FROM t_bios_asset_link   AS l
-        INNER JOIN
-            t_bios_asset_element AS e
-            ON e.id_asset_element = l.id_asset_device_src
-        WHERE
-             id_asset_device_dest = :assetId
-    )");
-    // clang-format on
-    q.set("assetId", assetID);
-
-    tntdb::Result res;
-    try {
-        m_conn_lock.lock();
-        res = q.select();
-        m_conn_lock.unlock();
-    } catch (std::exception& e) {
-        m_conn_lock.unlock();
-        throw std::runtime_error("database error - " + std::string(e.what()));
-    }
-
-    using Existing = std::pair<uint32_t, AssetLink>;
-
-    // get existings links from database
-    std::vector<Existing> toRemove;
-    for (const auto& row : res) {
-        std::string tmpOut, tmpIn;
-
-        // may be NULL
-        if (!row.isNull("srcOut")) {
-            row.getString("srcOut", tmpOut);
-        }
-        if (!row.isNull("destIn")) {
-            row.getString("destIn", tmpIn);
-        }
-
-        toRemove.emplace_back(row.getUnsigned32("srcId"),
-            AssetLink(row.getString("srcName"), tmpOut, tmpIn, row.getInt("linkType")));
-    }
-
-    // add new links
-    for (const AssetLink l : asset.getLinkedAssets()) {
-        // delete link from the list of links to remove
-        auto found = std::find_if(toRemove.begin(), toRemove.end(), [&](const Existing& e) {
-            return e.second == l;
-        });
-
-        if (found != toRemove.end()) {
-            // link is required, do not remove
-            toRemove.erase(found);
-        } else {
-            // create new link
-            AssetImpl src(l.sourceId);
-            link(src, l.srcOut, asset, l.destIn, l.linkType);
-        }
-    }
-
-    // remove links not present in DTO
-    for (const auto& entry : toRemove) {
-        const AssetLink& l = entry.second;
-
-        // remove all remaining links
-        AssetImpl src(l.sourceId);
-        unlink(src, l.srcOut, asset, l.destIn, l.linkType);
-    }
-}
-
 void DB::saveExtMap(Asset& asset)
 {
     /*
@@ -974,15 +1156,15 @@ void DB::saveExtMap(Asset& asset)
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
-    using ExternalAttributInDB = std::tuple<uint32_t, std::string, std::string, bool>;
+    using ExternalAttributeInDB = std::tuple<uint32_t, std::string, std::string, bool>;
 
-    std::vector<ExternalAttributInDB> existing;
+    std::vector<ExternalAttributeInDB> existing;
     for (const auto& row : res) {
         existing.emplace_back(
             row.getUnsigned32("id"), row.getString("akey"), row.getString("avalue"), row.getBool("readOnly"));
     }
 
-    std::vector<ExternalAttributInDB> toBeRemoved;
+    std::vector<ExternalAttributeInDB> toBeRemoved;
 
 
     for (const auto& it : asset.getExt()) {
@@ -992,7 +1174,7 @@ void DB::saveExtMap(Asset& asset)
             continue;
         }
 
-        auto found = std::find_if(existing.begin(), existing.end(), [&](const ExternalAttributInDB& e) {
+        auto found = std::find_if(existing.begin(), existing.end(), [&](const ExternalAttributeInDB& e) {
             return std::get<1>(e) == it.first;
         });
 

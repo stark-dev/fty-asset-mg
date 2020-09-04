@@ -172,23 +172,6 @@ enum class AssetStatus
 const std::string assetStatusToString(AssetStatus status);
 AssetStatus       stringToAssetStatus(const std::string& str);
 
-
-class AssetLink
-{
-public:
-    AssetLink() = default;
-    AssetLink(const std::string& s, std::string o, std::string i, int t);
-
-    std::string sourceId;
-    std::string srcOut;
-    std::string destIn;
-    int         linkType = 0;
-};
-
-bool operator==(const AssetLink& l, const AssetLink& r);
-void operator<<=(cxxtools::SerializationInfo& si, const AssetLink& l);
-void operator>>=(const cxxtools::SerializationInfo& si, AssetLink& l);
-
 class ExtMapElement
 {
 public:
@@ -226,6 +209,51 @@ private:
 
 void operator<<=(cxxtools::SerializationInfo& si, const ExtMapElement& e);
 void operator>>=(const cxxtools::SerializationInfo& si, ExtMapElement& e);
+
+class AssetLink
+{
+public:
+    using ExtMap = std::map<std::string, ExtMapElement>;
+
+    AssetLink() = default;
+    AssetLink(const std::string& s, std::string o, std::string i, int t);
+
+    const std::string&       sourceId() const;
+    const std::string&       srcOut() const;
+    const std::string&       destIn() const;
+    int                      linkType() const;
+    const AssetLink::ExtMap& ext() const;
+    const std::string&       extEntry(const std::string& key) const;
+    bool                     isReadOnly(const std::string& key) const;
+    const std::string&       secondaryID() const;
+
+    void setSourceId(const std::string& sourceId);
+    void setSrcOut(const std::string& srcOut);
+    void setDestIn(const std::string& destIn);
+    void setLinkType(const int linkType);
+    void setExt(const AssetLink::ExtMap& ext);
+    void clearExtMap();
+
+    void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false,
+        bool forceUpdatedFalse = false);
+
+    void setSecondaryID(const std::string& secondaryID);
+
+    void serialize(cxxtools::SerializationInfo& si) const;
+    void deserialize(const cxxtools::SerializationInfo& si);
+
+private:
+    std::string m_sourceId;
+    std::string m_srcOut;
+    std::string m_destIn;
+    int         m_linkType = 0;
+    ExtMap      m_ext;
+    std::string m_secondaryID;
+};
+
+bool operator==(const AssetLink& l, const AssetLink& r);
+void operator<<=(cxxtools::SerializationInfo& si, const AssetLink& l);
+void operator>>=(const cxxtools::SerializationInfo& si, AssetLink& l);
 
 class Asset
 {
@@ -272,6 +300,10 @@ public:
     void clearExtMap();
     void setExtEntry(const std::string& key, const std::string& value, bool readOnly = false,
         bool forceUpdatedFalse = false);
+    void addLink(const std::string& sourceId, const std::string& scrOut, const std::string& destIn,
+        int linkType, const AssetLink::ExtMap& attributes);
+    void removeLink(
+        const std::string& sourceId, const std::string& scrOut, const std::string& destIn, int linkType);
     void setLinkedAssets(const std::vector<AssetLink>& assets);
     void setSecondaryID(const std::string& secondaryID);
     void setFriendlyName(const std::string& friendlyName);
@@ -296,7 +328,7 @@ public:
     const std::string&  getEndpointOperatingStatus(uint8_t index) const;
     const std::string&  getEndpointErrorMessage(uint8_t index) const;
 
-    const std::string&  getEndpointProtocolAttribut(uint8_t index, const std::string & attributName) const;
+    const std::string&  getEndpointProtocolAttribute(uint8_t index, const std::string & attributeName) const;
 
     void setEndpointProtocol(uint8_t index, const std::string & val);
     void setEndpointPort(uint8_t index, const std::string & val);
@@ -304,7 +336,7 @@ public:
     void setEndpointOperatingStatus(uint8_t index, const std::string & val);
     void setEndpointErrorMessage(uint8_t index, const std::string & val);
 
-    void setEndpointProtocolAttribut(uint8_t index, const std::string & attributName, const std::string & val);
+    void setEndpointProtocolAttribute(uint8_t index, const std::string & attributeName, const std::string & val);
 
     void removeEndpoint(uint8_t index);
 

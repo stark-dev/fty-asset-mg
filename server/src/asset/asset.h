@@ -43,7 +43,7 @@ class AssetImpl : public Asset
 {
 public:
     AssetImpl();
-    AssetImpl(const std::string& nameId, bool loadLinks = true);
+    AssetImpl(const std::string& nameId);
     ~AssetImpl() override;
 
     AssetImpl(const AssetImpl& a);
@@ -61,9 +61,6 @@ public:
     bool isActivable();
     void activate();
     void deactivate();
-    void linkTo(const std::string& src, const std::string& srcOut, const std::string& destIn, int linkType);
-    void unlinkFrom(
-        const std::string& src, const std::string& srcOut, const std::string& destIn, int linkType);
     void unlinkAll();
 
     void updateParentsList();
@@ -75,8 +72,8 @@ public:
     static std::vector<std::string> listAll();
 
     static DeleteStatus deleteList(
-        const std::vector<std::string>& assets, bool recursive, bool removeLastDC = false);
-    static DeleteStatus deleteAll();
+        const std::vector<std::string>& assets, bool recursive, bool deleteVirtualAssets = true, bool removeLastDC = false);
+    static DeleteStatus deleteAll(bool deleteVirtualAsset = false);
 
     static std::string getInameFromUuid(const std::string& uuid);
 

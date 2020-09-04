@@ -69,7 +69,6 @@ static V value(const std::map<K, V>& map, const typename identify<K>::type& key,
 // ===========================================================================================================
 
 
-
 // ===========================================================================================================
 
 void AssetServer::destroyMlmClient(mlm_client_t* client)
@@ -170,12 +169,12 @@ void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
 
     // clang-format off
     static std::map<std::string, std::function<void(const messagebus::Message&)>> procMap = {
-        { FTY_ASSET_SUBJECT_CREATE,       [&](const messagebus::Message& messsage){ createAsset(messsage); } },
-        { FTY_ASSET_SUBJECT_UPDATE,       [&](const messagebus::Message& messsage){ updateAsset(messsage); } },
-        { FTY_ASSET_SUBJECT_DELETE,       [&](const messagebus::Message& messsage){ deleteAsset(messsage); } },
-        { FTY_ASSET_SUBJECT_GET,          [&](const messagebus::Message& messsage){ getAsset(messsage); } },
-        { FTY_ASSET_SUBJECT_GET_BY_UUID,  [&](const messagebus::Message& messsage){ getAsset(messsage, true); } },
-        { FTY_ASSET_SUBJECT_LIST,         [&](const messagebus::Message& messsage){ listAsset(messsage); } }
+        { FTY_ASSET_SUBJECT_CREATE,       [&](const messagebus::Message& message){ createAsset(message); } },
+        { FTY_ASSET_SUBJECT_UPDATE,       [&](const messagebus::Message& message){ updateAsset(message); } },
+        { FTY_ASSET_SUBJECT_DELETE,       [&](const messagebus::Message& message){ deleteAsset(message); } },
+        { FTY_ASSET_SUBJECT_GET,          [&](const messagebus::Message& message){ getAsset(message); } },
+        { FTY_ASSET_SUBJECT_GET_BY_UUID,  [&](const messagebus::Message& message){ getAsset(message, true); } },
+        { FTY_ASSET_SUBJECT_LIST,         [&](const messagebus::Message& message){ listAsset(message); } }
     };
     // clang-format on
 
@@ -277,13 +276,13 @@ dto::srr::RestoreResponse AssetServer::handleRestore(const dto::srr::RestoreQuer
                 cxxtools::SerializationInfo si = assetutils::deserialize(feature.data());
                 log_debug("Si=\n%s", feature.data().c_str());
                 // clear database
-                AssetImpl::deleteAll();
+                AssetImpl::deleteAll(false);
                 restoreAssets(si);
 
                 featureStatus.set_status(Status::SUCCESS);
             } catch (std::exception& e) {
                 // if restore fails, recover previous status
-                AssetImpl::deleteAll();
+                AssetImpl::deleteAll(false);
                 restoreAssets(assetBackup);
 
                 featureStatus.set_status(Status::FAILED);
@@ -701,7 +700,7 @@ void AssetServer::listAsset(const messagebus::Message& msg)
             idOnly = false;
         }
 
-        std::vector<std::string> inameList = fty::AssetImpl::list(filters);
+        std::vector<std::string>    inameList = fty::AssetImpl::list(filters);
         cxxtools::SerializationInfo si;
 
         if (idOnly) {
@@ -749,7 +748,7 @@ void AssetServer::listAsset(const messagebus::Message& msg)
 }
 
 // SRR
-cxxtools::SerializationInfo AssetServer::saveAssets()
+cxxtools::SerializationInfo AssetServer::saveAssets(bool saveVirtualAssets)
 {
     using namespace fty::conversion;
 
@@ -764,7 +763,7 @@ cxxtools::SerializationInfo AssetServer::saveAssets()
     for (const std::string assetName : assets) {
         AssetImpl a(assetName);
 
-        if (a.isVirtual()) {
+        if (a.isVirtual() && !saveVirtualAssets) {
             continue;
         }
 
@@ -881,10 +880,8 @@ void AssetServer::restoreAssets(const cxxtools::SerializationInfo& si, bool tryA
     // restore links
     for (AssetImpl& a : assetsToRestore) {
         try {
-            auto links = a.getLinkedAssets();
-            for (const auto& l : links) {
-                a.linkTo(l.sourceId, l.srcOut, l.destIn, l.linkType);
-            }
+            // save links
+            a.update();
         } catch (std::exception& e) {
             log_error(e.what());
         }
