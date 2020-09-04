@@ -344,7 +344,7 @@ const std::string&  Asset::getEndpointSubAddress(uint8_t index) const { return g
 const std::string&  Asset::getEndpointOperatingStatus(uint8_t index) const { return getEndpointData(index, "status.operating"); }
 const std::string&  Asset::getEndpointErrorMessage(uint8_t index) const { return getEndpointData(index, "status.error_msg"); }
 
-const std::string&  Asset::getEndpointProtocolAttribut(uint8_t index, const std::string & attributName) const 
+const std::string&  Asset::getEndpointProtocolAttribute(uint8_t index, const std::string & attributeName) const 
 {
     static std::string noProtocol;
 
@@ -353,7 +353,7 @@ const std::string&  Asset::getEndpointProtocolAttribut(uint8_t index, const std:
         return noProtocol;
     }
 
-    return getEndpointData(index, "."+protocol+"."+attributName);
+    return getEndpointData(index, "."+protocol+"."+attributeName);
 }
 
 void Asset::setEndpointProtocol(uint8_t index, const std::string & val) { return setEndpointData(index, "protocol", val); }
@@ -362,14 +362,14 @@ void Asset::setEndpointSubAddress(uint8_t index, const std::string & val) { retu
 void Asset::setEndpointOperatingStatus(uint8_t index, const std::string & val) { return setEndpointData(index, "status.operating", val); }
 void Asset::setEndpointErrorMessage(uint8_t index, const std::string & val) { return setEndpointData(index, "status.error_msg", val); }
 
-void Asset::setEndpointProtocolAttribut(uint8_t index, const std::string & attributName, const std::string & val)
+void Asset::setEndpointProtocolAttribute(uint8_t index, const std::string & attributeName, const std::string & val)
 {
     std::string protocol = getEndpointProtocol(index);
     if(protocol.empty()) {
         return;
     }
 
-    return setEndpointData(index, "."+protocol+"."+attributName, val);
+    return setEndpointData(index, "."+protocol+"."+attributeName, val);
 }
 
 void Asset::removeEndpoint(uint8_t index)

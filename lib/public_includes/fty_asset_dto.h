@@ -296,7 +296,7 @@ public:
     const std::string&  getEndpointOperatingStatus(uint8_t index) const;
     const std::string&  getEndpointErrorMessage(uint8_t index) const;
 
-    const std::string&  getEndpointProtocolAttribut(uint8_t index, const std::string & attributName) const;
+    const std::string&  getEndpointProtocolAttribute(uint8_t index, const std::string & attributeName) const;
 
     void setEndpointProtocol(uint8_t index, const std::string & val);
     void setEndpointPort(uint8_t index, const std::string & val);
@@ -304,7 +304,7 @@ public:
     void setEndpointOperatingStatus(uint8_t index, const std::string & val);
     void setEndpointErrorMessage(uint8_t index, const std::string & val);
 
-    void setEndpointProtocolAttribut(uint8_t index, const std::string & attributName, const std::string & val);
+    void setEndpointProtocolAttribute(uint8_t index, const std::string & attributeName, const std::string & val);
 
     void removeEndpoint(uint8_t index);
 

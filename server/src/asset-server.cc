@@ -170,12 +170,12 @@ void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
 
     // clang-format off
     static std::map<std::string, std::function<void(const messagebus::Message&)>> procMap = {
-        { FTY_ASSET_SUBJECT_CREATE,       [&](const messagebus::Message& messsage){ createAsset(messsage); } },
-        { FTY_ASSET_SUBJECT_UPDATE,       [&](const messagebus::Message& messsage){ updateAsset(messsage); } },
-        { FTY_ASSET_SUBJECT_DELETE,       [&](const messagebus::Message& messsage){ deleteAsset(messsage); } },
-        { FTY_ASSET_SUBJECT_GET,          [&](const messagebus::Message& messsage){ getAsset(messsage); } },
-        { FTY_ASSET_SUBJECT_GET_BY_UUID,  [&](const messagebus::Message& messsage){ getAsset(messsage, true); } },
-        { FTY_ASSET_SUBJECT_LIST,         [&](const messagebus::Message& messsage){ listAsset(messsage); } }
+        { FTY_ASSET_SUBJECT_CREATE,       [&](const messagebus::Message& message){ createAsset(message); } },
+        { FTY_ASSET_SUBJECT_UPDATE,       [&](const messagebus::Message& message){ updateAsset(message); } },
+        { FTY_ASSET_SUBJECT_DELETE,       [&](const messagebus::Message& message){ deleteAsset(message); } },
+        { FTY_ASSET_SUBJECT_GET,          [&](const messagebus::Message& message){ getAsset(message); } },
+        { FTY_ASSET_SUBJECT_GET_BY_UUID,  [&](const messagebus::Message& message){ getAsset(message, true); } },
+        { FTY_ASSET_SUBJECT_LIST,         [&](const messagebus::Message& message){ listAsset(message); } }
     };
     // clang-format on
 
