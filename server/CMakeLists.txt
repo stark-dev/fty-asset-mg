@@ -43,7 +43,6 @@ etn_target(exe ${PROJECT_NAME}
         tntdb
         czmq
         mlm
-        ssl
         crypto
         protobuf
         uuid
