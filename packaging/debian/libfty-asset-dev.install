@@ -1,3 +1,3 @@
 usr/include/*
-usr/share/*/cmake/*
+usr/share/cmake/*
 usr/lib/*/pkgconfig/fty-asset-server.pc
