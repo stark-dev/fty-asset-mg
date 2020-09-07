@@ -53,6 +53,12 @@ Depends:
     ${shlibs:Depends},
     ${misc:Depends}
 Description: fty-asset shared library with dto
+
+Package: libfty-asset1
+Architecture: any
+Depends:
+    libfty-asset (= ${binary:Version}),
+Description: fty-asset shared library with dto
  
 Package: libfty-asset-dev
 Architecture: any
@@ -71,3 +77,14 @@ Depends:
    ${misc:Depends}
 Description: fty-asset-server 
  This package contains fty asset agent
+
+Package: fty-asset-dbg
+Architecture: any
+Section: debug
+Priority: optional
+Depends:
+    fty-asset (= ${binary:Version}),
+    ${misc:Depends}
+Description: fty-asset debugging symbols
+ This package contains the debugging symbols for fty-asset:
+ agent managing information about assets.
