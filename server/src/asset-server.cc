@@ -764,6 +764,7 @@ cxxtools::SerializationInfo AssetServer::saveAssets(bool saveVirtualAssets)
         AssetImpl a(assetName);
 
         if (a.isVirtual() && !saveVirtualAssets) {
+            log_info("Asset %s is virtual, will not be saved", a.getInternalName().c_str());
             continue;
         }
 
@@ -817,11 +818,6 @@ static void buildRestoreTree(std::vector<AssetImpl>& v)
 void AssetServer::restoreAssets(const cxxtools::SerializationInfo& si, bool tryActivate)
 {
     using namespace fty::conversion;
-
-    // if database is not empty, can't load assets
-    if (AssetImpl::listAll().size() != 0) {
-        throw std::runtime_error("Database already contains assets, impossible to restore from SRR");
-    }
 
     std::string srrVersion;
     si.getMember("version") >>= srrVersion;

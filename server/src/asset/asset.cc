@@ -302,6 +302,7 @@ void AssetImpl::remove(bool removeLastDC)
 
     m_storage.beginTransaction();
     try {
+        const std::string internalName = m_internalName;
         if (isAnyOf(getAssetType(), TYPE_DATACENTER, TYPE_ROW, TYPE_ROOM, TYPE_RACK)) {
             if (!removeLastDC && m_storage.isLastDataCenter(*this)) {
                 throw std::runtime_error("cannot delete last datacenter");
@@ -324,6 +325,8 @@ void AssetImpl::remove(bool removeLastDC)
             m_storage.removeExtMap(*this);
             m_storage.removeAsset(*this);
         }
+
+        log_debug("Asset %s removed", internalName.c_str());
     } catch (const std::exception& e) {
         m_storage.rollbackTransaction();
 
@@ -671,8 +674,8 @@ void AssetImpl::srrToAsset(const cxxtools::SerializationInfo& si, AssetImpl& ass
         std::string key = siExt.name();
         std::string val;
         bool        readOnly = false;
-        si.getMember("value") >>= val;
-        si.getMember("readOnly") >>= readOnly;
+        siExt.getMember("value") >>= val;
+        siExt.getMember("readOnly") >>= readOnly;
 
         asset.setExtEntry(key, val, readOnly);
     }
@@ -743,6 +746,7 @@ DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool 
         try {
             AssetImpl a(iname);
             if(a.isVirtual() && !deleteVirtualAssets) {
+                log_info("Asset %s is virtual, skipping delete...", a.getInternalName().c_str());
                 continue;
             }
             toDel.push_back(a);
