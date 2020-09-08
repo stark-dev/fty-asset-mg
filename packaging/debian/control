@@ -83,7 +83,7 @@ Architecture: any
 Section: debug
 Priority: optional
 Depends:
-    fty-asset (= ${binary:Version}),
+    libfty-asset (= ${binary:Version}),
     ${misc:Depends}
 Description: fty-asset debugging symbols
  This package contains the debugging symbols for fty-asset:
