@@ -1,0 +1,33 @@
+[Unit]
+Description=fty-asset service
+After=malamute.service fty-db.target
+Requires=malamute.service fty-db.target
+PartOf=bios.target
+
+# Restart if database does:
+BindsTo=fty-db-engine.service
+After=fty-db-engine.service
+# ...and propagate its shutdowns to us too:
+PartOf=fty-db-engine.service
+
+[Service]
+Type=simple
+User=bios
+Restart=always
+EnvironmentFile=-@CMAKE_INSTALL_FULL_DATAROOTDIR@/bios/etc/default/bios
+EnvironmentFile=-@CMAKE_INSTALL_FULL_DATAROOTDIR@/bios/etc/default/bios__%n.conf
+EnvironmentFile=-@CMAKE_INSTALL_FULL_DATAROOTDIR@/fty/etc/default/fty
+EnvironmentFile=-@CMAKE_INSTALL_FULL_DATAROOTDIR@/fty/etc/default/fty__%n.conf
+EnvironmentFile=-@CMAKE_INSTALL_FULL_SYSCONFDIR@/default/bios
+EnvironmentFile=-@CMAKE_INSTALL_FULL_SYSCONFDIR@/default/bios__%n.conf
+EnvironmentFile=-@CMAKE_INSTALL_FULL_SYSCONFDIR@/default/fty
+EnvironmentFile=-@CMAKE_INSTALL_FULL_SYSCONFDIR@/default/fty__%n.conf
+Environment="prefix=@CMAKE_INSTALL_PREFIX@"
+EnvironmentFile=@CMAKE_INSTALL_FULL_SYSCONFDIR@/default/bios-db-rw
+ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/fty-asset-server
+
+### TODO: Currently there is no meaningful config support
+#ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/fty-asset-server -c @CMAKE_INSTALL_FULL_SYSCONFDIR@/fty-asset/fty-asset.cfg
+
+[Install]
+WantedBy=bios.target

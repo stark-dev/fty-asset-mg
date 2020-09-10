@@ -1,5 +1,0 @@
-usr/bin/fty-asset
-usr/bin/fty-asset-cli
-etc/fty-asset/fty-asset.cfg
-lib/systemd/system/fty-asset.service
-
