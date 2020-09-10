@@ -58,6 +58,7 @@ static constexpr const char* TYPE_CONNECTOR       = "connector";       // 13
 static constexpr const char* TYPE_SERVER          = "server";          // 15
 static constexpr const char* TYPE_PLANNER         = "planner";         // 16
 static constexpr const char* TYPE_PLAN            = "plan";            // 17
+static constexpr const char* TYPE_COPS            = "cops";            // 20
 
 // WARNING keep consistent with DB table t_bios_asset_device_type
 static constexpr const char* SUB_UNKNOWN                          = "unknown";                          // 0
@@ -121,6 +122,7 @@ static constexpr const char* SUB_VMWARE_STANDALONE_ESXI_CONNECTOR = "vmware.stan
 static constexpr const char* SUB_NETAPP_ONTAP                     = "netapp.ontap";                     // 62
 static constexpr const char* SUB_VMWARE_SRM                       = "vmware.srm";                       // 65
 static constexpr const char* SUB_VMWARE_SRM_PLAN                  = "vmware.srm.plan";                  // 66
+static constexpr const char* SUB_PCU                              = "pcu";                              // 72
 
 // WARNING keep consistent with DB table t_bios_asset_link_type
 // clang-format off
