@@ -151,6 +151,39 @@ TypeRet selectAssetProperty(
     return obj;
 }
 
+/// select one field of an asset from the database
+/// SELECT <column> from asset_table where <keyColumn> like '%<keyValue>%'
+template<typename TypeRet>
+const TypeRet selectAssetPropertyLike(
+    const std::string& column,     // column to select
+    const std::string& keyColumn,  // key
+    const std::string& keyValue    // value of key param
+)
+{
+    std::stringstream query;
+    query << " SELECT " << column <<
+             " FROM t_bios_asset_element " <<
+             " WHERE " << keyColumn << " like '%" << keyValue << "%'";
+
+    tntdb::Connection conn = tntdb::connectCached (DBConn::url);
+    tntdb::Statement statement;
+
+    TypeRet obj;
+
+    auto q = conn.prepareCached(query.str());
+    try {
+        auto row = q.selectRow();
+
+        row[0].get(obj);
+    } catch (const tntdb::NotFound&) {
+        log_debug("selectAssetPropertyLike - value not found. Returning default value");
+    } catch (const std::exception& e) {
+        log_error("selectAssetPropertyLike - unknown error: %s", e.what());
+    }
+
+    return obj;
+}
+
 /// update one field of an asset in the database
 /// UPDATE in asset_table <updateColumn> to <updateValue> where <keyColumn> = <keyValue>
 template<typename TypeValue, typename TypeKey>
