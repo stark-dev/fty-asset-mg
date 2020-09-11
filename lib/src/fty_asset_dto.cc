@@ -643,7 +643,20 @@ void Asset::serialize(cxxtools::SerializationInfo& si) const
     si.addMember(SI_NAME) <<= m_internalName;
     si.addMember(SI_PRIORITY) <<= m_priority;
     si.addMember(SI_PARENT) <<= m_parentIname;
-    si.addMember(SI_LINKED) <<= m_linkedAssets;
+
+    // linked assets
+    cxxtools::SerializationInfo& linked = si.addMember("");
+
+    cxxtools::SerializationInfo tmpSiLinks;
+    for (const auto& l : m_linkedAssets) {
+        cxxtools::SerializationInfo& link = tmpSiLinks.addMember("");
+        link <<= l;
+        link.setCategory(cxxtools::SerializationInfo::Category::Object);
+    }
+    tmpSiLinks.setCategory(cxxtools::SerializationInfo::Category::Array);
+    linked = tmpSiLinks;
+    linked.setName(SI_LINKED);
+
     // ext
     cxxtools::SerializationInfo& ext = si.addMember("");
 
@@ -677,7 +690,15 @@ void Asset::deserialize(const cxxtools::SerializationInfo& si)
     si.getMember(SI_NAME) >>= m_internalName;
     si.getMember(SI_PRIORITY) >>= m_priority;
     si.getMember(SI_PARENT) >>= m_parentIname;
-    si.getMember(SI_LINKED) >>= m_linkedAssets;
+
+    // linked assets
+    const cxxtools::SerializationInfo linked = si.getMember(SI_LINKED);
+    for (const auto& link_si : linked) {
+        AssetLink l;
+        link_si >>= l;
+
+        m_linkedAssets.push_back(l);
+    }
 
     // ext map
     m_ext.clear();
@@ -685,7 +706,7 @@ void Asset::deserialize(const cxxtools::SerializationInfo& si)
     for (const auto& siExt : ext) {
         std::string   key = siExt.name();
         ExtMapElement element;
-        si >>= element;
+        siExt >>= element;
         m_ext[key] = element;
     }
 
