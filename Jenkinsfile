@@ -29,6 +29,10 @@ pipeline {
             defaultValue: false,
             description: 'When using temporary subdirs in build/test workspaces, wipe them after the whole job is done unsuccessfully (failed)? Note this would not allow postmortems on CI server, but would conserve its disk space.',
             name: 'DO_CLEANUP_AFTER_FAILED_JOB')
+        booleanParam (
+            defaultValue: false,
+            description: 'Deliver man-pages pre-generated during CI build to save time on packaging farm? (WARNING: Currently no-op)',
+            name: 'DO_DIST_DOCS')
     }
 
     stages {
