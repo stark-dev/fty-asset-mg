@@ -23,6 +23,7 @@
 #include "fty_asset_dto.h"
 #include "src/dbhelpers.h"
 #include <fty_proto.h>
+#include <string>
 
 namespace fty { namespace conversion {
 
@@ -95,11 +96,7 @@ namespace fty { namespace conversion {
             asset.setParentIname("test-parent");
         } else {
             int parentId = static_cast<int>(fty_proto_aux_number(proto, "parent", 0));
-            if (parentId != 0) {
-                asset.setParentIname(selectAssetProperty<std::string>("name", "id_asset_element", parentId));
-            } else {
-                asset.setParentIname("");
-            }
+            asset.setParentIname(selectAssetPropertyLike<std::string>("name", "name", std::to_string(parentId)));
         }
         asset.setPriority(static_cast<int>(fty_proto_aux_number(proto, "priority", 5)));
 
