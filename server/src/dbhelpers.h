@@ -134,18 +134,20 @@ TypeRet selectAssetProperty(
              " WHERE " << keyColumn << " = :value";
 
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
-    tntdb::Statement statement;
 
-    statement = conn.prepareCached (query.str());
+    auto q = conn.prepareCached (query.str());
 
-    tntdb::Row row = statement.
-        set ("value", keyValue).
-        selectRow ();
+    q.set ("value", keyValue);
 
     TypeRet obj;
-    if(!row[0].get(obj))
-    {
-        throw std::runtime_error("Unable to get data from DB");
+    try {
+        auto row = q.selectRow();
+
+        row[0].get(obj);
+    } catch (const tntdb::NotFound&) {
+        log_debug("selectAssetProperty - value not found. Returning default value");
+    } catch (const std::exception& e) {
+        log_error("selectAssetProperty - unknown error: %s", e.what());
     }
 
     return obj;
