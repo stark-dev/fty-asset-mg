@@ -95,8 +95,7 @@ namespace fty { namespace conversion {
         if (test) {
             asset.setParentIname("test-parent");
         } else {
-            int parentId = static_cast<int>(fty_proto_aux_number(proto, "parent", 0));
-            asset.setParentIname(selectAssetPropertyLike<std::string>("name", "name", std::to_string(parentId)));
+            asset.setParentIname(fty_proto_aux_string(proto, "parent", ""));
         }
         asset.setPriority(static_cast<int>(fty_proto_aux_number(proto, "priority", 5)));
 
