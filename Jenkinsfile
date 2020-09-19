@@ -1,9 +1,11 @@
+agentLabel = "devel-image && x86_64"
+
 pipeline {
-    agent { label "devel-image && x86_64" }
+    agent {
+       label agentLabel
+    }
 
     parameters {
-        //booleanParam name: 'RUN_MEMCHECKS', defaultValue: true, description: 'Run memchecks?'
-
         // Extra for Eaton CI
         // Use DEFAULT_DEPLOY_BRANCH_PATTERN and DEFAULT_DEPLOY_JOB_NAME if
         // defined in this jenkins setup -- in Jenkins Management Web-GUI
@@ -21,56 +23,133 @@ pipeline {
             defaultValue: true,
             description: 'If the deployment is done, should THIS job wait for it to complete and include its success or failure as the build result (true), or should it schedule the job and exit quickly to free up the executor (false)',
             name: 'DEPLOY_REPORT_RESULT')
-        booleanParam (
-            defaultValue: true,
-            description: 'When using temporary subdirs in build/test workspaces, wipe them after the whole job is done successfully?',
-            name: 'DO_CLEANUP_AFTER_JOB')
-        booleanParam (
-            defaultValue: false,
-            description: 'When using temporary subdirs in build/test workspaces, wipe them after the whole job is done unsuccessfully (failed)? Note this would not allow postmortems on CI server, but would conserve its disk space.',
-            name: 'DO_CLEANUP_AFTER_FAILED_JOB')
-        booleanParam (
-            defaultValue: false,
-            description: 'Deliver man-pages pre-generated during CI build to save time on packaging farm? (WARNING: Currently no-op)',
-            name: 'DO_DIST_DOCS')
     }
 
     stages {
+        stage('Build & Analysis') {
+            parallel {
+                stage('Release Build') {
+                    
+                    stages {
+                        
+                        stage('Build without tests') {
+                            steps {
+                                sh '''
+                                  rm -rf build-release
+                                  mkdir -p build-release
+                                  cmake -DCMAKE_BUILD_TYPE=Release \
+                                      -DBUILD_TESTING=OFF \
+                                      -B build-release
+                                  cmake --build build-release --parallel $(($(nproc) + 1))
+                                  '''
+                            }
+                        }
+                    }
+                }
 
-        stage('Build') {
-            steps {
-                cmakeBuild buildType: 'Release',
-                cleanBuild: true,
-                cmakeArgs: "-DBUILD_TESTING=ON",
-                installation: 'InSearchPath',
-                steps: [[withCmake: true]]
+                stage('Debug Build') {
+                    stages {
+                        
+                        stage('Build with tests') {
+                            steps {
+                                sh '''
+                                  rm -rf build-debug
+                                  mkdir -p build-debug
+                                  cmake -DCMAKE_BUILD_TYPE=Debug \
+                                      -DBUILD_TESTING=ON \
+                                      -B build-debug
+                                  cmake --build build-debug --parallel $(($(nproc) + 1))
+                                  '''
+                            }
+                        }
+
+                        /*stage('Tests') {
+                            steps {
+                                cmakeBuild buildType: 'Release',
+                                cleanBuild: true,
+                                installation: 'InSearchPath',
+                                steps: [[args: 'test']]
+                            }
+                        }*/
+
+                        /*stage('Memchecks') {
+                            steps {
+                                cmakeBuild buildType: 'Release',
+                                cleanBuild: true,
+                                installation: 'InSearchPath',
+                                steps: [[args: 'test memcheck']]
+                            }
+                        }*/
+                    }
+                }
+
+                stage('Analyse with Coverity') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            branch 'master'
+                            branch "release/*"
+                            changeRequest()
+                        }    
+                    }
+                    stages {
+                        stage('Compile') {
+                            steps {
+                                sh '''
+                                    rm -rf build_coverity
+                                    mkdir -p build_coverity
+                                    cmake -DCMAKE_BUILD_TYPE=Release \
+                                        -B $PWD/build_coverity
+                                    coverity.sh --build $PWD/build_coverity
+                                    '''
+                            }
+                        }
+                        stage('Analyse') {
+                            steps {
+                                sh '''
+                                    coverity.sh --analyse $PWD/build_coverity
+                                   '''
+                                sh '''
+                                   coverity-warning-parser.py $PWD/build_coverity $PWD
+                                   '''
+                            }
+                        }
+                        stage('Commit') {
+                            when {
+                                beforeAgent true
+                                anyOf {
+                                    branch 'master'
+                                    branch 'release/*'
+                                }
+                            }
+                            steps {
+                                sh '''
+                                    COV_GIT_URL=$(git remote -v | egrep '^origin' | awk '{print $2}' | head -1)
+                                    COV_GIT_PROJECT_NAME=$(basename ${COV_GIT_URL} | sed 's#.git##g')
+                                    COV_GIT_BRANCH=$(echo ${BRANCH_NAME} | sed 's#/#_#g')
+                                    COV_GIT_COMMIT_ID=$(git rev-parse --short HEAD)
+                                    coverity.sh --commit $PWD/build_coverity "${COV_GIT_PROJECT_NAME}" "${COV_GIT_BRANCH}" "${COV_GIT_COMMIT_ID}"
+                                '''
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            recordIssues (
+                                enabledForFailure: true,
+                                aggregatingResults: true,
+                                qualityGates: [[threshold: 1, type: 'DELTA_ERROR', fail: true]],
+                                tools: [issues(name: "Coverity Analysis",pattern: '**/tmp_cov_dir/output/*.errors.json')]
+                            )
+                        }
+                    }
+                }
             }
         }
-
-        /*stage('Tests') {
-            steps {
-                cmakeBuild buildType: 'Release',
-                cleanBuild: true,
-                installation: 'InSearchPath',
-                steps: [[args: 'test']]
-            }
-        }
-
-        stage('Memchecks') {
-            when {
-                environment name: 'RUN_MEMCHECKS', value: 'true'
-            }
-            steps {
-                cmakeBuild buildType: 'Release',
-                cleanBuild: true,
-                installation: 'InSearchPath',
-                steps: [[args: 'test memcheck']]
-            }
-        }*/
 
         stage ('deploy if appropriate') {
             steps {
-                 script {
+                script {
                     def myDEPLOY_JOB_NAME = sh(returnStdout: true, script: """echo "${params["DEPLOY_JOB_NAME"]}" """).trim();
                     def myDEPLOY_BRANCH_PATTERN = sh(returnStdout: true, script: """echo "${params["DEPLOY_BRANCH_PATTERN"]}" """).trim();
                     def myDEPLOY_REPORT_RESULT = sh(returnStdout: true, script: """echo "${params["DEPLOY_REPORT_RESULT"]}" """).trim().toBoolean();
@@ -92,8 +171,7 @@ pipeline {
                                 string(name: 'DEPLOY_GIT_URL', value: "${GIT_URL}"),
                                 string(name: 'DEPLOY_GIT_BRANCH', value: env.BRANCH_NAME),
                                 string(name: 'DEPLOY_GIT_COMMIT', value: "${GIT_COMMIT}"),
-                                string(name: 'DEPLOY_DIST_ARCHIVE', value: "${DIST_ARCHIVE}"),
-                                booleanParam(name: 'DO_SUBMODULES', value: true)
+                                string(name: 'DEPLOY_DIST_ARCHIVE', value: "${DIST_ARCHIVE}")
                                 ], quietPeriod: 0, wait: myDEPLOY_REPORT_RESULT, propagate: myDEPLOY_REPORT_RESULT
                         } else {
                             echo "Not deploying because branch '${env.BRANCH_NAME}' did not match filter '${myDEPLOY_BRANCH_PATTERN}'"
@@ -114,11 +192,6 @@ pipeline {
                     //slackSend (color: "#008800", message: "Build ${env.JOB_NAME} is back to normal.")
                     //emailext (to: "qa@example.com", subject: "Build ${env.JOB_NAME} is back to normal.", body: "Build ${env.JOB_NAME} is back to normal.")
                 }
-                if ( params.DO_CLEANUP_AFTER_JOB ) {
-                    dir("tmp") {
-                        deleteDir()
-                    }
-                }
             }
         }
         failure {
@@ -127,16 +200,7 @@ pipeline {
             sleep 1
             //slackSend (color: "#AA0000", message: "Build ${env.BUILD_NUMBER} of ${env.JOB_NAME} ${currentBuild.result} (<${env.BUILD_URL}|Open>)")
             //emailext (to: "qa@example.com", subject: "Build ${env.JOB_NAME} failed!", body: "Build ${env.BUILD_NUMBER} of ${env.JOB_NAME} ${currentBuild.result}\nSee ${env.BUILD_URL}")
-
-            dir("tmp") {
-                script {
-                    if ( params.DO_CLEANUP_AFTER_FAILED_JOB ) {
-                        deleteDir()
-                    } else {
-                        sh """ echo "NOTE: BUILD AREA OF WORKSPACE `pwd` REMAINS FOR POST-MORTEMS ON `hostname` AND CONSUMES `du -hs . | awk '{print \$1}'` !" """
-                    }
-                }
-            }
         }
     }
+
 }
