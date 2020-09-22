@@ -135,20 +135,14 @@ TypeRet selectAssetProperty(
 
     tntdb::Connection conn = tntdb::connectCached (DBConn::url);
 
-    auto q = conn.prepareCached (query.str());
+    TypeRet obj;
 
+    auto q = conn.prepareCached (query.str());
     q.set ("value", keyValue);
 
-    TypeRet obj;
-    try {
-        auto row = q.selectRow();
+    auto row = q.selectRow();
 
-        row[0].get(obj);
-    } catch (const tntdb::NotFound&) {
-        log_debug("selectAssetProperty - value not found. Returning default value");
-    } catch (const std::exception& e) {
-        log_error("selectAssetProperty - unknown error: %s", e.what());
-    }
+    row[0].get(obj);
 
     return obj;
 }
@@ -173,15 +167,9 @@ const TypeRet selectAssetPropertyLike(
     TypeRet obj;
 
     auto q = conn.prepareCached(query.str());
-    try {
-        auto row = q.selectRow();
+    auto row = q.selectRow();
 
-        row[0].get(obj);
-    } catch (const tntdb::NotFound&) {
-        log_debug("selectAssetPropertyLike - value not found. Returning default value");
-    } catch (const std::exception& e) {
-        log_error("selectAssetPropertyLike - unknown error: %s", e.what());
-    }
+    row[0].get(obj);
 
     return obj;
 }

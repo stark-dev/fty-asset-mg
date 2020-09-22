@@ -58,10 +58,14 @@ namespace fty { namespace conversion {
         } else {
             std::string parentIname = asset.getInternalName();
             if (!parentIname.empty()) {
-                std::string parentId =
-                    std::to_string(selectAssetProperty<int>("id_parent", "name", asset.getInternalName()));
-                zhash_insert(
-                    aux, "parent", const_cast<void*>(reinterpret_cast<const void*>(parentId.c_str())));
+                std::string parentId;
+                try {
+                    parentId = std::to_string(selectAssetProperty<int>("id_parent", "name", asset.getInternalName()));
+                    zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>(parentId.c_str())));
+                } catch (const std::exception& e) {
+                    log_error("Parent ID not found in database");
+                    zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>("0")));
+                }
             } else {
                 zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>("0")));
             }
@@ -95,7 +99,10 @@ namespace fty { namespace conversion {
         if (test) {
             asset.setParentIname("test-parent");
         } else {
-            asset.setParentIname(fty_proto_aux_string(proto, "parent", ""));
+            std::string parentId(fty_proto_aux_string(proto, "parent", ""));
+            if(parentId != "0") {
+                asset.setParentIname(parentId);
+            }
         }
         asset.setPriority(static_cast<int>(fty_proto_aux_number(proto, "priority", 5)));
 
