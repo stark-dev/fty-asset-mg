@@ -35,11 +35,20 @@ namespace fty {
 // static helpers
 
 // DB
-DB::DB(bool test)
+DB::DB()
 {
-    if (!test) {
-        m_conn = tntdb::connectCached(DBConn::url);
-    }
+    // m_conn = tntdb::connectCached(DBConn::url);
+}
+
+DB& DB::getInstance()
+{
+    static DB m_instance;
+
+    // fetches connection from pool, if exists
+    // creates a new connection otherwise
+    m_instance.m_conn = tntdb::connectCached(DBConn::url);
+
+    return m_instance;
 }
 
 void DB::loadAsset(const std::string& nameId, Asset& asset)
