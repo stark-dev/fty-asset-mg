@@ -33,11 +33,7 @@ namespace fty {
 class DB : public AssetStorage
 {
 public:
-    static DB& getInstance()
-    {
-        static DB m_instance;
-        return m_instance;
-    }
+    static DB& getInstance();
 
     void loadAsset(const std::string& nameId, Asset& asset);
 
@@ -80,7 +76,7 @@ public:
     std::vector<std::string> listAllAssets();
 
 private:
-    DB(bool test = false);
+    DB();
     std::mutex                m_conn_lock;
     mutable tntdb::Connection m_conn;
 };
