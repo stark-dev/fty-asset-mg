@@ -266,7 +266,7 @@ bool AssetImpl::isVirtual() const
             (getAssetType() == TYPE_VIRTUAL_MACHINE) || (getAssetType() == TYPE_STORAGE_SERVICE) ||
             (getAssetType() == TYPE_VAPP) || (getAssetType() == TYPE_CONNECTOR) ||
             (getAssetType() == TYPE_SERVER) || (getAssetType() == TYPE_PLANNER) ||
-            (getAssetType() == TYPE_PLAN) || (getAssetType() == TYPE_COPS));
+            (getAssetType() == TYPE_PLAN));
 }
 
 bool AssetImpl::hasLinkedAssets() const
