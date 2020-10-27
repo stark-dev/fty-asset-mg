@@ -274,16 +274,10 @@ dto::srr::RestoreResponse AssetServer::handleRestore(const dto::srr::RestoreQuer
                 std::unique_lock<std::mutex> lock(m_srrLock);
 
                 cxxtools::SerializationInfo si = assetutils::deserialize(feature.data());
-                log_debug("Si=\n%s", feature.data().c_str());
-                // clear database
-                AssetImpl::deleteAll(false);
                 restoreAssets(si);
 
                 featureStatus.set_status(Status::SUCCESS);
             } catch (std::exception& e) {
-                // if restore fails, recover previous status
-                AssetImpl::deleteAll(false);
-                restoreAssets(assetBackup);
 
                 featureStatus.set_status(Status::FAILED);
                 featureStatus.set_error(e.what());
@@ -310,8 +304,15 @@ dto::srr::ResetResponse AssetServer::handleReset(const dto::srr::ResetQuery& /*q
 
     const FeatureName& featureName = FTY_ASSET_SRR_NAME;
     FeatureStatus      featureStatus;
-    featureStatus.set_status(Status::FAILED);
-    featureStatus.set_error("Feature is not supported!");
+
+    try {
+        AssetImpl::deleteAll(false);
+        featureStatus.set_status(Status::SUCCESS);
+    }
+    catch (std::exception& ex) {
+        featureStatus.set_status(Status::FAILED);
+        featureStatus.set_error("Reset of assets failed");
+    }
 
     mapStatus[featureName] = featureStatus;
 
