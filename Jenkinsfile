@@ -6,6 +6,7 @@ import params.CmakePipelineParams
 CmakePipelineParams parameters = new CmakePipelineParams()
 // run debug build without tests and memcheck
 parameters.debugBuildRunTests = false
+parameters.debugBuildRunCoverage = false
 parameters.debugBuildRunMemcheck = false
 
 etn_ipm2_build_and_tests_pipeline_cmake(parameters)
