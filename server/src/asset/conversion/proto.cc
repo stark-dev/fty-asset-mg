@@ -57,7 +57,13 @@ namespace fty { namespace conversion {
             zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>("0")));
         } else {
             if (!asset.getParentIname().empty()) {
-                zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>(asset.getParentIname().c_str())));
+                try {
+                    std::string parentId = std::to_string(selectAssetProperty<int>("id_asset_element", "name", asset.getParentIname()));
+                    zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>(parentId.c_str())));
+                } catch (const std::exception& e) {
+                    log_error("Invalid conversion from Asset to fty_proto_t : %s", e.what());
+                    throw std::runtime_error("Invalid conversion from Asset to fty_proto_t : " + std::string(e.what()));
+                }
             } else {
                 zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>("0")));
             }
@@ -91,9 +97,16 @@ namespace fty { namespace conversion {
         if (test) {
             asset.setParentIname("test-parent");
         } else {
-            std::string parentIname(fty_proto_aux_string(proto, "parent", "0"));
-            if(parentIname != "0") {
-                asset.setParentIname(parentIname);
+            std::string parentId(fty_proto_aux_string(proto, "parent", ""));
+            if(parentId != "0") {
+                std::string parentIname;
+                try {
+                    parentIname = selectAssetProperty<std::string>("name", "id_asset_element", parentId);
+                    asset.setParentIname(parentIname);
+                } catch (const std::exception& e) {
+                    log_error("Invalid conversion from fty_proto_t to Asset: %s", e.what());
+                    throw std::runtime_error("Invalid conversion from fty_proto_t to Asset: " + std::string(e.what()));
+                }
             }
         }
         asset.setPriority(static_cast<int>(fty_proto_aux_number(proto, "priority", 5)));
