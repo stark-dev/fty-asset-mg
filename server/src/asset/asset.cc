@@ -82,6 +82,8 @@ static std::string generateUUID(
         std::string src = ns + manufacturer + model + serial;
         // hash must be zeroed first
         std::array<unsigned char, SHA_DIGEST_LENGTH> hash;
+        hash.fill(0);
+
         SHA1(reinterpret_cast<const unsigned char*>(src.c_str()), src.length(), hash.data());
 
         hash[6] &= 0x0F;
