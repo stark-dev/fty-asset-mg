@@ -28,13 +28,13 @@ etn_target(exe ${PROJECT_NAME}
         src/asset
         src/asset/conversion
         include
-        
+    USES_PUBLIC
+        fty_common 
     USES_PRIVATE
         fty-asset
         cxxtools
         fty_common_logging
         fty_common_db
-        fty_common
         fty_proto
         fty_common_mlm
         fty_common_dto
