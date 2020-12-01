@@ -27,7 +27,7 @@
 
 #include <cxxtools/serializationinfo.h>
 
-#include <fty_common_asset.h>
+#include <fty_common_asset_types.h>
 
 namespace fty {
 // extended properties
