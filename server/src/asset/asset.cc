@@ -381,8 +381,10 @@ void AssetImpl::create()
 
         // set creation timestamp
         setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
-        // set uuid
-        setExtEntry(fty::EXT_UUID, generateUUID(getManufacturer(), getModel(), getSerialNo()), true);
+        // generate uuid if not already present in the payload
+        if(getExtEntry("uuid").empty()) {
+            setExtEntry(fty::EXT_UUID, generateUUID(getManufacturer(), getModel(), getSerialNo()), true);
+        }
 
         m_storage.insert(*this);
         m_storage.saveLinkedAssets(*this);
