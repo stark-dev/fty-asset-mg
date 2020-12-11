@@ -22,6 +22,7 @@
 #pragma once
 #include <cxxtools/serializationinfo.h>
 #include <fty_common_messagebus.h>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -40,4 +41,7 @@ namespace fty { namespace assetutils {
     // JSON serialization/deserialization
     std::string                 serialize(const cxxtools::SerializationInfo& si);
     cxxtools::SerializationInfo deserialize(const std::string& json);
+
+    // string manip
+    std::vector<std::string> tokenize(const std::string& str, const std::string& regex);
 }} // namespace fty::assetutils

@@ -23,10 +23,12 @@
 #include "asset-db-test.h"
 #include "asset-db.h"
 #include "asset-storage.h"
+#include "asset/asset-utils.h"
 #include "asset/conversion/full-asset.h"
 #include <algorithm>
 #include <fty_asset_activator.h>
 #include <fty_common_db_dbpath.h>
+#include <fty_security_wallet.h>
 #include <functional>
 #include <memory>
 #include <sstream>
@@ -35,6 +37,15 @@
 #include <uuid/uuid.h>
 
 #define AGENT_ASSET_ACTIVATOR "etn-licensing-credits"
+
+// cam/secw interface constants
+static const char *MALAMUTE_ENDPOINT = "ipc://@/malamute";
+static const char *CAM_CLIENT_ID = "asset-agent";
+static const char *CAM_SERVICE_ID = "monitoring";
+static const char *CAM_DEFAULT_PROTOCOL = "nut_snmp";
+static const int   CAM_TIMEOUT_MS = 1000; // ms
+
+static const std::string secwCredentialIDKey("secw_credential_id");
 
 namespace fty {
 
@@ -121,6 +132,38 @@ static AssetStorage& getStorage()
 std::vector<std::string> getChildren(const AssetImpl& a)
 {
     return getStorage().getChildren(a);
+}
+
+class CredentialMapping {
+public:
+    std::string credentialId;
+    std::string protocol;
+};
+
+
+static std::list<CredentialMapping> getCredentialMappings(const std::map<std::string, fty::ExtMapElement>& extMap) {
+    std::list<CredentialMapping> credentialList;
+
+    // lookup for ext attributes which contains secw_credential_id in the key
+    auto found = std::find_if(extMap.begin(), extMap.end(), [&] (const std::pair<std::string, fty::ExtMapElement>& el) {
+        return el.first.find(secwCredentialIDKey) != std::string::npos;
+    });
+
+    // create mapping
+    while(found != extMap.end()) {
+        CredentialMapping c;
+        c.credentialId = found->second.getValue();
+
+        // extract protocol from element key (endpoint.XX.protocol.secw_credential_id)
+        auto keyTokens = fty::assetutils::tokenize(found->first, "\\.");
+        c.protocol = keyTokens.size() >= 3 ? keyTokens[2] : CAM_DEFAULT_PROTOCOL;
+        credentialList.push_back(c);
+
+        found = std::find_if(++found, extMap.end(), [&] (const std::pair<std::string, fty::ExtMapElement>& el) {
+            return el.first.find(secwCredentialIDKey) != std::string::npos;
+        });
+    }
+    return credentialList;
 }
 
 //============================================================================================================
@@ -389,6 +432,14 @@ void AssetImpl::create()
         m_storage.insert(*this);
         m_storage.saveLinkedAssets(*this);
         m_storage.saveExtMap(*this);
+
+        auto credentialList = getCredentialMappings(getExt());
+        // create mapping, if needed
+        cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
+        for(const auto& c :credentialList) {
+            camAccessor.createMapping(getInternalName(), CAM_SERVICE_ID, c.protocol, 0, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
+        }
+
     } catch (const std::exception& e) {
         m_storage.rollbackTransaction();
         throw std::runtime_error(std::string(e.what()));
@@ -405,6 +456,17 @@ void AssetImpl::update()
         }
         // set last update timestamp
         setExtEntry(fty::EXT_UPDATE_TS, generateCurrentTimestamp(), true);
+
+        auto credentialList = getCredentialMappings(getExt());
+        // create mapping, if needed
+        cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
+        for(const auto& c : credentialList) {
+            if(camAccessor.isMappingExisting(getInternalName(), CAM_SERVICE_ID, c.protocol)) {
+                camAccessor.updateCredentialId(getInternalName(), CAM_SERVICE_ID, c.protocol, c.credentialId);
+            } else {
+                camAccessor.createMapping(getInternalName(), CAM_SERVICE_ID, c.protocol, 0, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
+            }
+        }
 
         m_storage.update(*this);
         m_storage.saveLinkedAssets(*this);
@@ -431,6 +493,13 @@ void AssetImpl::restore(bool restoreLinks)
         m_storage.saveExtMap(*this);
         if (restoreLinks) {
             m_storage.saveLinkedAssets(*this);
+        }
+
+        auto credentialList = getCredentialMappings(getExt());
+        // create mapping, if needed
+        cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
+        for(const auto& c :credentialList) {
+            camAccessor.createMapping(getInternalName(), CAM_SERVICE_ID, c.protocol, 0, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
         }
 
     } catch (const std::exception& e) {
@@ -808,6 +877,14 @@ DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool 
         d.load();
 
         try {
+            // remove mapping
+            auto credentialList = getCredentialMappings(d.getExt());
+            // create mapping, if needed
+            cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
+            for(const auto& c :credentialList) {
+                camAccessor.removeMapping(d.getInternalName(), CAM_SERVICE_ID, c.protocol);
+            }
+
             d.remove(removeLastDC);
             deleted.push_back({d, "OK"});
         } catch (std::exception& e) {
