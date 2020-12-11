@@ -22,7 +22,6 @@
 #pragma once
 #include <cxxtools/serializationinfo.h>
 #include <fty_common_messagebus.h>
-#include <regex>
 #include <string>
 #include <vector>
 
