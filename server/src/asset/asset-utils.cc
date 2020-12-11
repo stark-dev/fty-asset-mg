@@ -151,16 +151,4 @@ namespace fty { namespace assetutils {
 
         return si;
     }
-
-    // string manipulation
-    std::vector<std::string> tokenize(const std::string& str, const std::string& regex)
-    {
-        std::vector<std::string> v;
-        const std::regex re(regex);
-        std::copy(std::sregex_token_iterator(str.begin(), str.end(), re, -1),
-            std::sregex_token_iterator(),
-            std::back_inserter(v));
-        
-        return v;
-    }
 }} // namespace fty::assetutils

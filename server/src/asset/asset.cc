@@ -29,7 +29,9 @@
 #include <fty_asset_activator.h>
 #include <fty_common_db_dbpath.h>
 #include <fty_security_wallet.h>
+#include <fty/split.h>
 #include <functional>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <time.h>
@@ -39,13 +41,13 @@
 #define AGENT_ASSET_ACTIVATOR "etn-licensing-credits"
 
 // cam/secw interface constants
-static const char *MALAMUTE_ENDPOINT = "ipc://@/malamute";
-static const char *CAM_CLIENT_ID = "asset-agent";
-static const char *CAM_SERVICE_ID = "monitoring";
-static const char *CAM_DEFAULT_PROTOCOL = "nut_snmp";
-static const int   CAM_TIMEOUT_MS = 1000; // ms
+static constexpr const char *MALAMUTE_ENDPOINT = "ipc://@/malamute";
+static constexpr const char *CAM_CLIENT_ID = "asset-agent";
+static constexpr const char *CAM_SERVICE_ID = "monitoring";
+static constexpr const char *CAM_DEFAULT_PROTOCOL = "nut_snmp";
+static constexpr const int   CAM_TIMEOUT_MS = 1000; // ms
 
-static const std::string secwCredentialIDKey("secw_credential_id");
+static constexpr const char* SECW_CRED_ID_KEY = "secw_credential_id";
 
 namespace fty {
 
@@ -134,20 +136,21 @@ std::vector<std::string> getChildren(const AssetImpl& a)
     return getStorage().getChildren(a);
 }
 
-class CredentialMapping {
-public:
+struct CredentialMapping {
     std::string credentialId;
     std::string protocol;
 };
 
-
-static std::list<CredentialMapping> getCredentialMappings(const std::map<std::string, fty::ExtMapElement>& extMap) {
+using Mapping = std::map<std::string, fty::ExtMapElement>;
+static std::list<CredentialMapping> getCredentialMappings(const Mapping& extMap) {
     std::list<CredentialMapping> credentialList;
 
+    auto findCredKey = [&] (const auto& el) {
+        return el.first.find(SECW_CRED_ID_KEY) != std::string::npos;
+    };
+
     // lookup for ext attributes which contains secw_credential_id in the key
-    auto found = std::find_if(extMap.begin(), extMap.end(), [&] (const std::pair<std::string, fty::ExtMapElement>& el) {
-        return el.first.find(secwCredentialIDKey) != std::string::npos;
-    });
+    auto found = std::find_if(extMap.begin(), extMap.end(), findCredKey);
 
     // create mapping
     while(found != extMap.end()) {
@@ -155,13 +158,11 @@ static std::list<CredentialMapping> getCredentialMappings(const std::map<std::st
         c.credentialId = found->second.getValue();
 
         // extract protocol from element key (endpoint.XX.protocol.secw_credential_id)
-        auto keyTokens = fty::assetutils::tokenize(found->first, "\\.");
+        auto keyTokens = fty::split(found->first, ".");
         c.protocol = keyTokens.size() >= 3 ? keyTokens[2] : CAM_DEFAULT_PROTOCOL;
         credentialList.push_back(c);
 
-        found = std::find_if(++found, extMap.end(), [&] (const std::pair<std::string, fty::ExtMapElement>& el) {
-            return el.first.find(secwCredentialIDKey) != std::string::npos;
-        });
+        found = std::find_if(extMap.begin(), extMap.end(), findCredKey);
     }
     return credentialList;
 }
