@@ -39,6 +39,8 @@
 
 #define AGENT_ASSET_ACTIVATOR "etn-licensing-credits"
 
+#define MAX_CREATE_RETRY 10
+
 namespace fty {
 
 //============================================================================================================
@@ -344,11 +346,8 @@ void AssetImpl::remove(bool removeLastDC)
     m_storage.commitTransaction();
 }
 
-// generate asset name
-static std::string createAssetName(const std::string& type, const std::string& subtype)
+static std::string generateRandomID()
 {
-    std::string assetName;
-
     timeval t;
     gettimeofday(&t, NULL);
     srand(static_cast<unsigned int>(t.tv_sec * t.tv_usec));
@@ -360,10 +359,18 @@ static std::string createAssetName(const std::string& type, const std::string& s
     // create 8 digit index with leading zeros
     indexStr = std::string(8 - indexStr.length(), '0') + indexStr;
 
+    return indexStr;
+}
+
+// generate asset name
+static std::string createAssetName(const std::string& type, const std::string& subtype, const std::string& id)
+{
+    std::string assetName;
+
     if (type == fty::TYPE_DEVICE) {
-        assetName = subtype + "-" + indexStr;
+        assetName = subtype + "-" + id;
     } else {
-        assetName = type + "-" + indexStr;
+        assetName = type + "-" + id;
     }
 
     return assetName;
@@ -374,11 +381,23 @@ void AssetImpl::create()
     m_storage.beginTransaction();
     try {
         if (!g_testMode) {
-            std::string iname;
-            do {
-                iname = createAssetName(getAssetType(), getAssetSubtype());
-            } while (m_storage.getID(iname));
+            std::string randomId;
 
+            unsigned int retry = 0;
+            bool valid = false;
+
+            do {
+                randomId = generateRandomID();
+                valid = m_storage.verifyID(randomId);
+                log_debug("Checking ID %s validty", randomId.c_str());
+
+            } while (!valid && (retry++ < MAX_CREATE_RETRY));
+
+            if(!valid) {
+                throw std::runtime_error("Multiple Asset ID collisions - impossible to create asset");
+            }
+
+            std::string iname = createAssetName(getAssetType(), getAssetSubtype(), randomId);
             setInternalName(iname);
         }
 

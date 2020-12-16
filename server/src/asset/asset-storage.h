@@ -49,6 +49,7 @@ public:
     virtual uint32_t getID(const std::string& internalName)   = 0;
     virtual uint32_t getTypeID(const std::string& type)       = 0;
     virtual uint32_t getSubtypeID(const std::string& subtype) = 0;
+    virtual bool verifyID(std::string& id) = 0;
 
     virtual bool hasLinkedAssets(const Asset& asset) = 0;
     virtual void unlinkAll(Asset& dest)              = 0;
