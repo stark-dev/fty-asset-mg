@@ -43,7 +43,8 @@
 static constexpr const char *MALAMUTE_ENDPOINT = "ipc://@/malamute";
 static constexpr const char *CAM_CLIENT_ID = "asset-agent";
 static constexpr const char *CAM_SERVICE_ID = "monitoring";
-static constexpr const char *CAM_DEFAULT_PROTOCOL = "nut_snmp";
+static constexpr const char *CAM_DEFAULT_PROTOCOL = "monitoring";
+static constexpr const char *CAM_DEFAULT_PORT = "0";
 static constexpr const int   CAM_TIMEOUT_MS = 1000; // ms
 
 static constexpr const char* SECW_CRED_ID_KEY = "secw_credential_id";
@@ -136,13 +137,17 @@ std::vector<std::string> getChildren(const AssetImpl& a)
 }
 
 struct CredentialMapping {
+    std::string serviceId;
     std::string credentialId;
     std::string protocol;
+    std::string port;
 };
 
 using Mapping = std::map<std::string, fty::ExtMapElement>;
 static std::list<CredentialMapping> getCredentialMappings(const Mapping& extMap) {
     std::list<CredentialMapping> credentialList;
+
+    log_debug("Looking for mapping entries");
 
     auto findCredKey = [&] (const auto& el) {
         return el.first.find(SECW_CRED_ID_KEY) != std::string::npos;
@@ -157,12 +162,17 @@ static std::list<CredentialMapping> getCredentialMappings(const Mapping& extMap)
         c.credentialId = found->second.getValue();
 
         // extract protocol from element key (endpoint.XX.protocol.secw_credential_id)
-        auto keyTokens = fty::split(found->first, ".");
-        c.protocol = keyTokens.size() >= 3 ? keyTokens[2] : CAM_DEFAULT_PROTOCOL;
+        // auto keyTokens = fty::split(found->first, ".");
+        c.serviceId = CAM_SERVICE_ID;
+        c.protocol = /* keyTokens.size() >= 3 ? keyTokens[2] : */ CAM_DEFAULT_PROTOCOL;
+        c.port = CAM_DEFAULT_PORT;
         credentialList.push_back(c);
 
-        found = std::find_if(extMap.begin(), extMap.end(), findCredKey);
+        log_debug("Found new credential %s : %s", c.credentialId.c_str(), c.protocol.c_str());
+
+        found = std::find_if(++found, extMap.end(), findCredKey);
     }
+
     return credentialList;
 }
 
@@ -433,18 +443,24 @@ void AssetImpl::create()
         m_storage.saveLinkedAssets(*this);
         m_storage.saveExtMap(*this);
 
-        auto credentialList = getCredentialMappings(getExt());
-        // create mapping, if needed
-        cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
-        for(const auto& c :credentialList) {
-            camAccessor.createMapping(getInternalName(), CAM_SERVICE_ID, c.protocol, 0, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
-        }
-
     } catch (const std::exception& e) {
         m_storage.rollbackTransaction();
         throw std::runtime_error(std::string(e.what()));
     }
     m_storage.commitTransaction();
+
+    try {
+        // get list of secw credentials from ext map of asset
+        auto credentialList = getCredentialMappings(getExt());
+
+        cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
+        for(const auto& c :credentialList) {
+            log_debug("Create new mapping to credential with ID %s", c.credentialId.c_str());
+            camAccessor.createMapping(getInternalName(), c.serviceId, c.protocol, c.port, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
+        }
+    } catch (const std::exception& e) {
+        log_error("Failed to update CAM: %s", e.what());
+    }
 }
 
 void AssetImpl::update()
@@ -476,6 +492,57 @@ void AssetImpl::update()
         throw std::runtime_error(std::string(e.what()));
     }
     m_storage.commitTransaction();
+
+    try {
+        const auto& assetIname = getInternalName();
+
+        log_debug("Updating mappings for asset %s", assetIname.c_str());
+
+        // get list of secw credentials from ext map of asset
+        auto credentialList = getCredentialMappings(getExt());
+
+        cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
+
+        // get asset existing mappings
+        auto existingMappings = camAccessor.getAssetMappings(assetIname);
+
+        for(const auto& c :credentialList) {
+            auto mappingExists = std::find_if(existingMappings.begin(), existingMappings.end(), [&] (const cam::CredentialAssetMapping &mapping) {
+                // only one mapping can exist with same service ID and same protocol
+                return mapping.m_serviceId == c.serviceId && mapping.m_protocol == c.protocol;
+            });
+            if(mappingExists != existingMappings.end()) {
+                log_debug("Asset %s already mapped to %s : %s", assetIname.c_str(), c.serviceId.c_str(), c.protocol.c_str());
+                // if either credential ID or port changed, update the credential
+                if(mappingExists->m_credentialId != c.credentialId || mappingExists->m_port != c.port) {
+                    cam::CredentialAssetMapping newMapping;
+                    newMapping.m_assetId = assetIname;
+                    newMapping.m_serviceId = c.serviceId;
+                    newMapping.m_protocol = c.protocol;
+                    newMapping.m_port = c.port;
+                    newMapping.m_credentialId = c.credentialId;
+                    newMapping.m_status = cam::Status::UNKNOWN;
+
+                    log_debug("Mapping %s : %s updated", assetIname.c_str(), c.serviceId.c_str(), c.protocol.c_str());
+
+                    camAccessor.updateMapping(newMapping);
+                }
+                // delete from existing mappings (remaining mappings will be deleted)
+                existingMappings.erase(mappingExists);
+            } else {
+                log_debug("Create new mapping to credential with ID %s", c.credentialId.c_str());
+                camAccessor.createMapping(assetIname, c.serviceId, c.protocol, c.port, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
+            }
+        }
+
+        // if existingMappings is not empty -> some credentials were removed from asset and need to be deleted
+        for(const auto& m : existingMappings) {
+            log_debug("Deleting unused mapping %s : %s", m.m_serviceId.c_str(), m.m_protocol.c_str());
+            camAccessor.removeMapping(assetIname, m.m_serviceId, m.m_protocol);
+        }
+    } catch (const std::exception& e) {
+        log_error("Failed to update CAM: %s", e.what());
+    }
 }
 
 void AssetImpl::restore(bool restoreLinks)
@@ -877,16 +944,22 @@ DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool 
         d.load();
 
         try {
-            // remove mapping
-            auto credentialList = getCredentialMappings(d.getExt());
-            // create mapping, if needed
-            cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
-            for(const auto& c :credentialList) {
-                camAccessor.removeMapping(d.getInternalName(), CAM_SERVICE_ID, c.protocol);
-            }
-
             d.remove(removeLastDC);
             deleted.push_back({d, "OK"});
+
+            // remove CAM mappings
+            try {
+                log_debug("Deleting all mappings for asset %s", d.getInternalName().c_str());
+                // remove CAM mappings
+                cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
+                auto mappings = camAccessor.getAssetMappings(d.getInternalName());
+                for(const auto& m : mappings) {
+                    log_debug("Deleting mapping %s : %s", m.m_serviceId.c_str(), m.m_protocol.c_str());
+                    camAccessor.removeMapping(m.m_assetId, m.m_serviceId, m.m_protocol);
+                }
+            } catch (std::exception& e) {
+                log_error("Asset mappings could not be removed: %s", e.what());
+            }
         } catch (std::exception& e) {
             log_error("Asset could not be removed: %s", e.what());
             deleted.push_back({d, "Asset could not be removed: " + std::string(e.what())});
