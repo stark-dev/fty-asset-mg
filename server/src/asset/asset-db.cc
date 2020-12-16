@@ -272,6 +272,32 @@ uint32_t DB::getSubtypeID(const std::string& subtype)
     return subtypeID;
 }
 
+bool DB::verifyID(std::string& id) {
+    // clang-format off
+    auto q = m_conn.prepare(R"(
+        SELECT
+            COUNT(id_asset_element)
+        FROM
+            t_bios_asset_element
+        WHERE
+            name like :name
+    )");
+    // clang-format on
+    q.set("name", "%" + id);
+
+    int res;
+    try {
+        m_conn_lock.lock();
+        res = q.selectValue().getInt();
+        m_conn_lock.unlock();
+    } catch (std::exception& e) {
+        m_conn_lock.unlock();
+        throw std::runtime_error("database error - " + std::string(e.what()));
+    }
+
+    return res == 0;
+}
+
 uint32_t DB::getLinkID(const uint32_t destId, const AssetLink& l)
 {
     uint32_t linkID = 0;

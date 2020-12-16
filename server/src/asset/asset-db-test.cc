@@ -129,6 +129,12 @@ uint32_t DBTest::getSubtypeID(const std::string& subtype)
     return 1;
 }
 
+bool DBTest::verifyID(std::string& id)
+{
+    std::cout << "DBTest::verifyID " << id << std::endl;
+    return true;
+}
+
 bool DBTest::hasLinkedAssets(const Asset& /*asset*/)
 {
     std::cout << "DBTest::hasLinkedAssets" << std::endl;
