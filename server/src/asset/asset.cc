@@ -20,6 +20,7 @@
 */
 
 #include "asset.h"
+#include "asset-cam.h"
 #include "asset-db-test.h"
 #include "asset-db.h"
 #include "asset-storage.h"
@@ -27,7 +28,9 @@
 #include <algorithm>
 #include <fty_asset_activator.h>
 #include <fty_common_db_dbpath.h>
+#include <fty/split.h>
 #include <functional>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <time.h>
@@ -35,6 +38,8 @@
 #include <uuid/uuid.h>
 
 #define AGENT_ASSET_ACTIVATOR "etn-licensing-credits"
+
+#define MAX_CREATE_RETRY 10
 
 namespace fty {
 
@@ -341,11 +346,8 @@ void AssetImpl::remove(bool removeLastDC)
     m_storage.commitTransaction();
 }
 
-// generate asset name
-static std::string createAssetName(const std::string& type, const std::string& subtype)
+static std::string generateRandomID()
 {
-    std::string assetName;
-
     timeval t;
     gettimeofday(&t, NULL);
     srand(static_cast<unsigned int>(t.tv_sec * t.tv_usec));
@@ -357,10 +359,18 @@ static std::string createAssetName(const std::string& type, const std::string& s
     // create 8 digit index with leading zeros
     indexStr = std::string(8 - indexStr.length(), '0') + indexStr;
 
+    return indexStr;
+}
+
+// generate asset name
+static std::string createAssetName(const std::string& type, const std::string& subtype, const std::string& id)
+{
+    std::string assetName;
+
     if (type == fty::TYPE_DEVICE) {
-        assetName = subtype + "-" + indexStr;
+        assetName = subtype + "-" + id;
     } else {
-        assetName = type + "-" + indexStr;
+        assetName = type + "-" + id;
     }
 
     return assetName;
@@ -371,27 +381,51 @@ void AssetImpl::create()
     m_storage.beginTransaction();
     try {
         if (!g_testMode) {
-            std::string iname;
-            do {
-                iname = createAssetName(getAssetType(), getAssetSubtype());
-            } while (m_storage.getID(iname));
+            std::string randomId;
 
+            unsigned int retry = 0;
+            bool valid = false;
+
+            do {
+                randomId = generateRandomID();
+                valid = m_storage.verifyID(randomId);
+                log_debug("Checking ID %s validty", randomId.c_str());
+
+            } while (!valid && (retry++ < MAX_CREATE_RETRY));
+
+            if(!valid) {
+                throw std::runtime_error("Multiple Asset ID collisions - impossible to create asset");
+            }
+
+            std::string iname = createAssetName(getAssetType(), getAssetSubtype(), randomId);
             setInternalName(iname);
         }
 
         // set creation timestamp
         setExtEntry(fty::EXT_CREATE_TS, generateCurrentTimestamp(), true);
-        // set uuid
-        setExtEntry(fty::EXT_UUID, generateUUID(getManufacturer(), getModel(), getSerialNo()), true);
+        // generate uuid if not already present in the payload
+        if(getExtEntry("uuid").empty()) {
+            setExtEntry(fty::EXT_UUID, generateUUID(getManufacturer(), getModel(), getSerialNo()), true);
+        }
 
         m_storage.insert(*this);
         m_storage.saveLinkedAssets(*this);
         m_storage.saveExtMap(*this);
+
     } catch (const std::exception& e) {
         m_storage.rollbackTransaction();
         throw std::runtime_error(std::string(e.what()));
     }
     m_storage.commitTransaction();
+
+    // create CAM mappings
+    try {
+        auto credentialList = getCredentialMappings(getExt());
+        createMappings(getInternalName(), credentialList);
+    } catch (const std::exception& e) {
+        log_error("Failed to update CAM: %s", e.what());
+    }
+        
 }
 
 void AssetImpl::update()
@@ -412,6 +446,15 @@ void AssetImpl::update()
         throw std::runtime_error(std::string(e.what()));
     }
     m_storage.commitTransaction();
+
+    // update CAM mappings
+    try {
+        deleteMappings(getInternalName());
+        auto credentialList = getCredentialMappings(getExt());
+        createMappings(getInternalName(), credentialList);
+    } catch (const std::exception& e) {
+        log_error("Failed to update CAM: %s", e.what());
+    }
 }
 
 void AssetImpl::restore(bool restoreLinks)
@@ -437,6 +480,14 @@ void AssetImpl::restore(bool restoreLinks)
         throw e.what();
     }
     m_storage.commitTransaction();
+
+    // create CAM mappings
+    try {
+        auto credentialList = getCredentialMappings(getExt());
+        createMappings(getInternalName(), credentialList);
+    } catch (const std::exception& e) {
+        log_error("Failed to update CAM: %s", e.what());
+    }
 }
 
 bool AssetImpl::isActivable()
@@ -808,6 +859,13 @@ DeleteStatus AssetImpl::deleteList(const std::vector<std::string>& assets, bool 
         try {
             d.remove(removeLastDC);
             deleted.push_back({d, "OK"});
+
+            // remove CAM mappings
+            try {
+                deleteMappings(d.getInternalName());
+            } catch (const std::exception& e) {
+                log_error("Failed to update CAM: %s", e.what());
+            }
         } catch (std::exception& e) {
             log_error("Asset could not be removed: %s", e.what());
             deleted.push_back({d, "Asset could not be removed: " + std::string(e.what())});
