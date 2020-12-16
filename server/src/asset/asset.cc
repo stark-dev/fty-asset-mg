@@ -144,8 +144,8 @@ struct CredentialMapping {
 };
 
 using Mapping = std::map<std::string, fty::ExtMapElement>;
-static std::list<CredentialMapping> getCredentialMappings(const Mapping& extMap) {
-    std::list<CredentialMapping> credentialList;
+static std::list<std::pair<CredentialMapping, bool>> getCredentialMappings(const Mapping& extMap) {
+    std::list<std::pair<CredentialMapping, bool>> credentialList;
 
     log_debug("Looking for mapping entries");
 
@@ -166,7 +166,7 @@ static std::list<CredentialMapping> getCredentialMappings(const Mapping& extMap)
         c.serviceId = CAM_SERVICE_ID;
         c.protocol = /* keyTokens.size() >= 3 ? keyTokens[2] : */ CAM_DEFAULT_PROTOCOL;
         c.port = CAM_DEFAULT_PORT;
-        credentialList.push_back(c);
+        credentialList.push_back({c, found->second.wasUpdated()});
 
         log_debug("Found new credential %s : %s", c.credentialId.c_str(), c.protocol.c_str());
 
@@ -454,9 +454,13 @@ void AssetImpl::create()
         auto credentialList = getCredentialMappings(getExt());
 
         cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
-        for(const auto& c :credentialList) {
-            log_debug("Create new mapping to credential with ID %s", c.credentialId.c_str());
-            camAccessor.createMapping(getInternalName(), c.serviceId, c.protocol, c.port, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
+        for(const auto& p :credentialList) {
+            // credentialList contains pair of <credential, bool>. bool indicates if it was updated or not (on create it will be always true)
+            const auto& c = p.first;
+            if(p.second) {
+                log_debug("Create new mapping to credential with ID %s", c.credentialId.c_str());
+                camAccessor.createMapping(getInternalName(), c.serviceId, c.protocol, c.port, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
+            }
         }
     } catch (const std::exception& e) {
         log_error("Failed to update CAM: %s", e.what());
@@ -472,17 +476,6 @@ void AssetImpl::update()
         }
         // set last update timestamp
         setExtEntry(fty::EXT_UPDATE_TS, generateCurrentTimestamp(), true);
-
-        auto credentialList = getCredentialMappings(getExt());
-        // create mapping, if needed
-        cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
-        for(const auto& c : credentialList) {
-            if(camAccessor.isMappingExisting(getInternalName(), CAM_SERVICE_ID, c.protocol)) {
-                camAccessor.updateCredentialId(getInternalName(), CAM_SERVICE_ID, c.protocol, c.credentialId);
-            } else {
-                camAccessor.createMapping(getInternalName(), CAM_SERVICE_ID, c.protocol, 0, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
-            }
-        }
 
         m_storage.update(*this);
         m_storage.saveLinkedAssets(*this);
@@ -506,15 +499,22 @@ void AssetImpl::update()
         // get asset existing mappings
         auto existingMappings = camAccessor.getAssetMappings(assetIname);
 
-        for(const auto& c :credentialList) {
+        // NOTE: all the ext map fields in an asset contain a wasUpdate bool field, which indicates if the field was truly modified in the curret call.
+        //       This allows to prevent changes based on outdated versions of the ext map. The credentials will be only updated if this field is set to true,
+        //       but it is still needed to avoid deleting mappings which already exist but were not modified
+
+        for(const auto& p :credentialList) {
+            // credentialList contains pair of <credential, bool>. bool indicates if it was updated or not (on create it will be always true)
+            const auto& c = p.first;
+
             auto mappingExists = std::find_if(existingMappings.begin(), existingMappings.end(), [&] (const cam::CredentialAssetMapping &mapping) {
                 // only one mapping can exist with same service ID and same protocol
                 return mapping.m_serviceId == c.serviceId && mapping.m_protocol == c.protocol;
             });
             if(mappingExists != existingMappings.end()) {
                 log_debug("Asset %s already mapped to %s : %s", assetIname.c_str(), c.serviceId.c_str(), c.protocol.c_str());
-                // if either credential ID or port changed, update the credential
-                if(mappingExists->m_credentialId != c.credentialId || mappingExists->m_port != c.port) {
+                // if either credential ID or port changed, and field was updated from UI (p.second) -> update the credential
+                if((mappingExists->m_credentialId != c.credentialId || mappingExists->m_port != c.port) && p.second) {
                     cam::CredentialAssetMapping newMapping;
                     newMapping.m_assetId = assetIname;
                     newMapping.m_serviceId = c.serviceId;
@@ -530,8 +530,11 @@ void AssetImpl::update()
                 // delete from existing mappings (remaining mappings will be deleted)
                 existingMappings.erase(mappingExists);
             } else {
-                log_debug("Create new mapping to credential with ID %s", c.credentialId.c_str());
-                camAccessor.createMapping(assetIname, c.serviceId, c.protocol, c.port, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
+                // if wasUpdated (p.second) is set to true -> create new mapping
+                if(p.second) {
+                    log_debug("Create new mapping to credential with ID %s", c.credentialId.c_str());
+                    camAccessor.createMapping(assetIname, c.serviceId, c.protocol, c.port, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
+                }
             }
         }
 
@@ -562,19 +565,29 @@ void AssetImpl::restore(bool restoreLinks)
             m_storage.saveLinkedAssets(*this);
         }
 
-        auto credentialList = getCredentialMappings(getExt());
-        // create mapping, if needed
-        cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
-        for(const auto& c :credentialList) {
-            camAccessor.createMapping(getInternalName(), CAM_SERVICE_ID, c.protocol, 0, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
-        }
-
     } catch (const std::exception& e) {
         m_storage.rollbackTransaction();
         log_debug("AssetImpl::save() got EXCEPTION : %s", e.what());
         throw e.what();
     }
     m_storage.commitTransaction();
+
+    try {
+        // get list of secw credentials from ext map of asset
+        auto credentialList = getCredentialMappings(getExt());
+
+        cam::Accessor camAccessor(CAM_CLIENT_ID, CAM_TIMEOUT_MS, MALAMUTE_ENDPOINT);
+        for(const auto& p :credentialList) {
+            // credentialList contains pair of <credential, bool>. bool indicates if it was updated or not (on create it will be always true)
+            const auto& c = p.first;
+            if(p.second) {
+                log_debug("Create new mapping to credential with ID %s", c.credentialId.c_str());
+                camAccessor.createMapping(getInternalName(), c.serviceId, c.protocol, c.port, c.credentialId, cam::Status::UNKNOWN /*, empty map */);
+            }
+        }
+    } catch (const std::exception& e) {
+        log_error("Failed to update CAM: %s", e.what());
+    }
 }
 
 bool AssetImpl::isActivable()
