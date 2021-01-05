@@ -117,9 +117,10 @@ namespace fty { namespace conversion {
             asset.setExtEntry(zhash_cursor(hash), static_cast<const char*>(item), extAttributeReadOnly);
         }
 
-        // PQSWPRG-7607 HOTFIX: force RW for friendly name ('name' ext. attribute)
+        // PQSWPRG-7607 HOTFIX: force RW for friendly name ('name' ext. attribute) and also for ip.1
         if (extAttributeReadOnly) {
             asset.setExtEntry("name", asset.getExtEntry("name"), false);
+            asset.setExtEntry("ip.1", asset.getExtEntry("ip.1"), false);
         }//
     }
 
