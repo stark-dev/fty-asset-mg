@@ -887,4 +887,10 @@ std::string AssetImpl::getInameFromUuid(const std::string& uuid)
     return getStorage().inameByUuid(uuid);
 }
 
+/// get internal database index from iname
+uint32_t AssetImpl::getIDFromIname(const std::string& iname)
+{
+    return getStorage().getID(iname);
+}
+
 } // namespace fty
