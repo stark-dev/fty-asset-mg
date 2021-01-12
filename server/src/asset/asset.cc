@@ -212,9 +212,9 @@ void operator>>=(const cxxtools::SerializationInfo& si, AssetFilters& filters)
             parent >>= v;
 
             for (const std::string& val : v) {
-                uint32_t parentId = getStorage().getID(val);
+                auto parentId = getStorage().getID(val);
                 if (parentId) {
-                    filters["id_parent"].push_back(std::to_string(parentId));
+                    filters["id_parent"].push_back(std::to_string(*parentId));
                 } else {
                     log_error("Invalid parent filter: %s does not exist", val.c_str());
                 }
@@ -890,7 +890,11 @@ std::string AssetImpl::getInameFromUuid(const std::string& uuid)
 /// get internal database index from iname
 uint32_t AssetImpl::getIDFromIname(const std::string& iname)
 {
-    return getStorage().getID(iname);
+    auto id = getStorage().getID(iname);
+    if(!id) {
+        throw std::runtime_error(id.error());
+    }
+    return *id;
 }
 
 } // namespace fty

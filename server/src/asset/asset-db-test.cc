@@ -111,7 +111,7 @@ void DBTest::clearGroup(Asset& /*asset*/)
     std::cout << "DBTest::clearGroup" << std::endl;
 }
 
-uint32_t DBTest::getID(const std::string& internalName)
+fty::Expected<uint32_t> DBTest::getID(const std::string& internalName)
 {
     std::cout << "DBTest::getID for asset" << internalName << std::endl;
     return 1;

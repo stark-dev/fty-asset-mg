@@ -105,8 +105,10 @@ void DB::loadAsset(const std::string& nameId, Asset& asset)
 
 void DB::loadExtMap(Asset& asset)
 {
-    uint32_t assetID = getID(asset.getInternalName());
-    assert (assetID);
+    auto assetID = getID(asset.getInternalName());
+    if(!assetID) {
+        throw std::runtime_error(assetID.error());
+    }
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -120,7 +122,7 @@ void DB::loadExtMap(Asset& asset)
             id_asset_element = :asset_id
     )");
     // clang-format on
-    q.set("asset_id", assetID);
+    q.set("asset_id", *assetID);
 
     tntdb::Result res;
 
@@ -142,8 +144,10 @@ void DB::loadExtMap(Asset& asset)
 
 std::vector<std::string> DB::getChildren(const Asset& asset)
 {
-    uint32_t assetID = getID(asset.getInternalName());
-    assert (assetID);
+    auto assetID = getID(asset.getInternalName());
+    if(!assetID) {
+        throw std::runtime_error(assetID.error());
+    }
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -155,7 +159,7 @@ std::vector<std::string> DB::getChildren(const Asset& asset)
             id_parent = :asset_id
     )");
     // clang-format on
-    q.set("asset_id", assetID);
+    q.set("asset_id", *assetID);
 
     tntdb::Result res;
 
@@ -177,7 +181,7 @@ std::vector<std::string> DB::getChildren(const Asset& asset)
 }
 
 // returns 0 if internal name is not found, the integer ID otherwise
-uint32_t DB::getID(const std::string& internalName)
+fty::Expected<uint32_t> DB::getID(const std::string& internalName)
 {
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -201,6 +205,7 @@ uint32_t DB::getID(const std::string& internalName)
         assetID = static_cast<uint32_t>(v.getInt32());
     } catch (tntdb::NotFound&) {
         m_conn_lock.unlock();
+        return fty::unexpected("Internal name not found");
     } catch (std::exception& e) {
         m_conn_lock.unlock();
         throw std::runtime_error("database error - " + std::string(e.what()));
@@ -302,8 +307,10 @@ uint32_t DB::getLinkID(const uint32_t destId, const AssetLink& l)
 {
     uint32_t linkID = 0;
 
-    uint32_t srcId = getID(l.sourceId());
-    assert(srcId);
+    auto srcId = getID(l.sourceId());
+    if(!srcId) {
+        throw std::runtime_error(srcId.error());
+    }
 
     assert(destId);
 
@@ -346,7 +353,7 @@ uint32_t DB::getLinkID(const uint32_t destId, const AssetLink& l)
 
     q = m_conn.prepareCached(qs.str().c_str());
 
-    q.set("src", srcId);
+    q.set("src", *srcId);
     q.set("dest", destId);
 
     if (!l.srcOut().empty())
@@ -602,10 +609,10 @@ void DB::loadLinkedAssets(Asset& asset)
 
 void DB::saveLinkedAssets(Asset& asset)
 {
-    uint32_t assetID = getID(asset.getInternalName());
+    auto assetID = getID(asset.getInternalName());
 
-    if (assetID == 0) {
-        throw std::runtime_error("Asset " + asset.getInternalName() + " not found");
+    if (!assetID) {
+        throw std::runtime_error(assetID.error());
     }
 
     // clang-format off
@@ -624,7 +631,7 @@ void DB::saveLinkedAssets(Asset& asset)
              id_asset_device_dest = :assetId
     )");
     // clang-format on
-    q.set("assetId", assetID);
+    q.set("assetId", *assetID);
 
     tntdb::Result res;
     try {
@@ -667,7 +674,7 @@ void DB::saveLinkedAssets(Asset& asset)
             toRemove.erase(found);
         } else {
             // save new link
-            saveLink(assetID, l);
+            saveLink(*assetID, l);
         }
     }
 
@@ -676,14 +683,16 @@ void DB::saveLinkedAssets(Asset& asset)
         const AssetLink& l = entry.second;
 
         // remove all remaining links
-        removeLink(assetID, l);
+        removeLink(*assetID, l);
     }
 }
 
 bool DB::hasLinkedAssets(const Asset& asset)
 {
-    uint32_t assetID = getID(asset.getInternalName());
-    assert(assetID);
+    auto assetID = getID(asset.getInternalName());
+    if(!assetID) {
+        throw std::runtime_error(assetID.error());
+    }
 
     // clang-format off
     auto q = m_conn.prepare(R"(
@@ -695,7 +704,7 @@ bool DB::hasLinkedAssets(const Asset& asset)
             id_asset_device_src = :src
     )");
     // clang-format on
-    q.set("src", assetID);
+    q.set("src", *assetID);
 
     int linkedAssets;
     try {
@@ -712,8 +721,10 @@ bool DB::hasLinkedAssets(const Asset& asset)
 
 void DB::saveLink(const uint32_t destId, const AssetLink& l)
 {
-    uint32_t srcId = getID(l.sourceId());
-    assert(srcId);
+    auto srcId = getID(l.sourceId());
+    if(!srcId) {
+        throw std::runtime_error(srcId.error());
+    }
 
     assert(destId);
 
@@ -734,7 +745,7 @@ void DB::saveLink(const uint32_t destId, const AssetLink& l)
     )");
     // clang-format on
 
-    q1.set("src", srcId);
+    q1.set("src", *srcId);
     q1.set("dest", destId);
 
     l.srcOut().empty() ? q1.setNull("srcOut") : q1.set("srcOut", l.srcOut());
@@ -808,18 +819,22 @@ void DB::removeLink(const uint32_t destId, const AssetLink& l)
 
 void DB::unlinkAll(Asset& dest)
 {
-    uint32_t destID = getID(dest.getInternalName());
-    assert(destID);
+    auto destID = getID(dest.getInternalName());
+    if(!destID) {
+        throw std::runtime_error(destID.error());
+    }
 
     for (const auto& link : dest.getLinkedAssets()) {
-        removeLink(destID, link);
+        removeLink(*destID, link);
     }
 }
 
 bool DB::isLastDataCenter(Asset& asset)
 {
-    uint32_t assetID = getID(asset.getInternalName());
-    assert (assetID);
+    auto assetID = getID(asset.getInternalName());
+    if(!assetID) {
+        throw std::runtime_error(assetID.error());
+    }
 
     // clang-format off
     auto q = m_conn.prepare(R"(
@@ -836,7 +851,7 @@ bool DB::isLastDataCenter(Asset& asset)
             AND id_asset_element != :asset_id
     )");
     // clang-format on
-    q.set("asset_id", assetID);
+    q.set("asset_id", *assetID);
 
     int numDatacentersAfterDelete = -1;
 
@@ -854,8 +869,10 @@ bool DB::isLastDataCenter(Asset& asset)
 
 void DB::removeFromGroups(Asset& asset)
 {
-    uint32_t assetID = getID(asset.getInternalName());
-    assert (assetID);
+    auto assetID = getID(asset.getInternalName());
+    if(!assetID) {
+        throw std::runtime_error(assetID.error());
+    }
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -865,7 +882,7 @@ void DB::removeFromGroups(Asset& asset)
             id_asset_element = :asset_id
     )");
     // clang-format on
-    q.set("asset_id", assetID);
+    q.set("asset_id", *assetID);
 
     try {
         m_conn_lock.lock();
@@ -879,8 +896,10 @@ void DB::removeFromGroups(Asset& asset)
 
 void DB::removeFromRelations(Asset& asset)
 {
-    uint32_t assetID = getID(asset.getInternalName());
-    assert (assetID);
+    auto assetID = getID(asset.getInternalName());
+    if(!assetID) {
+        throw std::runtime_error(assetID.error());
+    }
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -890,7 +909,7 @@ void DB::removeFromRelations(Asset& asset)
             id_asset_element = :asset_id
     )");
     // clang-format on
-    q.set("asset_id", assetID);
+    q.set("asset_id", *assetID);
 
     try {
         m_conn_lock.lock();
@@ -904,8 +923,10 @@ void DB::removeFromRelations(Asset& asset)
 
 void DB::removeAsset(Asset& asset)
 {
-    uint32_t assetID = getID(asset.getInternalName());
-    assert (assetID);
+    auto assetID = getID(asset.getInternalName());
+    if(!assetID) {
+        throw std::runtime_error(assetID.error());
+    }
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -915,7 +936,7 @@ void DB::removeAsset(Asset& asset)
             id_asset_element = :asset_id
     )");
     // clang-format on
-    q.set("asset_id", assetID);
+    q.set("asset_id", *assetID);
 
     try {
         m_conn_lock.lock();
@@ -929,8 +950,10 @@ void DB::removeAsset(Asset& asset)
 
 void DB::removeExtMap(Asset& asset)
 {
-    uint32_t assetID = getID(asset.getInternalName());
-    assert (assetID);
+    auto assetID = getID(asset.getInternalName());
+    if(!assetID) {
+        throw std::runtime_error(assetID.error());
+    }
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -940,7 +963,7 @@ void DB::removeExtMap(Asset& asset)
             id_asset_element = :assetId
     )");
     // clang-format on
-    q.set("assetId", assetID);
+    q.set("assetId", *assetID);
 
     try {
         m_conn_lock.lock();
@@ -954,8 +977,10 @@ void DB::removeExtMap(Asset& asset)
 
 void DB::clearGroup(Asset& asset)
 {
-    uint32_t assetID = getID(asset.getInternalName());
-    assert (assetID);
+    auto assetID = getID(asset.getInternalName());
+    if(!assetID) {
+        throw std::runtime_error(assetID.error());
+    }
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -965,7 +990,7 @@ void DB::clearGroup(Asset& asset)
             d_asset_group = :grp
     )");
     // clang-format on
-    q.set("grp", assetID);
+    q.set("grp", *assetID);
 
     try {
         m_conn_lock.lock();
@@ -1005,10 +1030,11 @@ void DB::update(Asset& asset)
     // if parent name is not empty, check if it exists
     const std::string& parentIname = asset.getParentIname();
     if (!parentIname.empty()) {
-        parentId = getID(parentIname);
-        if (parentId == 0) {
-            throw std::runtime_error("Could not find parent internal name");
+        auto val = getID(parentIname);
+        if(!val) {
+            throw std::runtime_error(val.error());
         }
+        parentId = *val;
     }
 
     // clang-format off
@@ -1025,7 +1051,11 @@ void DB::update(Asset& asset)
             id_asset_element = :assetId
     )");
     // clang-format on
-    q.set("assetId", getID(asset.getInternalName()));
+    auto val = getID(asset.getInternalName());
+    if(!val) {
+        throw std::runtime_error(val.error());
+    }
+    q.set("assetId", *val);
     // name field can't be null, parent id is set to NULL if parentIname is empty
     parentId == 0 ? q.setNull("parent_id") : q.set("parent_id", parentId);
     q.set("status", assetStatusToString(asset.getAssetStatus()));
@@ -1050,10 +1080,11 @@ void DB::insert(Asset& asset)
     // if parent name is not empty, check if it exists
     const std::string& parentIname = asset.getParentIname();
     if (!parentIname.empty()) {
-        parentId = getID(parentIname);
-        if (parentId == 0) {
-            throw std::runtime_error("Could not find parent internal name");
+        auto val = getID(parentIname);
+        if(!val) {
+            throw std::runtime_error(val.error());
         }
+        parentId = *val;
     }
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -1158,9 +1189,9 @@ void DB::saveExtMap(Asset& asset)
      * 2. An external attribute with a value set to empty string will be removed from the db
      */
 
-    uint32_t assetID = getID(asset.getInternalName());
-    if (assetID == 0) {
-        throw std::runtime_error("Asset " + asset.getInternalName() + " not found");
+    auto assetID = getID(asset.getInternalName());
+    if(!assetID) {
+        throw std::runtime_error(assetID.error());
     }
 
     // clang-format off
@@ -1175,7 +1206,7 @@ void DB::saveExtMap(Asset& asset)
              id_asset_element = : assetId
     )");
     // clang-format on
-    q.set("assetId", assetID);
+    q.set("assetId", *assetID);
 
     tntdb::Result res;
 

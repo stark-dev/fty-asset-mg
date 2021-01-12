@@ -14,13 +14,14 @@ find_package(fty-cmake PATHS ${CMAKE_BINARY_DIR}/fty-cmake)
 
 etn_target(shared ${PROJECT_NAME}
     SOURCES
-        src/*.cc
+        src/fty_asset_accessor.cc
     PUBLIC_INCLUDE_DIR
         public_includes
     PUBLIC
         fty_asset_accessor.h
     USES_PRIVATE
         fty-asset
+        fty-utils
         fty_common_logging
         fty_common_messagebus
         czmq

@@ -41,7 +41,7 @@ public:
     void                     loadLinkedAssets(Asset& asset);
     std::vector<std::string> getChildren(const Asset& asset);
 
-    uint32_t getID(const std::string& internalName);
+    fty::Expected<uint32_t> getID(const std::string& internalName);
     uint32_t getTypeID(const std::string& type);
     uint32_t getSubtypeID(const std::string& subtype);
     bool verifyID(std::string& id);
