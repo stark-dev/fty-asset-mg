@@ -30,8 +30,6 @@ namespace fty
     class AssetAccessor
     {
     public:
-        AssetAccessor() = default;
-
         static fty::Expected<uint32_t> assetInameToID(const std::string &iname);
     };
 

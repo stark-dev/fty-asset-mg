@@ -22,7 +22,6 @@
 #include "fty_asset_accessor.h"
 
 #include <fty_common_messagebus.h>
-#include <fty_log.h>
 #include <fty/convert.h>
 #include <iostream>
 
@@ -56,12 +55,10 @@ namespace fty
         try
         {
             ret = interface->request(ASSET_AGENT_QUEUE, msg, RECV_TIMEOUT);
-            log_debug("assetInameToID received: %s", ret.userData().front().c_str());
         }
         catch (messagebus::MessageBusException &e)
         {
-            log_error("MessageBus request failed: %s", e.what());
-            return fty::unexpected("MessageBus request failed");
+            return fty::unexpected(std::string("MessageBus request failed: ") + e.what());
         }
 
         if (ret.metaData().at(messagebus::Message::STATUS) != messagebus::STATUS_OK)

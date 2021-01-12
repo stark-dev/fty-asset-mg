@@ -22,7 +22,6 @@ etn_target(shared ${PROJECT_NAME}
     USES_PRIVATE
         fty-asset
         fty-utils
-        fty_common_logging
         fty_common_messagebus
         czmq
         mlm

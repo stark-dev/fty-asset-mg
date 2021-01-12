@@ -34,16 +34,14 @@ TEST_CASE("Request ID - Success")
 {
     auto id = AssetAccessor::assetInameToID("rackcontroller-0");
     
-    CHECK(id);
+    REQUIRE(id);
     CHECK(*id == 1);
 }
 
 TEST_CASE("Request ID - Failure")
 {
-    AssetAccessor accessor;
     auto id = AssetAccessor::assetInameToID("datacenter-0");
 
-    CHECK(!id);
-    CHECK(id.error() == "Request of ID from iname failed");
-    
+    REQUIRE(!id);
+    CHECK(id.error() == "Request of ID from iname failed");  
 }
