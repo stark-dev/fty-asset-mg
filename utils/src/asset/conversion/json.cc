@@ -20,7 +20,8 @@
 */
 
 #include "asset/conversion/json.h"
-#include "fty_asset_dto.h"
+
+#include <fty_asset_dto.h>
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
 #include <sstream>

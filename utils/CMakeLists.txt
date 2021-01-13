@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 cmake_policy(VERSION 3.13)
 
-project(fty-asset-accessor
+project(fty-asset-utils
     VERSION 1.0.0
 )
 
@@ -14,34 +14,24 @@ find_package(fty-cmake PATHS ${CMAKE_BINARY_DIR}/fty-cmake)
 
 etn_target(shared ${PROJECT_NAME}
     SOURCES
-        src/fty_asset_accessor.cc
+        src/asset/conversion/full-asset.cc
+        src/asset/conversion/json.cc
+        src/asset/conversion/proto.cc
+    INCLUDE_DIRS
+        include
     PUBLIC_INCLUDE_DIR
         public_includes
     PUBLIC
-        fty_asset_accessor.h
+        asset/conversion/full-asset.h
+        asset/conversion/json.h
+        asset/conversion/proto.h
+    USES_PUBLIC
+        fty_common_db
     USES_PRIVATE
-        fty-asset
-        fty-asset-utils
-        fty-utils
-        fty_common_messagebus
-        czmq
-        mlm
+        cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
+        fty_asset_activator
+        fty_proto
 )
 
 
 ##############################################################################################################
-# Create a target for the tests
-if(BUILD_TESTING)
-    enable_testing()
-
-    # Create a target for the tests
-    etn_test(${PROJECT_NAME}-test
-        SOURCES
-            test/*.cpp
-        USES
-            ${PROJECT_NAME}
-            Catch2::Catch2 
-            cxxtools
-    )
-    
-endif()

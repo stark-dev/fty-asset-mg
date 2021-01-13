@@ -20,8 +20,9 @@
 */
 
 #include "asset/conversion/proto.h"
-#include "fty_asset_dto.h"
-#include "src/dbhelpers.h"
+
+#include "db-gp-helpers.h"
+#include <fty_asset_dto.h>
 #include <fty_proto.h>
 #include <string>
 

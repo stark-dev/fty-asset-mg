@@ -26,12 +26,15 @@
 #include "asset-storage.h"
 #include "asset/conversion/full-asset.h"
 #include <algorithm>
-#include <fty_asset_activator.h>
+#include <fty_asset_activator_library.h>
 #include <fty_common_db_dbpath.h>
+#include <fty_common_mlm.h>
+#include <fty_log.h>
 #include <fty/split.h>
 #include <functional>
 #include <map>
 #include <memory>
+#include <openssl/sha.h>
 #include <sstream>
 #include <time.h>
 #include <utility>

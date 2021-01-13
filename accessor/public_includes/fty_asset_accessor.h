@@ -26,11 +26,20 @@
 
 namespace fty
 {
+    class FullAsset;
 
     class AssetAccessor
     {
     public:
-        static fty::Expected<uint32_t> assetInameToID(const std::string &iname);
+        static fty::Expected<uint32_t> assetInameToID(const std::string& iname);
+        static fty::Expected<fty::FullAsset> getFullAsset(const std::string& iname);
+        // static fty::Expected<std::string> assetStatus(const std::string& iname);
+        // static fty::Expected<std::string> assetType(const std::string& iname);
+        // static fty::Expected<std::string> assetSubtype(const std::string& iname);
+        // static fty::Expected<std::string> assetExtName(const std::string& iname);
+        // static fty::Expected<std::string> assetParentIname(const std::string& iname);
+        // static fty::Expected<std::string> assetPriority(const std::string& iname);
+        // static fty::Expected<std::string> assetExtMap(const std::string& iname);
     };
 
 } // namespace fty

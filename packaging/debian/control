@@ -71,6 +71,28 @@ Depends:
     libfty-asset
 Description: fty-asset development tools
 
+Package: libfty-asset-utils
+Architecture: any
+Depends:
+    ${shlibs:Depends},
+    ${misc:Depends}
+Description: fty-asset utils shared library
+
+Package: libfty-asset-utils1
+Architecture: any
+Depends:
+    libfty-asset-utils (= ${binary:Version})
+Description: fty-asset utils shared library
+ 
+Package: libfty-asset-utils-dev
+Architecture: any
+Section: libdevel
+Depends:
+    ${shlibs:Depends},
+    ${misc:Depends},
+    libfty-asset-utils
+Description: fty-asset utils development tools
+
 Package: libfty-asset-accessor
 Architecture: any
 Depends:
@@ -97,6 +119,7 @@ Package: fty-asset-server
 Architecture: any
 Depends:
     libfty-asset,
+    libfty-asset-utils,
    ${shlibs:Depends},
    ${misc:Depends}
 Description: fty-asset-server 
@@ -108,6 +131,7 @@ Section: debug
 Priority: optional
 Depends:
     libfty-asset (= ${binary:Version}),
+    libfty-asset-utils (= ${binary:Version}),
     ${misc:Depends}
 Description: fty-asset debugging symbols
  This package contains the debugging symbols for fty-asset:
