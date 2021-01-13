@@ -21,11 +21,9 @@
 
 #include "fty_asset_accessor.h"
 
-#include "asset/conversion/full-asset.h"
 #include "asset/conversion/json.h"
 
 #include <fty_asset_dto.h>
-#include <fty_common_asset.h>
 #include <fty_common_messagebus.h>
 #include <fty/convert.h>
 #include <iostream>
@@ -78,7 +76,7 @@ namespace fty
         return fty::convert<uint32_t>(ret.userData().front());
     }
 
-    fty::Expected<fty::FullAsset> AssetAccessor::getFullAsset(const std::string& iname)
+    fty::Expected<fty::Asset> AssetAccessor::getAsset(const std::string& iname)
     {
         messagebus::Message ret;
 
@@ -96,11 +94,10 @@ namespace fty
             return fty::unexpected("Request of fty::FullAsset from iname failed");
         }
 
-        fty::Asset asset;
+        Asset asset;
+        conversion::fromJson(ret.userData().front(), asset);
 
-        fty::conversion::fromJson(ret.userData().front(), asset);
-        
-        return fty::conversion::toFullAsset(asset);
+        return asset;
     }
 
     // fty::Expected<std::string> AssetAccessor::assetStatus(const std::string& iname)
