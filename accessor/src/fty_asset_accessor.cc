@@ -58,7 +58,7 @@ namespace fty
         }
         catch (messagebus::MessageBusException &e)
         {
-            return fty::unexpected(std::string("MessageBus request failed: ") + e.what());
+            return fty::unexpected("MessageBus request failed: {}", e.what());
         }
 
         if (ret.metaData().at(messagebus::Message::STATUS) != messagebus::STATUS_OK)
