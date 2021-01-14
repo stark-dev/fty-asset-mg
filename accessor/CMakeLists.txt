@@ -20,9 +20,9 @@ etn_target(shared ${PROJECT_NAME}
     PUBLIC
         fty_asset_accessor.h
     USES_PUBLIC
+        fty-asset
         fty-utils
     USES_PRIVATE
-        fty-asset
         fty-asset-utils
         fty_common_messagebus
         czmq
