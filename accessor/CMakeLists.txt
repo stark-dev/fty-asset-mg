@@ -19,10 +19,11 @@ etn_target(shared ${PROJECT_NAME}
         public_includes
     PUBLIC
         fty_asset_accessor.h
+    USES_PUBLIC
+        fty-utils
     USES_PRIVATE
         fty-asset
         fty-asset-utils
-        fty-utils
         fty_common_messagebus
         czmq
         mlm
