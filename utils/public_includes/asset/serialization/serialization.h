@@ -20,20 +20,11 @@
 */
 
 #pragma once
-
-#include <fty_common_messagebus.h>
+#include <cxxtools/serializationinfo.h>
 #include <string>
-#include <vector>
 
 namespace fty { namespace assetutils {
-
-    // create messages
-    messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
-        const std::string& from, const std::string& to, const std::string& status, const std::string& data);
-    messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
-        const std::string& from, const std::string& to, const std::string& status,
-        const std::vector<std::string>& data);
-    messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
-        const std::string& from, const std::string& to, const std::string& status,
-        const messagebus::UserData& data);
+    // JSON serialization/deserialization
+    std::string                 serialize(const cxxtools::SerializationInfo& si);
+    cxxtools::SerializationInfo deserialize(const std::string& json);
 }} // namespace fty::assetutils

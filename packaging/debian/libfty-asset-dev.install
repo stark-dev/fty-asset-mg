@@ -1,3 +1,4 @@
 usr/include/fty_asset_dto.h
+usr/include/fty_common_asset.h
 usr/share/cmake/fty-asset/*
 usr/lib/*/pkgconfig/fty-asset-server.pc

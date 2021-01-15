@@ -21,18 +21,19 @@
 
 #pragma once
 
+#include <fty_asset_dto.h>
 #include <fty/expected.h>
+#include <list>
 #include <string>
 
 namespace fty
 {
-    class Asset;
-
     class AssetAccessor
     {
     public:
         static fty::Expected<uint32_t> assetInameToID(const std::string& iname);
         static fty::Expected<fty::Asset> getAsset(const std::string& iname);
+        static void notifyAssetUpdate(const Asset& oldAsset, const Asset& newAsset);
         // static fty::Expected<std::string> assetStatus(const std::string& iname);
         // static fty::Expected<std::string> assetType(const std::string& iname);
         // static fty::Expected<std::string> assetSubtype(const std::string& iname);

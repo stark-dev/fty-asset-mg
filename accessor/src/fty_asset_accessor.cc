@@ -22,8 +22,10 @@
 #include "fty_asset_accessor.h"
 
 #include "asset/conversion/json.h"
+#include "asset/serialization/serialization.h"
 
-#include <fty_asset_dto.h>
+#include <cxxtools/serializationinfo.h>
+
 #include <fty_common_messagebus.h>
 #include <fty/convert.h>
 #include <iostream>
@@ -98,6 +100,47 @@ namespace fty
         conversion::fromJson(ret.userData().front(), asset);
 
         return asset;
+    }
+
+    void AssetAccessor::notifyAssetUpdate(const Asset& oldAsset, const Asset& newAsset)
+    {
+        messagebus::Message ret;
+
+        cxxtools::SerializationInfo si;
+
+        // before update
+        cxxtools::SerializationInfo tmpSi;
+        tmpSi <<= oldAsset;
+
+        cxxtools::SerializationInfo& before = si.addMember("");
+        before.setCategory(cxxtools::SerializationInfo::Category::Object);
+        before = tmpSi;
+        before.setName("before");
+
+        // after update
+        tmpSi.clear();
+        tmpSi <<= newAsset;
+
+        cxxtools::SerializationInfo& after = si.addMember("");
+        after.setCategory(cxxtools::SerializationInfo::Category::Object);
+        after = tmpSi;
+        after.setName("after");
+
+        std::string json = assetutils::serialize(si);
+
+        ret = sendCommand("NOTIFY", {json});
+        // try
+        // {
+        // }
+        // catch (messagebus::MessageBusException &e)
+        // {
+        //     return fty::unexpected("MessageBus request failed: {}", e.what());
+        // }
+
+        // if (ret.metaData().at(messagebus::Message::STATUS) != messagebus::STATUS_OK)
+        // {
+        //     return fty::unexpected("Request of notification from iname failed");
+        // }
     }
 
     // fty::Expected<std::string> AssetAccessor::assetStatus(const std::string& iname)

@@ -27,7 +27,7 @@
 */
 
 
-#include "dbhelpers.h"
+#include "asset/dbhelpers.h"
 
 #include "fty_proto.h"
 #include "fty_asset_dto.h"

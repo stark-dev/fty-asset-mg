@@ -58,7 +58,7 @@
 #include "tntdb.h"
 #include "topology2.h"
 #include "dbtypes.h"
-#include "dbhelpers.h"
+#include "asset/dbhelpers.h"
 #include "data.h"
 #include "cleanup.h"
 #include "assettopology.h"

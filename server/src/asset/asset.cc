@@ -25,6 +25,7 @@
 #include "asset-db.h"
 #include "asset-storage.h"
 #include "asset/conversion/full-asset.h"
+#include "asset/dbhelpers.h"
 #include <algorithm>
 #include <fty_asset_activator_library.h>
 #include <fty_common_db_dbpath.h>
@@ -898,6 +899,18 @@ uint32_t AssetImpl::getIDFromIname(const std::string& iname)
         throw std::runtime_error(id.error());
     }
     return *id;
+}
+
+/// get internal name from database index
+std::string AssetImpl::getInameFromID(const uint32_t id)
+{
+    std::string iname;
+    try{
+        iname = selectAssetProperty<std::string>("name", "id_asset_element", fty::convert<std::string>(id));
+    } catch (const std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+    return iname;
 }
 
 } // namespace fty

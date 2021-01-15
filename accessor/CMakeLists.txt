@@ -23,6 +23,7 @@ etn_target(shared ${PROJECT_NAME}
         fty-asset
         fty-utils
     USES_PRIVATE
+        cxxtools
         fty-asset-utils
         fty_common_messagebus
         czmq

@@ -27,9 +27,6 @@
 */
 
 #include "asset-utils.h"
-#include <cxxtools/jsondeserializer.h>
-#include <cxxtools/jsonserializer.h>
-#include <sstream>
 
 namespace fty { namespace assetutils {
     // create response (data is a single string)
@@ -115,40 +112,5 @@ namespace fty { namespace assetutils {
         msg.userData() = data;
 
         return msg;
-    }
-
-
-    // JSON serialize/deserialize
-    std::string serialize(const cxxtools::SerializationInfo& si)
-    {
-        std::string returnData("");
-
-        try {
-            std::stringstream        output;
-            cxxtools::JsonSerializer serializer(output);
-            serializer.serialize(si);
-
-            returnData = output.str();
-        } catch (const std::exception& e) {
-            throw std::runtime_error("Error while creating json " + std::string(e.what()));
-        }
-
-        return returnData;
-    }
-
-    cxxtools::SerializationInfo deserialize(const std::string& json)
-    {
-        cxxtools::SerializationInfo si;
-
-        try {
-            std::stringstream input;
-            input << json;
-            cxxtools::JsonDeserializer deserializer(input);
-            deserializer.deserialize(si);
-        } catch (const std::exception& e) {
-            throw std::runtime_error("Error in the json from server: " + std::string(e.what()));
-        }
-
-        return si;
     }
 }} // namespace fty::assetutils

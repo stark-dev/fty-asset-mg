@@ -194,6 +194,7 @@
 
 #include "asset-server.h"
 #include "asset/asset-utils.h"
+#include "asset/serialization/serialization.h"
 
 #include <ctime>
 #include <string>
@@ -212,7 +213,7 @@
 
 #include "fty_proto.h"
 #include "total_power.h"
-#include "dbhelpers.h"
+#include "asset/dbhelpers.h"
 
 #include "topology_processor.h"
 #include "topology_power.h"
