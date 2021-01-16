@@ -39,6 +39,7 @@ namespace fty
     static constexpr const char *ACCESSOR_NAME = "fty-asset-accessor";
     static constexpr const char *ENDPOINT = "ipc://@/malamute";
 
+    /// static helper to send a MessageBus command
     static messagebus::Message sendCommand(const std::string& command, messagebus::UserData data)
     {
         std::unique_ptr<messagebus::MessageBus> interface(messagebus::MlmMessageBus(ENDPOINT, ACCESSOR_NAME));
@@ -57,6 +58,7 @@ namespace fty
         return interface->request(ASSET_AGENT_QUEUE, msg, RECV_TIMEOUT);
     }
 
+    /// returns the asset database ID, given the internal name
     fty::Expected<uint32_t> AssetAccessor::assetInameToID(const std::string &iname)
     {
         messagebus::Message ret;
@@ -83,6 +85,7 @@ namespace fty
         return fty::convert<uint32_t>(data);
     }
 
+    /// returns the full fty::Asset, given the internal name
     fty::Expected<fty::Asset> AssetAccessor::getAsset(const std::string& iname)
     {
         messagebus::Message ret;
@@ -107,6 +110,7 @@ namespace fty
         return asset;
     }
 
+    /// triggers an update notification. It receives the DTOs of the asset before and after the update
     void AssetAccessor::notifyAssetUpdate(const Asset& oldAsset, const Asset& newAsset)
     {
         messagebus::Message ret;
@@ -134,73 +138,5 @@ namespace fty
         std::string json = assetutils::serialize(si);
 
         ret = sendCommand("NOTIFY", {json});
-        // try
-        // {
-        // }
-        // catch (messagebus::MessageBusException &e)
-        // {
-        //     return fty::unexpected("MessageBus request failed: {}", e.what());
-        // }
-
-        // if (ret.metaData().at(messagebus::Message::STATUS) != messagebus::STATUS_OK)
-        // {
-        //     return fty::unexpected("Request of notification from iname failed");
-        // }
     }
-
-    // fty::Expected<std::string> AssetAccessor::assetStatus(const std::string& iname)
-    // {
-    //     messagebus::Message ret;
-
-    //     try
-    //     {
-    //         ret = sendCommand("GET", {iname});
-    //     }
-    //     catch (messagebus::MessageBusException &e)
-    //     {
-    //         return fty::unexpected("MessageBus request failed: {}", e.what());
-    //     }
-
-    //     if (ret.metaData().at(messagebus::Message::STATUS) != messagebus::STATUS_OK)
-    //     {
-    //         return fty::unexpected("Request of ID from iname failed");
-    //     }
-
-    //     fty::Asset asset;
-
-    //     fromJson(ret.userData().front(), asset);
-        
-    //     return asset.getAssetStatus();
-    // }
-
-    // fty::Expected<std::string> AssetAccessor::assetType(const std::string& iname)
-    // {
-        
-    // }
-
-    // fty::Expected<std::string> AssetAccessor::assetSubtype(const std::string& iname)
-    // {
-
-    // }
-
-    // fty::Expected<std::string> AssetAccessor::assetExtName(const std::string& iname)
-    // {
-
-    // }
-
-    // fty::Expected<std::string> AssetAccessor::assetParentIname(const std::string& iname)
-    // {
-
-    // }
-
-    // fty::Expected<std::string> AssetAccessor::assetPriority(const std::string& iname)
-    // {
-
-    // }
-
-    // fty::Expected<std::string> AssetAccessor::assetExtMap(const std::string& iname)
-    // {
-
-    // }
-
 } // namespace fty
