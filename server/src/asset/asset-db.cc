@@ -180,7 +180,7 @@ std::vector<std::string> DB::getChildren(const Asset& asset)
     return children;
 }
 
-// returns 0 if internal name is not found, the integer ID otherwise
+// returns fty::unexpected if internal name is not found, the integer ID otherwise
 fty::Expected<uint32_t> DB::getID(const std::string& internalName)
 {
     // clang-format off
@@ -555,8 +555,10 @@ void DB::saveLinkExtMap(const uint32_t linkID, const AssetLink& link)
 
 void DB::loadLinkedAssets(Asset& asset)
 {
-    uint32_t assetID = getID(asset.getInternalName());
-    assert (assetID);
+    auto assetID = getID(asset.getInternalName());
+    if(!assetID) {
+        throw std::runtime_error(assetID.error());
+    };
 
     // clang-format off
     auto q = m_conn.prepareCached(R"(
@@ -574,7 +576,7 @@ void DB::loadLinkedAssets(Asset& asset)
             l.id_asset_device_dest = :asset_id
     )");
     // clang-format on
-    q.set("asset_id", assetID);
+    q.set("asset_id", *assetID);
 
     tntdb::Result res;
 
@@ -1256,7 +1258,7 @@ void DB::saveExtMap(Asset& asset)
                 q1.set("key", it.first);
                 q1.set("value", it.second.getValue());
                 q1.set("readOnly", it.second.isReadOnly());
-                q1.set("assetId", assetID);
+                q1.set("assetId", *assetID);
                 try {
                     m_conn_lock.lock();
                     q1.execute();
