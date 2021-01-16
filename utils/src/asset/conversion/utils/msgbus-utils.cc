@@ -20,7 +20,9 @@
 */
 
 #include "msgbus-utils.h"
+#include "asset/serialization/serialization.h"
 
+#include <cxxtools/serializationinfo.h>
 #include <fty_common_messagebus.h>
 #include <fty/convert.h>
 #include <iostream>
@@ -68,7 +70,12 @@ fty::Expected<uint32_t> assetInameToID(const std::string &iname)
         return fty::unexpected("Request of ID from iname failed");
     }
 
-    return fty::convert<uint32_t>(ret.userData().front());
+    auto si = fty::assetutils::deserialize(ret.userData().front());
+    std::string data;
+
+    si >>= data;
+
+    return fty::convert<uint32_t>(data);
 }
 
 fty::Expected<std::string> assetIDToIname(const uint32_t id)
@@ -89,5 +96,10 @@ fty::Expected<std::string> assetIDToIname(const uint32_t id)
         return fty::unexpected("Request of iname from ID failed");
     }
 
-    return ret.userData().front();
+    auto si = fty::assetutils::deserialize(ret.userData().front());
+    std::string data;
+
+    si >>= data;
+
+    return data;
 }

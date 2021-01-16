@@ -179,7 +179,7 @@ void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
         { FTY_ASSET_SUBJECT_GET_BY_UUID,  [&](const messagebus::Message& message){ getAsset(message, true); } },
         { FTY_ASSET_SUBJECT_LIST,         [&](const messagebus::Message& message){ listAsset(message); } },
         { FTY_ASSET_SUBJECT_GET_ID,       [&](const messagebus::Message& message){ getAssetID(message); } },
-        { FTY_ASSET_SUBJECT_GET_INAME,    [&](const messagebus::Message& message){ getAssetID(message); } },
+        { FTY_ASSET_SUBJECT_GET_INAME,    [&](const messagebus::Message& message){ getAssetIname(message); } },
         { FTY_ASSET_SUBJECT_NOTIFY,       [&](const messagebus::Message& message){ notifyAsset(message); } }
     };
     // clang-format on
