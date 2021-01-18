@@ -194,11 +194,12 @@
 
 #include "asset-server.h"
 #include "asset/asset-utils.h"
-#include "asset/serialization/serialization.h"
 
 #include <ctime>
 #include <string>
 
+#include <fty_asset_dto.h>
+#include <fty_common.h>
 #include <fty_common_db_uptime.h>
 #include <fty_common_messagebus.h>
 #include <functional>
@@ -217,9 +218,6 @@
 
 #include "topology_processor.h"
 #include "topology_power.h"
-
-#include "asset/conversion/json.h"
-#include "asset/conversion/proto.h"
 
 #include <cassert>
 
@@ -973,8 +971,7 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
 
         // get asset from fty-proto
         fty::AssetImpl asset;
-
-        fty::conversion::fromFtyProto(proto, asset, read_only, server.getTestMode());
+        fty::Asset::fromFtyProto(proto, asset, read_only, server.getTestMode());
         log_debug(
             "s_handle_subject_asset_manipulation(): Processing operation '%s' "
             "for asset named '%s' with type '%s' and subtype '%s'",
@@ -1010,7 +1007,7 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
             zmsg_addstr(reply, asset.getInternalName().c_str());
 
             auto notification = fty::assetutils::createMessage(FTY_ASSET_SUBJECT_CREATED, "",
-                server.getAgentNameNg(), "", messagebus::STATUS_OK, fty::conversion::toJson(asset));
+                server.getAgentNameNg(), "", messagebus::STATUS_OK, fty::Asset::toJson(asset));
             server.sendNotification(notification);
         } else if (streq(operation, "update")) {
             fty::AssetImpl currentAsset(asset.getInternalName());
@@ -1068,7 +1065,7 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
             after.setName("after");
 
             auto notification = fty::assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATED, "",
-                server.getAgentNameNg(), "", messagebus::STATUS_OK, fty::assetutils::serialize(si));
+                server.getAgentNameNg(), "", messagebus::STATUS_OK, JSON::writeToString(si, false));
             server.sendNotification(notification);
         } else {
             // unknown op
@@ -1351,10 +1348,10 @@ static void test_asset_mailbox_handler(const messagebus::Message& msg)
         std::string msgSubject = msg.metaData().find(messagebus::Message::SUBJECT)->second;
         if (msgSubject == FTY_ASSET_SUBJECT_CREATE) {
             fty::Asset msgAsset;
-            fty::conversion::fromJson(msg.userData().back(), msgAsset);
+            fty::Asset::fromJson(msg.userData().back(), msgAsset);
 
             fty::Asset mapAsset;
-            fty::conversion::fromJson(
+            fty::Asset::fromJson(
                 assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second,
                 mapAsset);
 
@@ -1365,10 +1362,10 @@ static void test_asset_mailbox_handler(const messagebus::Message& msg)
             }
         } else if (msgSubject == FTY_ASSET_SUBJECT_UPDATE) {
             fty::Asset msgAsset;
-            fty::conversion::fromJson(msg.userData().back(), msgAsset);
+            fty::Asset::fromJson(msg.userData().back(), msgAsset);
 
             fty::Asset mapAsset;
-            fty::conversion::fromJson(
+            fty::Asset::fromJson(
                 assetTestMap.find(msg.metaData().find(messagebus::Message::CORRELATION_ID)->second)->second,
                 mapAsset);
 
@@ -1380,7 +1377,7 @@ static void test_asset_mailbox_handler(const messagebus::Message& msg)
         } else if (msgSubject == FTY_ASSET_SUBJECT_GET) {
             std::string assetJson = msg.userData().back();
             fty::Asset  a;
-            fty::conversion::fromJson(assetJson, a);
+            fty::Asset::fromJson(assetJson, a);
 
             std::string assetName = a.getInternalName();
 
@@ -1856,10 +1853,10 @@ void fty_asset_server_test(bool /*verbose*/)
         asset.setExtEntry("testKey", "testValue");
         asset.setPriority(4);
 
-        std::string jsonStr = fty::conversion::toJson(asset);
+        std::string jsonStr = fty::Asset::toJson(asset);
 
         fty::Asset asset2;
-        fty::conversion::fromJson(jsonStr, asset2);
+        fty::Asset::fromJson(jsonStr, asset2);
 
         assert (asset == asset2);
 
@@ -1881,11 +1878,11 @@ void fty_asset_server_test(bool /*verbose*/)
 
         asset.dump(std::cout);
 
-        fty_proto_t* p = fty::conversion::toFtyProto(asset, "UPDATE", true);
+        fty_proto_t* p = fty::Asset::toFtyProto(asset, "UPDATE", true);
 
         fty::Asset asset2;
 
-        fty::conversion::fromFtyProto(p, asset2, false, true);
+        fty::Asset::fromFtyProto(p, asset2, false, true);
         fty_proto_destroy(&p);
 
         asset2.dump(std::cout);
@@ -1936,10 +1933,8 @@ void fty_asset_server_test(bool /*verbose*/)
         msg.metaData().emplace(METADATA_TRY_ACTIVATE, "true");
         msg.metaData().emplace(METADATA_NO_ERROR_IF_EXIST, "true");
 
-        msg.userData().push_back(fty::conversion::toJson(asset));
-
         assetTestMap.emplace(
-            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, fty::conversion::toJson(asset));
+            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, fty::Asset::toJson(asset));
 
         log_info("fty-asset-server-test:Test #15.1: send CREATE message");
         publisher->sendRequest(FTY_ASSET_MAILBOX, msg);
@@ -1955,10 +1950,9 @@ void fty_asset_server_test(bool /*verbose*/)
         msg.metaData().emplace(METADATA_TRY_ACTIVATE, "true");
 
         msg.userData().clear();
-        msg.userData().push_back(fty::conversion::toJson(asset));
 
         assetTestMap.emplace(
-            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, fty::conversion::toJson(asset));
+            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, fty::Asset::toJson(asset));
 
         log_info("fty-asset-server-test:Test #15.2: send UPDATE message");
         publisher->sendRequest(FTY_ASSET_MAILBOX, msg);

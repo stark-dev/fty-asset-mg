@@ -19,10 +19,10 @@
     =========================================================================
 */
 
-#include "msgbus-utils.h"
-#include "asset/serialization/serialization.h"
+#include "conversion/utils/msgbus-utils.h"
 
 #include <cxxtools/serializationinfo.h>
+#include <fty_common.h>
 #include <fty_common_messagebus.h>
 #include <fty/convert.h>
 #include <iostream>
@@ -31,7 +31,7 @@
 
 static constexpr const char *ASSET_AGENT = "asset-agent-ng";
 static constexpr const char *ASSET_AGENT_QUEUE = "FTY.Q.ASSET.QUERY";
-static constexpr const char *ACCESSOR_NAME = "fty-asset-utils";
+static constexpr const char *ACCESSOR_NAME = "fty-asset-conversion";
 static constexpr const char *ENDPOINT = "ipc://@/malamute";
 
 static messagebus::Message sendCommand(const std::string& command, messagebus::UserData data)
@@ -70,7 +70,8 @@ fty::Expected<uint32_t> assetInameToID(const std::string &iname)
         return fty::unexpected("Request of ID from iname failed");
     }
 
-    auto si = fty::assetutils::deserialize(ret.userData().front());
+    cxxtools::SerializationInfo si;
+    JSON::readFromString(ret.userData().front(), si);
     std::string data;
 
     si >>= data;
@@ -96,7 +97,8 @@ fty::Expected<std::string> assetIDToIname(const uint32_t id)
         return fty::unexpected("Request of iname from ID failed");
     }
 
-    auto si = fty::assetutils::deserialize(ret.userData().front());
+    cxxtools::SerializationInfo si;
+    JSON::readFromString(ret.userData().front(), si);
     std::string data;
 
     si >>= data;

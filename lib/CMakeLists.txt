@@ -14,17 +14,27 @@ find_package(fty-cmake PATHS ${CMAKE_BINARY_DIR}/fty-cmake)
 
 etn_target(shared ${PROJECT_NAME}
     SOURCES
-        src/*.cc
+        src/fty_asset_dto.cc
+        src/fty_common_asset.cc
+        src/conversion/full-asset.cc
+        src/conversion/json.cc
+        src/conversion/proto.cc
+        src/conversion/utils/msgbus-utils.cc
+    INCLUDE_DIRS
+        include
     PUBLIC_INCLUDE_DIR
         public_includes
     PUBLIC
         fty_asset_dto.h
         fty_common_asset.h
+    USES_PUBLIC
+        fty_proto
     USES_PRIVATE
         cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
+        fty_common
         fty_common_logging
+        fty_common_messagebus
         fty_common_mlm
-        fty_proto
         fty-utils
 )
 

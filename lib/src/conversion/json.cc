@@ -1,4 +1,5 @@
 /*  =========================================================================
+    asset_conversion_json - asset/conversion/json
 
     Copyright (C) 2016 - 2020 Eaton
 
@@ -18,44 +19,40 @@
     =========================================================================
 */
 
-#include "asset/serialization/serialization.h"
+#include "conversion/json.h"
 
+#include <fty_asset_dto.h>
 #include <cxxtools/jsondeserializer.h>
 #include <cxxtools/jsonserializer.h>
 #include <sstream>
 
-namespace fty { namespace assetutils {
-    // JSON serialize/deserialize
-    std::string serialize(const cxxtools::SerializationInfo& si)
+namespace fty { namespace conversion {
+
+    std::string toJson(const Asset& asset)
     {
-        std::string returnData("");
+        std::ostringstream output;
 
-        try {
-            std::stringstream        output;
-            cxxtools::JsonSerializer serializer(output);
-            serializer.serialize(si);
-
-            returnData = output.str();
-        } catch (const std::exception& e) {
-            throw std::runtime_error("Error while creating json " + std::string(e.what()));
-        }
-
-        return returnData;
-    }
-
-    cxxtools::SerializationInfo deserialize(const std::string& json)
-    {
         cxxtools::SerializationInfo si;
+        cxxtools::JsonSerializer    serializer(output);
 
-        try {
-            std::stringstream input;
-            input << json;
-            cxxtools::JsonDeserializer deserializer(input);
-            deserializer.deserialize(si);
-        } catch (const std::exception& e) {
-            throw std::runtime_error("Error in the json from server: " + std::string(e.what()));
-        }
+        si <<= asset;
+        serializer.serialize(si);
 
-        return si;
+        std::string json = output.str();
+
+        return json;
     }
-}} // namespace fty::assetutils
+
+    void fromJson(const std::string& json, fty::Asset& asset)
+    {
+        std::istringstream input(json);
+
+        cxxtools::SerializationInfo si;
+        cxxtools::JsonDeserializer  deserializer(input);
+
+        deserializer.deserialize(si);
+
+        si >>= asset;
+    }
+
+}} // namespace fty::conversion

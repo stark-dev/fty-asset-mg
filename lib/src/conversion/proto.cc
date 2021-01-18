@@ -19,10 +19,10 @@
     =========================================================================
 */
 
-#include "asset/conversion/proto.h"
+#include "conversion/proto.h"
 
-// #include "db-gp-helpers.h"
-#include "msgbus-utils.h"
+#include "conversion/utils/msgbus-utils.h"
+
 #include <fty_asset_dto.h>
 #include <fty_proto.h>
 #include <string>

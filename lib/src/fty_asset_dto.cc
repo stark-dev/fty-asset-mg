@@ -28,7 +28,12 @@
 
 #include "fty_asset_dto.h"
 
+#include "conversion/full-asset.h"
+#include "conversion/json.h"
+#include "conversion/proto.h"
+
 #include <algorithm>
+#include <fty_proto.h>
 #include <sstream>
 
 #include <cxxtools/jsondeserializer.h>
@@ -720,6 +725,32 @@ void Asset::deserialize(const cxxtools::SerializationInfo& si)
         m_parentsList = parentsList;
     }
 }
+
+void Asset::fromJson(const std::string& json, Asset& a)
+{
+    conversion::fromJson(json, a);
+}
+
+void Asset::fromFtyProto(fty_proto_t* p, Asset& a, bool extAttributeReadOnly, bool test)
+{
+    conversion::fromFtyProto(p, a, extAttributeReadOnly, test);
+}
+
+FullAsset Asset::toFullAsset(const Asset& a)
+{
+    return conversion::toFullAsset(a);
+}
+
+std::string Asset::toJson(const Asset& a)
+{
+    return conversion::toJson(a);
+}
+
+fty_proto_t* Asset::toFtyProto(const Asset& a, const std::string& op, bool test)
+{
+    return conversion::toFtyProto(a, op, test);
+}
+
 
 void operator<<=(cxxtools::SerializationInfo& si, const fty::Asset& asset)
 {

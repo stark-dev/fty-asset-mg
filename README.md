@@ -18,11 +18,6 @@ make
 ### `fty-asset` shared library
 This library provides the asset DTO used to exchange asset information between modules.
 
-### `fty-asset-utils` shared library
-This library provides utilities related to assets.
-- Conversion utility between Asset DTO and other DTOs used in the 42ity codebase
-- Serialization/deserialization from/to `cxxtools::SerializationInfo`
-
 ### `fty-asset-server` binary
 The agent that provides access to all assets functionalities
 

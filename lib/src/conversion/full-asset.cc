@@ -19,7 +19,7 @@
     =========================================================================
 */
 
-#include "asset/conversion/full-asset.h"
+#include "conversion/full-asset.h"
 
 #include <fty_asset_dto.h>
 #include <fty_common_asset.h>

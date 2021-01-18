@@ -24,7 +24,6 @@
 #include "asset-db-test.h"
 #include "asset-db.h"
 #include "asset-storage.h"
-#include "asset/conversion/full-asset.h"
 #include "asset/dbhelpers.h"
 #include <algorithm>
 #include <fty_asset_activator_library.h>
@@ -505,7 +504,7 @@ bool AssetImpl::isActivable()
         fty::AssetActivator activationAccessor(client);
 
         // TODO remove as soon as fty::Asset activation is supported
-        fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+        fty::FullAsset fa = fty::Asset::toFullAsset(*this);
         return activationAccessor.isActivable(fa);
     } else {
         return true;
@@ -520,7 +519,7 @@ void AssetImpl::activate()
             fty::AssetActivator activationAccessor(client);
 
             // TODO remove as soon as fty::Asset activation is supported
-            fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+            fty::FullAsset fa = fty::Asset::toFullAsset(*this);
 
             activationAccessor.activate(fa);
 
@@ -541,7 +540,7 @@ void AssetImpl::deactivate()
             fty::AssetActivator activationAccessor(client);
 
             // TODO remove as soon as fty::Asset activation is supported
-            fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+            fty::FullAsset fa = fty::Asset::toFullAsset(*this);
 
             activationAccessor.deactivate(fa);
             log_debug("Asset %s deactivated", getInternalName().c_str());

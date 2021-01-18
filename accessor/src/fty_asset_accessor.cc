@@ -21,11 +21,9 @@
 
 #include "fty_asset_accessor.h"
 
-#include "asset/conversion/json.h"
-#include "asset/serialization/serialization.h"
-
 #include <cxxtools/serializationinfo.h>
 
+#include <fty_common.h>
 #include <fty_common_messagebus.h>
 #include <fty/convert.h>
 #include <iostream>
@@ -77,7 +75,9 @@ namespace fty
             return fty::unexpected("Request of ID from iname failed");
         }
 
-        auto si = fty::assetutils::deserialize(ret.userData().front());
+        cxxtools::SerializationInfo si;
+        JSON::readFromString(ret.userData().front(), si);
+
         std::string data;
 
         si >>= data;
@@ -105,7 +105,7 @@ namespace fty
         }
 
         Asset asset;
-        conversion::fromJson(ret.userData().front(), asset);
+        fty::Asset::fromJson(ret.userData().front(), asset);
 
         return asset;
     }
@@ -135,7 +135,7 @@ namespace fty
         after = tmpSi;
         after.setName("after");
 
-        std::string json = assetutils::serialize(si);
+        std::string json = JSON::writeToString(si, false);
 
         ret = sendCommand("NOTIFY", {json});
     }

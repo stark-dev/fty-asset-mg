@@ -32,10 +32,10 @@ etn_target(exe ${PROJECT_NAME}
         fty_common 
     USES_PRIVATE
         fty-asset
-        fty-asset-utils
         cxxtools
-        fty_common_logging
+        fty_common
         fty_common_db
+        fty_common_logging
         fty_proto
         fty_common_mlm
         fty_common_dto
