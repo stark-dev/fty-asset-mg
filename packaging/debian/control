@@ -71,6 +71,28 @@ Depends:
     libfty-asset
 Description: fty-asset development tools
 
+Package: libfty-asset-accessor
+Architecture: any
+Depends:
+    ${shlibs:Depends},
+    ${misc:Depends}
+Description: fty-asset accessor shared library
+
+Package: libfty-asset-accessor1
+Architecture: any
+Depends:
+    libfty-asset-accessor (= ${binary:Version})
+Description: fty-asset accessor shared library
+ 
+Package: libfty-asset-accessor-dev
+Architecture: any
+Section: libdevel
+Depends:
+    ${shlibs:Depends},
+    ${misc:Depends},
+    libfty-asset-accessor
+Description: fty-asset accessor development tools
+
 Package: fty-asset-server
 Architecture: any
 Depends:

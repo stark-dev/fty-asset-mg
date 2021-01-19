@@ -5,26 +5,27 @@ Assets are either locations (datacenter, room, row, rack) or devices (RC, UPS, E
 
 ## How to build
 
-To build fty-asset project run:
+To build `fty-asset` project run:
 
 ```bash
-./autogen.sh
-./configure
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On ..
 make
-make check # to run self-test
 ```
+
+## What is built
+
+### `fty-asset` shared library
+This library provides the asset DTO used to exchange asset information between modules.
+
+### `fty-asset-server` binary
+The agent that provides access to all assets functionalities
+
+### `fty-asset-accessor` shared library
+This library provides a point of access for the server requests
 
 ## How to run
-
-To run fty-asset project:
-
-* from within the source tree, run:
-
-```bash
-./src/fty-asset
-```
-
-For the other options available, refer to the manual page of fty-asset
+The asset agent is installed and runs as a system service
 
 * from an installed base, using systemd, run:
 
@@ -32,14 +33,14 @@ For the other options available, refer to the manual page of fty-asset
 systemctl start fty-asset
 ```
 
-Agent also has a command line interface fty-asset-cli.
+<!-- Agent also has a command line interface fty-asset-cli. -->
 
-For further information, refer to the manual page of fty-asset-cli.
+<!-- For further information, refer to the manual page of fty-asset-cli. -->
 
-### Configuration file
+<!-- ### Configuration file
 
 Configuration file - fty-asset.cfg - is currently ignored.
-Agent reads environment variable BIOS\_ASSETS\_REPEAT, which sets how often are all the assets republished on ASSETS stream.
+Agent reads environment variable BIOS\_ASSETS\_REPEAT, which sets how often are all the assets republished on ASSETS stream. -->
 
 ## Architecture
 

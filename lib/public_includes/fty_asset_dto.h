@@ -21,13 +21,16 @@
 
 #pragma once
 
+#include "fty_common_asset.h"
+
+#include <cxxtools/serializationinfo.h>
+#include <fty_common_asset_types.h>
 #include <map>
 #include <optional>
 #include <string>
 
-#include <cxxtools/serializationinfo.h>
-
-#include <fty_common_asset_types.h>
+// fwd declaration
+typedef struct _fty_proto_t fty_proto_t;
 
 namespace fty {
 // extended properties
@@ -174,6 +177,9 @@ bool operator==(const AssetLink& l, const AssetLink& r);
 void operator<<=(cxxtools::SerializationInfo& si, const AssetLink& l);
 void operator>>=(const cxxtools::SerializationInfo& si, AssetLink& l);
 
+// fwd declared
+class FullAsset;
+
 class Asset
 {
 public:
@@ -270,6 +276,14 @@ public:
     // serialization / deserialization for cxxtools
     void serialize(cxxtools::SerializationInfo& si) const;
     void deserialize(const cxxtools::SerializationInfo& si);
+
+    // conversion from/to different DTO representations
+    static void fromJson(const std::string& json, Asset& a);
+    static void fromFtyProto(fty_proto_t* p, Asset& a, bool extAttributeReadOnly, bool test = false);
+
+    static FullAsset toFullAsset(const Asset& a);
+    static std::string toJson(const Asset& a);
+    static fty_proto_t* toFtyProto(const Asset& a, const std::string& op, bool test = false);
 
 protected:
     // internal name = <subtype>-<id>)

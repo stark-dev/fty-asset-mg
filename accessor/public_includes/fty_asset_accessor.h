@@ -1,5 +1,5 @@
 /*  =========================================================================
-    asset_conversion_json - asset/conversion/json
+    fty_asset_accessor
 
     Copyright (C) 2016 - 2020 Eaton
 
@@ -19,39 +19,21 @@
     =========================================================================
 */
 
-#include "asset/conversion/json.h"
-#include "fty_asset_dto.h"
-#include <cxxtools/jsondeserializer.h>
-#include <cxxtools/jsonserializer.h>
-#include <sstream>
+#pragma once
 
-namespace fty { namespace conversion {
+#include <fty_asset_dto.h>
+#include <fty/expected.h>
+#include <list>
+#include <string>
 
-    std::string toJson(const Asset& asset)
+namespace fty
+{
+    class AssetAccessor
     {
-        std::ostringstream output;
+    public:
+        static fty::Expected<uint32_t> assetInameToID(const std::string& iname);
+        static fty::Expected<fty::Asset> getAsset(const std::string& iname);
+        static void notifyAssetUpdate(const Asset& oldAsset, const Asset& newAsset);
+    };
 
-        cxxtools::SerializationInfo si;
-        cxxtools::JsonSerializer    serializer(output);
-
-        si <<= asset;
-        serializer.serialize(si);
-
-        std::string json = output.str();
-
-        return json;
-    }
-
-    void fromJson(const std::string& json, fty::Asset& asset)
-    {
-        std::istringstream input(json);
-
-        cxxtools::SerializationInfo si;
-        cxxtools::JsonDeserializer  deserializer(input);
-
-        deserializer.deserialize(si);
-
-        si >>= asset;
-    }
-
-}} // namespace fty::conversion
+} // namespace fty

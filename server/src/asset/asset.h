@@ -76,6 +76,8 @@ public:
     static DeleteStatus deleteAll(bool deleteVirtualAsset = false);
 
     static std::string getInameFromUuid(const std::string& uuid);
+    static uint32_t    getIDFromIname(const std::string& iname);
+    static std::string getInameFromID(const uint32_t id);
 
     using Asset::operator==;
 

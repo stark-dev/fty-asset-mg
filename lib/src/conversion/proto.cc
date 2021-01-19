@@ -19,9 +19,11 @@
     =========================================================================
 */
 
-#include "asset/conversion/proto.h"
-#include "fty_asset_dto.h"
-#include "src/dbhelpers.h"
+#include "conversion/proto.h"
+
+#include "conversion/utils/msgbus-utils.h"
+
+#include <fty_asset_dto.h>
 #include <fty_proto.h>
 #include <string>
 
@@ -58,8 +60,12 @@ namespace fty { namespace conversion {
         } else {
             if (!asset.getParentIname().empty()) {
                 try {
-                    std::string parentId = std::to_string(selectAssetProperty<int>("id_asset_element", "name", asset.getParentIname()));
-                    zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>(parentId.c_str())));
+                    auto parentId = assetInameToID(asset.getParentIname());
+                    if(!parentId) {
+                        log_error("Invalid conversion from Asset to fty_proto_t : %s", parentId.error());
+                        throw std::runtime_error("Invalid conversion from Asset to fty_proto_t : " + std::string(parentId.error()));    
+                    }
+                    zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>(fty::convert<std::string>(*parentId).c_str())));
                 } catch (const std::exception& e) {
                     log_error("Invalid conversion from Asset to fty_proto_t : %s", e.what());
                     throw std::runtime_error("Invalid conversion from Asset to fty_proto_t : " + std::string(e.what()));
@@ -99,10 +105,13 @@ namespace fty { namespace conversion {
         } else {
             std::string parentId(fty_proto_aux_string(proto, "parent", ""));
             if(parentId != "0") {
-                std::string parentIname;
                 try {
-                    parentIname = selectAssetProperty<std::string>("name", "id_asset_element", parentId);
-                    asset.setParentIname(parentIname);
+                    auto parentIname = assetIDToIname(fty::convert<uint32_t>(parentId));
+                    if(!parentIname) {
+                        log_error("Invalid conversion from fty_proto_t to Asset: %s", parentIname.error());
+                        throw std::runtime_error("Invalid conversion from fty_proto_t to Asset: " + std::string(parentIname.error()));    
+                    }
+                    asset.setParentIname(*parentIname);
                 } catch (const std::exception& e) {
                     log_error("Invalid conversion from fty_proto_t to Asset: %s", e.what());
                     throw std::runtime_error("Invalid conversion from fty_proto_t to Asset: " + std::string(e.what()));

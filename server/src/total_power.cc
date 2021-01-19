@@ -28,7 +28,7 @@
 
 #include "total_power.h"
 
-#include "dbhelpers.h"
+#include "asset/dbhelpers.h"
 #include <tntdb/connect.h>
 #include <tntdb/result.h>
 #include <tntdb/error.h>

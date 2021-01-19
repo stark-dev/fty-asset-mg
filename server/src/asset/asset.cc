@@ -24,14 +24,17 @@
 #include "asset-db-test.h"
 #include "asset-db.h"
 #include "asset-storage.h"
-#include "asset/conversion/full-asset.h"
+#include "asset/dbhelpers.h"
 #include <algorithm>
-#include <fty_asset_activator.h>
+#include <fty_asset_activator_library.h>
 #include <fty_common_db_dbpath.h>
+#include <fty_common_mlm.h>
+#include <fty_log.h>
 #include <fty/split.h>
 #include <functional>
 #include <map>
 #include <memory>
+#include <openssl/sha.h>
 #include <sstream>
 #include <time.h>
 #include <utility>
@@ -212,9 +215,9 @@ void operator>>=(const cxxtools::SerializationInfo& si, AssetFilters& filters)
             parent >>= v;
 
             for (const std::string& val : v) {
-                uint32_t parentId = getStorage().getID(val);
+                auto parentId = getStorage().getID(val);
                 if (parentId) {
-                    filters["id_parent"].push_back(std::to_string(parentId));
+                    filters["id_parent"].push_back(std::to_string(*parentId));
                 } else {
                     log_error("Invalid parent filter: %s does not exist", val.c_str());
                 }
@@ -501,7 +504,7 @@ bool AssetImpl::isActivable()
         fty::AssetActivator activationAccessor(client);
 
         // TODO remove as soon as fty::Asset activation is supported
-        fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+        fty::FullAsset fa = fty::Asset::toFullAsset(*this);
         return activationAccessor.isActivable(fa);
     } else {
         return true;
@@ -516,7 +519,7 @@ void AssetImpl::activate()
             fty::AssetActivator activationAccessor(client);
 
             // TODO remove as soon as fty::Asset activation is supported
-            fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+            fty::FullAsset fa = fty::Asset::toFullAsset(*this);
 
             activationAccessor.activate(fa);
 
@@ -537,7 +540,7 @@ void AssetImpl::deactivate()
             fty::AssetActivator activationAccessor(client);
 
             // TODO remove as soon as fty::Asset activation is supported
-            fty::FullAsset fa = fty::conversion::toFullAsset(*this);
+            fty::FullAsset fa = fty::Asset::toFullAsset(*this);
 
             activationAccessor.deactivate(fa);
             log_debug("Asset %s deactivated", getInternalName().c_str());
@@ -885,6 +888,30 @@ DeleteStatus AssetImpl::deleteAll(bool deleteVirtualAsset)
 std::string AssetImpl::getInameFromUuid(const std::string& uuid)
 {
     return getStorage().inameByUuid(uuid);
+}
+
+/// get internal database index from iname
+uint32_t AssetImpl::getIDFromIname(const std::string& iname)
+{
+    log_debug("Request ID for asset %s", iname.c_str());
+    auto id = getStorage().getID(iname);
+    if(!id) {
+        throw std::runtime_error(id.error());
+    }
+    return *id;
+}
+
+/// get internal name from database index
+std::string AssetImpl::getInameFromID(const uint32_t id)
+{
+    log_debug("Request internal name for asset with ID %lu", id);
+    std::string iname;
+    try{
+        iname = selectAssetProperty<std::string>("name", "id_asset_element", fty::convert<std::string>(id));
+    } catch (const std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+    return iname;
 }
 
 } // namespace fty

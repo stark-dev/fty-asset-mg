@@ -37,7 +37,7 @@
 #include "dns.h"
 #include "fty_log.h"
 #include "fty_proto.h"
-#include "dbhelpers.h"
+#include "asset/dbhelpers.h"
 
 
 //  Structure of our class

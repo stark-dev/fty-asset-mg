@@ -1,5 +1,5 @@
 /*  =========================================================================
-    asset_conversion_full_asset - asset/conversion/full-asset
+    asset_conversion_json - asset/conversion/json
 
     Copyright (C) 2016 - 2020 Eaton
 
@@ -19,29 +19,40 @@
     =========================================================================
 */
 
-#include "asset/conversion/full-asset.h"
-#include "fty_asset_dto.h"
-typedef struct _fty_proto_t fty_proto_t;
-#include <fty_common_asset.h>
+#include "conversion/json.h"
+
+#include <fty_asset_dto.h>
+#include <cxxtools/jsondeserializer.h>
+#include <cxxtools/jsonserializer.h>
+#include <sstream>
 
 namespace fty { namespace conversion {
 
-    fty::FullAsset toFullAsset(const fty::Asset& asset)
+    std::string toJson(const Asset& asset)
     {
-        fty::FullAsset::HashMap auxMap; // does not exist in new Asset implementation
-        fty::FullAsset::HashMap extMap;
+        std::ostringstream output;
 
-        for (const auto& element : asset.getExt()) {
-            // FullAsset hash map has no readOnly parameter
-            extMap[element.first] = element.second.getValue();
-        }
+        cxxtools::SerializationInfo si;
+        cxxtools::JsonSerializer    serializer(output);
 
-        fty::FullAsset fa(asset.getInternalName(), fty::assetStatusToString(asset.getAssetStatus()),
-            asset.getAssetType(), asset.getAssetSubtype(),
-            asset.getExtEntry(fty::EXT_NAME), // asset name is stored in ext structure
-            asset.getParentIname(), asset.getPriority(), auxMap, extMap);
+        si <<= asset;
+        serializer.serialize(si);
 
-        return fa;
+        std::string json = output.str();
+
+        return json;
+    }
+
+    void fromJson(const std::string& json, fty::Asset& asset)
+    {
+        std::istringstream input(json);
+
+        cxxtools::SerializationInfo si;
+        cxxtools::JsonDeserializer  deserializer(input);
+
+        deserializer.deserialize(si);
+
+        si >>= asset;
     }
 
 }} // namespace fty::conversion

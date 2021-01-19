@@ -1,7 +1,5 @@
 /*  =========================================================================
-    asset_asset_utils - asset/asset-utils
-
-    Copyright (C) 2016 - 2020 Eaton
+    Copyright (C) 2014 - 2020 Eaton
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,19 +19,9 @@
 
 #pragma once
 
-#include <fty_common_messagebus.h>
+#include <cstdint>
+#include <fty/expected.h>
 #include <string>
-#include <vector>
 
-namespace fty { namespace assetutils {
-
-    // create messages
-    messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
-        const std::string& from, const std::string& to, const std::string& status, const std::string& data);
-    messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
-        const std::string& from, const std::string& to, const std::string& status,
-        const std::vector<std::string>& data);
-    messagebus::Message createMessage(const std::string& subject, const std::string& correlationID,
-        const std::string& from, const std::string& to, const std::string& status,
-        const messagebus::UserData& data);
-}} // namespace fty::assetutils
+fty::Expected<uint32_t> assetInameToID(const std::string &iname);
+fty::Expected<std::string> assetIDToIname(const uint32_t id);

@@ -1,0 +1,3 @@
+usr/include/fty_asset_accessor.h
+usr/share/cmake/fty-asset-accessor/*
+usr/lib/*/pkgconfig/*fty-asset-accessor.pc
