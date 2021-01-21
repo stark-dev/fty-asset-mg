@@ -26,12 +26,12 @@
 #include "asset-storage.h"
 #include "asset/dbhelpers.h"
 #include <algorithm>
-#include <fty_asset_activator_library.h>
 #include <fty_common_db_dbpath.h>
 #include <fty_common_mlm.h>
 #include <fty_log.h>
 #include <fty/split.h>
 #include <functional>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <openssl/sha.h>
@@ -43,6 +43,10 @@
 #define AGENT_ASSET_ACTIVATOR "etn-licensing-credits"
 
 #define MAX_CREATE_RETRY 10
+
+#define COMMAND_IS_ASSET_ACTIVABLE  "GET_IS_ASSET_ACTIVABLE"
+#define COMMAND_ACTIVATE_ASSET      "ACTIVATE_ASSET"
+#define COMMAND_DEACTIVATE_ASSET    "DEACTIVATE_ASSET"
 
 namespace fty {
 
@@ -493,19 +497,56 @@ void AssetImpl::restore(bool restoreLinks)
     }
 }
 
+static std::vector<std::string> sendActivationReq(const std::string & command, const std::vector<std::string> & frames)
+{
+    mlm::MlmSyncClient client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
+
+    log_debug("Sending %s request to %s", command.c_str(), AGENT_ASSET_ACTIVATOR);
+
+    std::vector<std::string> payload = {command};
+    std::copy(frames.begin(), frames.end(), back_inserter(payload));
+
+    std::vector<std::string> receivedFrames = client.syncRequestWithReply(payload);
+
+    //check if the first frame we get is an error
+    if(receivedFrames[0] == "ERROR")
+    {
+        //It's an error and we will throw directly the exceptions
+        if(receivedFrames.size() == 2)
+        {
+            throw std::runtime_error(receivedFrames.at(1));
+        }
+        else
+        {
+            throw std::runtime_error("Missing data for error");
+        }
+    }
+
+    return receivedFrames;
+}
+
 bool AssetImpl::isActivable()
 {
     if (g_testMode) {
         return true;
     }
 
-    if (getAssetType() == TYPE_DEVICE) {
-        mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-        fty::AssetActivator activationAccessor(client);
+    bool ret = false;
 
-        // TODO remove as soon as fty::Asset activation is supported
-        fty::FullAsset fa = fty::Asset::toFullAsset(*this);
-        return activationAccessor.isActivable(fa);
+    if (getAssetType() == TYPE_DEVICE) {
+        try
+        {
+            auto payload = sendActivationReq(COMMAND_IS_ASSET_ACTIVABLE, {Asset::toFullAsset(*this).toJson()});
+            std::istringstream isActivableStr (payload[0]);
+            isActivableStr >> std::boolalpha >> ret;
+            log_debug ("asset is activable = %s", payload[0].c_str ());
+        }
+        catch (const std::exception& e)
+        {
+            log_info ("Request failed: %s", e.what());
+            return false;
+        }
+        return ret;
     } else {
         return true;
     }
@@ -515,16 +556,17 @@ void AssetImpl::activate()
 {
     if (!g_testMode) {
         if (getAssetType() == TYPE_DEVICE) {
-            mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-            fty::AssetActivator activationAccessor(client);
-
-            // TODO remove as soon as fty::Asset activation is supported
-            fty::FullAsset fa = fty::Asset::toFullAsset(*this);
-
-            activationAccessor.activate(fa);
-
-            setAssetStatus(fty::AssetStatus::Active);
-            m_storage.update(*this);
+            try
+            {
+                auto payload = sendActivationReq(COMMAND_ACTIVATE_ASSET, {Asset::toFullAsset(*this).toJson()});
+                setAssetStatus(fty::AssetStatus::Active);
+                m_storage.update(*this);
+                log_debug ("Asset %s activated", m_internalName.c_str());
+            }
+            catch (const std::exception& e)
+            {
+                log_error ("Asset %s activation failed", m_internalName.c_str());
+            }
         } else {
             setAssetStatus(fty::AssetStatus::Active);
             m_storage.update(*this);
@@ -536,17 +578,17 @@ void AssetImpl::deactivate()
 {
     if (!g_testMode) {
         if (getAssetType() == TYPE_DEVICE) {
-            mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-            fty::AssetActivator activationAccessor(client);
-
-            // TODO remove as soon as fty::Asset activation is supported
-            fty::FullAsset fa = fty::Asset::toFullAsset(*this);
-
-            activationAccessor.deactivate(fa);
-            log_debug("Asset %s deactivated", getInternalName().c_str());
-
-            setAssetStatus(fty::AssetStatus::Nonactive);
-            m_storage.update(*this);
+            try
+            {
+                auto payload = sendActivationReq(COMMAND_ACTIVATE_ASSET, {Asset::toFullAsset(*this).toJson()});
+                setAssetStatus(fty::AssetStatus::Nonactive);
+                m_storage.update(*this);
+                log_debug ("Asset %s deactivated", m_internalName.c_str());
+            }
+            catch (const std::exception& e)
+            {
+                log_error ("Asset %s deactivation failed", m_internalName.c_str());
+            }
         } else {
             setAssetStatus(fty::AssetStatus::Nonactive);
             m_storage.update(*this);
