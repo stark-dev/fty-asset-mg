@@ -39,7 +39,6 @@ etn_target(exe ${PROJECT_NAME}
         fty_proto
         fty_common_mlm
         fty_common_dto
-        fty_asset_activator
         fty_common_messagebus
         fty_security_wallet
         fty-utils
