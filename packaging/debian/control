@@ -91,7 +91,7 @@ Depends:
     ${shlibs:Depends},
     ${misc:Depends},
     libfty-asset-dev,
-    fty-utils-dev.
+    fty-utils-dev,
     libfty-asset-accessor
 Description: fty-asset accessor development tools
 
