@@ -22,7 +22,7 @@ etn_target(exe ${PROJECT_NAME}-server
     USES_PUBLIC
         fty_common 
     USES_PRIVATE
-        fty-asset
+        ${PROJECT_NAME}
         cxxtools
         fty_common
         fty_common_db
