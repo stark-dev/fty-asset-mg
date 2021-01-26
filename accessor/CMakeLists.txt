@@ -1,18 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 cmake_policy(VERSION 3.13)
 
-project(fty-asset-accessor
-    VERSION 1.0.0
-)
-
-##############################################################################################################
-find_package(fty-cmake PATHS ${CMAKE_BINARY_DIR}/fty-cmake)
 ##############################################################################################################
 
-
-##############################################################################################################
-
-etn_target(shared ${PROJECT_NAME}
+etn_target(shared ${PROJECT_NAME}-accessor
     SOURCES
         src/fty_asset_accessor.cc
     PUBLIC_INCLUDE_DIR
@@ -37,11 +28,11 @@ if(BUILD_TESTING)
     enable_testing()
 
     # Create a target for the tests
-    etn_test(${PROJECT_NAME}-test
+    etn_test(${PROJECT_NAME}-accessor-test
         SOURCES
             test/*.cpp
         USES
-            ${PROJECT_NAME}
+            ${PROJECT_NAME}-accessor
             Catch2::Catch2 
             cxxtools
     )
