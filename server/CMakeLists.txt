@@ -1,20 +1,11 @@
 cmake_minimum_required(VERSION 3.13)
 cmake_policy(VERSION 3.13)
 
-project(fty-asset-server
-    VERSION 1.0.0
-)
-
-##############################################################################################################
-find_package(fty-cmake PATHS ${CMAKE_BINARY_DIR}/fty-cmake)
-##############################################################################################################
-
-
 ##############################################################################################################
 
 file(GLOB_RECURSE SOURCES_FILES src/*.cc)
 
-etn_target(exe ${PROJECT_NAME}
+etn_target(exe ${PROJECT_NAME}-server
     SOURCES
         ${SOURCES_FILES}
 
@@ -31,7 +22,7 @@ etn_target(exe ${PROJECT_NAME}
     USES_PUBLIC
         fty_common 
     USES_PRIVATE
-        fty-asset
+        ${PROJECT_NAME}
         cxxtools
         fty_common
         fty_common_db
