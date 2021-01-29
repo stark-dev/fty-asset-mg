@@ -13,6 +13,7 @@ find_package(fty-cmake PATHS ${CMAKE_BINARY_DIR}/fty-cmake)
 
 ##############################################################################################################
 add_subdirectory(lib)
+add_subdirectory(asset)
 add_subdirectory(accessor)
 add_subdirectory(server)
 ##############################################################################################################
