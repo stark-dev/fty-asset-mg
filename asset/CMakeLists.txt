@@ -18,6 +18,7 @@ etn_target(shared ${PROJECT_NAME}-libng
         asset/error.h
         asset/logger.h
         asset/db.h
+        asset/test-db.h
 
     SOURCES
         src/json.cpp
@@ -30,6 +31,7 @@ etn_target(shared ${PROJECT_NAME}-libng
         src/asset-import.cpp
         src/asset-configure-inform.cpp
         src/csv.cpp
+        src/test-db.cpp
 
         src/manager/read.cpp
         src/manager/delete.cpp
