@@ -18,9 +18,10 @@ etn_target(shared ${PROJECT_NAME}
     PUBLIC
         fty_asset_dto.h
         fty_common_asset.h
-    USES_PUBLIC
-        fty_proto
+#    USES_PUBLIC
+#        fty_proto
     USES_PRIVATE
+        fty_proto
         cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
         fty_common
         fty_common_logging
