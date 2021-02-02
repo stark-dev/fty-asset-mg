@@ -31,7 +31,6 @@ etn_target(shared ${PROJECT_NAME}-libng
         src/asset-import.cpp
         src/asset-configure-inform.cpp
         src/csv.cpp
-        src/test-db.cpp
 
         src/manager/read.cpp
         src/manager/delete.cpp
