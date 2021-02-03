@@ -42,7 +42,6 @@ etn_target(shared ${PROJECT_NAME}-libng
         fty_common_logging
         mlm
         fty-asset
-        fty_asset_activator
         fty_common
         fty-utils
         fty_shm
