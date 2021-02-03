@@ -580,7 +580,7 @@ void AssetImpl::deactivate()
         if (getAssetType() == TYPE_DEVICE) {
             try
             {
-                auto payload = sendActivationReq(COMMAND_ACTIVATE_ASSET, {Asset::toFullAsset(*this).toJson()});
+                auto payload = sendActivationReq(COMMAND_DEACTIVATE_ASSET, {Asset::toFullAsset(*this).toJson()});
                 setAssetStatus(fty::AssetStatus::Nonactive);
                 m_storage.update(*this);
                 log_debug ("Asset %s deactivated", m_internalName.c_str());
