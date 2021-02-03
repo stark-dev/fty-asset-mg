@@ -1,6 +1,15 @@
 #include "asset/asset-helpers.h"
 #include "asset/asset-db.h"
+#include "asset/logger.h"
 #include <ctime>
+#include <fty_asset_dto.h>
+#include <fty_common_agents.h>
+#include <fty_common_mlm.h>
+
+#define AGENT_ASSET_ACTIVATOR      "etn-licensing-credits"
+#define COMMAND_IS_ASSET_ACTIVABLE "GET_IS_ASSET_ACTIVABLE"
+#define COMMAND_ACTIVATE_ASSET     "ACTIVATE_ASSET"
+#define COMMAND_DEACTIVATE_ASSET   "DEACTIVATE_ASSET"
 
 namespace fty::asset {
 
@@ -123,5 +132,70 @@ AssetExpected<void> tryToPlaceAsset(uint32_t id, uint32_t parentId, uint32_t siz
     return {};
 }
 
+static AssetExpected<std::vector<std::string>> activateRequest(const std::string& command, const std::string& asset)
+{
+    try {
+        mlm::MlmSyncClient client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
+
+        logDebug("Sending {} request to {}", command, AGENT_ASSET_ACTIVATOR);
+
+        std::vector<std::string> payload = {command, asset};
+
+        std::vector<std::string> receivedFrames = client.syncRequestWithReply(payload);
+
+        // check if the first frame we get is an error
+        if (receivedFrames[0] == "ERROR") {
+            if (receivedFrames.size() == 2) {
+                return unexpected(receivedFrames.at(1));
+            } else {
+                return unexpected("Missing data for error");
+            }
+        }
+        return receivedFrames;
+    } catch (const std::exception& e) {
+        return unexpected(e.what());
+    }
+}
+
+AssetExpected<bool> activation::isActivable(const std::string& asset)
+{
+    if (auto ret = activateRequest(COMMAND_IS_ASSET_ACTIVABLE, asset)) {
+        logDebug("asset is activable = {}", ret->at(0));
+        return fty::convert<bool>(ret->at(0));
+    } else {
+        return unexpected(ret.error());
+    }
+}
+
+AssetExpected<bool> activation::isActivable(const FullAsset& asset)
+{
+    return isActivable(asset.toJson());
+}
+
+AssetExpected<void> activation::activate(const std::string& asset)
+{
+    if (auto ret = activateRequest(COMMAND_ACTIVATE_ASSET, asset); !ret) {
+        return unexpected(ret.error());
+    }
+    return {};
+}
+
+AssetExpected<void> activation::activate(const FullAsset& asset)
+{
+    return activate(asset.toJson());
+}
+
+AssetExpected<void> activation::deactivate(const std::string& asset)
+{
+    if (auto ret = activateRequest(COMMAND_DEACTIVATE_ASSET, asset); !ret) {
+        return unexpected(ret.error());
+    }
+    return {};
+}
+
+AssetExpected<void> activation::deactivate(const FullAsset& asset)
+{
+    return deactivate(asset.toJson());
+}
 
 } // namespace fty::asset

@@ -2,9 +2,11 @@
 #include "asset/asset-configure-inform.h"
 #include "asset/asset-import.h"
 #include "asset/asset-manager.h"
+#include "asset/asset-helpers.h"
 #include "asset/csv.h"
 #include "asset/logger.h"
-#include <fty_asset_activator.h>
+#include <fty_asset_dto.h>
+#include <cxxtools/jsondeserializer.h>
 #include <mutex>
 
 namespace fty::asset {
@@ -66,25 +68,20 @@ AssetExpected<uint32_t> AssetManager::createAsset(const std::string& json, const
     }
 
     if (sendNotify) {
-        fty::FullAsset asset;
+
         try {
-            si >>= asset;
+            FullAsset asset(si);
+            if (auto ret = activation::isActivable(asset)) {
+                if (!*ret) {
+                    return unexpected(msg.format(itemName, "Asset cannot be activated"_tr));
+                }
+            } else {
+                logError(ret.error());
+                return unexpected(msg.format(itemName, ret.error()));
+            }
         } catch (const std::invalid_argument& e) {
             logError(e.what());
             return unexpected(msg.format(itemName, e.what()));
-        } catch (const std::exception& e) {
-            logError(e.what());
-            return unexpected(msg.format(itemName, e.what()));
-        }
-
-        try {
-            if (asset.isPowerAsset() && asset.getStatusString() == "active") {
-                mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-                fty::AssetActivator activationAccessor(client);
-                if (!activationAccessor.isActivable(asset)) {
-                    return unexpected(msg.format(itemName, "Asset cannot be activated"_tr));
-                }
-            }
         } catch (const std::exception& e) {
             logError(e.what());
             return unexpected(msg.format(itemName, e.what()));

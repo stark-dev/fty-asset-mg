@@ -6,7 +6,6 @@
 #include "asset/json.h"
 #include "asset/logger.h"
 #include <fty/split.h>
-#include <fty_asset_activator.h>
 #include <fty_common_db_dbpath.h>
 #include <fty_log.h>
 #include <regex>
@@ -687,14 +686,10 @@ AssetExpected<db::AssetElement> Import::processRow(
 
                 if (type == "device" && status == "active" && subtypeId != rackControllerId && checkLic) {
                     // check if we may activate the device
-                    try {
-                        std::string assetJson = getJsonAsset(el.id);
-
-                        mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-                        fty::AssetActivator activationAccessor(client);
-                        activationAccessor.activate(assetJson);
-                    } catch (const std::exception& e) {
-                        return unexpected("licensing-err", e.what());
+                    std::string assetJson = getJsonAsset(el.id);
+                    if (auto res = activation::activate(assetJson); !res) {
+                        logError("Error during asset activation - {}", res.error());
+                        return unexpected("licensing-err", res.error());
                     }
                 }
             } else {
@@ -751,13 +746,10 @@ AssetExpected<db::AssetElement> Import::processRow(
 
                 if (type == "device" && status == "active" && subtypeId != rackControllerId && checkLic) {
                     // check if we may activate the device
-                    try {
-                        std::string         assetJson = getJsonAsset(el.id);
-                        mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-                        fty::AssetActivator activationAccessor(client);
-                        activationAccessor.activate(assetJson);
-                    } catch (const std::exception& e) {
-                        return unexpected("licensing-err", e.what());
+                    std::string assetJson = getJsonAsset(el.id);
+                    if (auto res = activation::activate(assetJson); !res) {
+                        logError("Error during asset activation - {}", res.error());
+                        return unexpected("licensing-err", res.error());
                     }
                 }
             } else {

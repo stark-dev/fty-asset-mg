@@ -4,8 +4,8 @@
 #include "asset/db.h"
 #include "asset/json.h"
 #include "asset/logger.h"
-#include <fty_asset_activator.h>
 #include <fty_common_asset_types.h>
+#include "asset/asset-helpers.h"
 
 namespace fty::asset {
 
@@ -146,14 +146,9 @@ AssetExpected<db::AssetElement> AssetManager::deleteAsset(const db::AssetElement
     // make the device inactive first
     if (asset.status == "active" && sendNotify) {
         std::string asset_json = getJsonAsset(asset.id);
-
-        try {
-            mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-            fty::AssetActivator activationAccessor(client);
-            activationAccessor.deactivate(asset_json);
-        } catch (const std::exception& e) {
-            logError("Error during asset deactivation - {}", e.what());
-            return unexpected(e.what());
+        if (auto ret = activation::deactivate(asset_json); !ret) {
+            logError("Error during asset deactivation - {}", ret.error());
+            return unexpected(ret.error());
         }
     }
 
@@ -179,12 +174,8 @@ AssetExpected<db::AssetElement> AssetManager::deleteAsset(const db::AssetElement
     if (!ret && asset.status == "active" && sendNotify) {
         std::string asset_json = getJsonAsset(asset.id);
 
-        try {
-            mlm::MlmSyncClient  client(AGENT_FTY_ASSET, AGENT_ASSET_ACTIVATOR);
-            fty::AssetActivator activationAccessor(client);
-            activationAccessor.activate(asset_json);
-        } catch (const std::exception& e) {
-            logError("Error during asset activation - {}", e.what());
+        if (auto ret = activation::activate(asset_json); !ret) {
+            logError("Error during asset activation - {}", ret.error());
         }
     }
 
