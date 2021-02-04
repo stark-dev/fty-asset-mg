@@ -4,7 +4,6 @@
 #include <fty/split.h>
 #include <fty/traits.h>
 #include <fty_common_db_dbpath.h>
-#include <mariadb/mysql.h>
 #include <tntdb.h>
 
 namespace tnt {
@@ -32,11 +31,6 @@ struct is_instance<U<T>, U> : public std::true_type
 inline void shutdown()
 {
     tntdb::dropCached();
-}
-
-inline void threadEnd()
-{
-    mysql_thread_end();
 }
 
 // =====================================================================================================================

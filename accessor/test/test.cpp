@@ -27,6 +27,7 @@ TEST_CASE("Create test")
     REQUIRE_NOTHROW([&]()
     { 
         AssetAccessor accessor;
+        (void)accessor;
     }());
 }
 

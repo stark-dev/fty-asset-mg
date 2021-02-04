@@ -174,8 +174,8 @@ AssetExpected<db::AssetElement> AssetManager::deleteAsset(const db::AssetElement
     if (!ret && asset.status == "active" && sendNotify) {
         std::string asset_json = getJsonAsset(asset.id);
 
-        if (auto ret = activation::activate(asset_json); !ret) {
-            logError("Error during asset activation - {}", ret.error());
+        if (auto res = activation::activate(asset_json); !res) {
+            logError("Error during asset activation - {}", res.error());
         }
     }
 

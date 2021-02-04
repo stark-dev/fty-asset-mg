@@ -45,7 +45,6 @@ etn_target(shared ${PROJECT_NAME}-libng
         fty_common
         fty-utils
         fty_shm
-        fty_common_rest
         fty_common_mlm
         czmq
         fty_proto
