@@ -267,15 +267,15 @@ namespace fty {
             case Subtype_Chassis:
                 return "chassis";
             case Subtype_CitrixPool:
-                return "citrixpool";
+                return "citrix.pool";
             case Subtype_CitrixTask:
-                return "citrixtask";
+                return "citrix.task";
             case Subtype_CitrixVApp:
-                return "citrixvapp";
+                return "citrix.vapp";
             case Subtype_CitrixVM:
-                return "citrixvm";
+                return "citrix.vm";
             case Subtype_CitrixXenserver:
-                return "citrixxenserver";
+                return "citrix.xenserver";
             case Subtype_EPDU:
                 return "epdu";
             case Subtype_Feed:
@@ -285,49 +285,49 @@ namespace fty {
             case Subtype_GPO:
                 return "gpo";
             case Subtype_HPITManager:
-                return "hpitmanager";
+                return "hp.it.manager";
             case Subtype_HPITManagerService:
-                return "hpitmanagerservice";
+                return "hp.it.manager.service";
             case Subtype_HPITRack:
-                return "hpitrack";
+                return "hp.it.rack";
             case Subtype_HPITServer:
-                return "hpitserver";
+                return "hp.it.server";
             case Subtype_IPMInfraServer:
-                return "ipminfraserver";
+                return "ipminfra.server";
             case Subtype_IPMInfraService:
-                return "ipminfraservice";
+                return "ipminfra.service";
             case Subtype_MicrosoftCluster:
-                return "microsoftcluster";
+                return "microsoft.cluster";
             case Subtype_MicrosoftHyperV:
-                return "microsofthyperv";
+                return "microsoft.hyperv";
             case Subtype_MicrosoftServer:
-                return "microsoftserver";
+                return "microsoft.server";
             case Subtype_MicrosoftTask:
-                return "microsofttask";
+                return "microsoft.task";
             case Subtype_MicrosoftVirtualizationMachine:
-                return "microsoftvirtualizationmachine";
+                return "microsoft.virtualization.machine";
             case Subtype_MicrosoftVM:
-                return "microsoftvm";
+                return "microsoft.vm";
             case Subtype_MicrosoftWindowsServer:
-                return "microsoftwindowsserver";
+                return "microsoft.windows.server";
             case Subtype_NetAppCluster:
-                return "netappcluster";
+                return "netapp.cluster";
             case Subtype_NetAppNode:
-                return "netappnode";
+                return "netapp.node";
             case Subtype_NetAppOntapNode:
-                return "netappontapnode";
+                return "netapp.ontap.node";
             case Subtype_NetAppOntapSystem:
-                return "netappontapsystem";
+                return "netapp.ontap.system";
             case Subtype_NetAppServer:
-                return "netappserver";
+                return "netapp.server";
             case Subtype_NutanixCluster:
-                return "nutanixcluster";
+                return "nutanix.cluster";
             case Subtype_NutanixNode:
-                return "nutanixnode";
+                return "nutanix.node";
             case Subtype_NutanixPrismGateway:
-                return "nutanixprismgateway";
+                return "nutanix.prism.gateway";
             case Subtype_NutanixVirtualizationMachine:
-                return "nutanixvirtualizationmachine";
+                return "nutanix.virtualization.machine";
             case Subtype_N_A:
                 return "n_a";
             case Subtype_Other:
@@ -359,19 +359,19 @@ namespace fty {
             case Subtype_VM:
                 return "vm";
             case Subtype_VMWareCluster:
-                return "vmwarecluster";
+                return "vmware.cluster";
             case Subtype_VMWareESXI:
-                return "vmwareesxi";
+                return "vmware.esxi";
             case Subtype_VMWareStandaloneESXI:
-                return "vmwarestandaloneesxi";
+                return "vmware.standaloneesxi";
             case Subtype_VMWareTask:
-                return "vmwaretask";
+                return "vmware.task";
             case Subtype_VMWareVApp:
-                return "vmwarevapp";
+                return "vmware.vapp";
             case Subtype_VMWareVCenter:
-                return "vmwarevcenter";
+                return "vmware.vcenter";
             case Subtype_VMWareVM:
-                return "vmwarevm";
+                return "vmware.vm";
             case Subtype_PCU:
                 return "pcu";
             default:
@@ -385,15 +385,15 @@ namespace fty {
             return Subtype_Appliance;
         } else if (subtype == "chassis") {
             return Subtype_Chassis;
-        } else if (subtype == "citrixpool") {
+        } else if (subtype == "citrix.pool") {
             return Subtype_CitrixPool;
-        } else if (subtype == "citrixtask") {
+        } else if (subtype == "citrix.task") {
             return Subtype_CitrixTask;
-        } else if (subtype == "citrixvapp") {
+        } else if (subtype == "citrix.vapp") {
             return Subtype_CitrixVApp;
-        } else if (subtype == "citrixvm") {
+        } else if (subtype == "citrix.vm") {
             return Subtype_CitrixVM;
-        } else if (subtype == "citrixxenserver") {
+        } else if (subtype == "citrix.xenserver") {
             return Subtype_CitrixXenserver;
         } else if (subtype == "epdu") {
             return Subtype_EPDU;
@@ -403,49 +403,49 @@ namespace fty {
             return Subtype_Genset;
         } else if (subtype == "gpo") {
             return Subtype_GPO;
-        } else if (subtype == "hpitmanager") {
+        } else if (subtype == "hp.it.manager") {
             return Subtype_HPITManager;
-        } else if (subtype == "hpitmanagerservice") {
+        } else if (subtype == "hp.it.manager.service") {
             return Subtype_HPITManagerService;
-        } else if (subtype == "hpitrack") {
+        } else if (subtype == "hp.itrack") {
             return Subtype_HPITRack;
-        } else if (subtype == "hpitserver") {
+        } else if (subtype == "hp.it.server") {
             return Subtype_HPITServer;
-        } else if (subtype == "ipminfraserver") {
+        } else if (subtype == "ipminfra.server") {
             return Subtype_IPMInfraServer;
-        } else if (subtype == "ipminfraservice") {
+        } else if (subtype == "ipminfra.service") {
             return Subtype_IPMInfraService;
-        } else if (subtype == "microsoftcluster") {
+        } else if (subtype == "microsoft.cluster") {
             return Subtype_MicrosoftCluster;
-        } else if (subtype == "microsofthyperv") {
+        } else if (subtype == "microsoft.hyperv") {
             return Subtype_MicrosoftHyperV;
-        } else if (subtype == "microsoftserver") {
+        } else if (subtype == "microsoft.server") {
             return Subtype_MicrosoftServer;
-        } else if (subtype == "microsofttask") {
+        } else if (subtype == "microsoft.task") {
             return Subtype_MicrosoftTask;
-        } else if (subtype == "microsoftvirtualizationmachine") {
+        } else if (subtype == "microsoft.virtualization.machine") {
             return Subtype_MicrosoftVirtualizationMachine;
-        } else if (subtype == "microsoftvm") {
+        } else if (subtype == "microsoft.vm") {
             return Subtype_MicrosoftVM;
-        } else if (subtype == "microsoftwindowsserver") {
+        } else if (subtype == "microsoft.windows.server") {
             return Subtype_MicrosoftWindowsServer;
-        } else if (subtype == "netappcluster") {
+        } else if (subtype == "netapp.cluster") {
             return Subtype_NetAppCluster;
-        } else if (subtype == "netappnode") {
+        } else if (subtype == "netapp.node") {
             return Subtype_NetAppNode;
-        } else if (subtype == "netappontapnode") {
+        } else if (subtype == "netapp.ontap.node") {
             return Subtype_NetAppOntapNode;
-        } else if (subtype == "netappontapsystem") {
+        } else if (subtype == "netapp.ontap.system") {
             return Subtype_NetAppOntapSystem;
-        } else if (subtype == "netappserver") {
+        } else if (subtype == "netapp.server") {
             return Subtype_NetAppServer;
-        } else if (subtype == "nutanixcluster") {
+        } else if (subtype == "nutanix.cluster") {
             return Subtype_NutanixCluster;
-        } else if (subtype == "nutanixnode") {
+        } else if (subtype == "nutanix.node") {
             return Subtype_NutanixNode;
-        } else if (subtype == "nutanixprismgateway") {
+        } else if (subtype == "nutanix.prism.gateway") {
             return Subtype_NutanixPrismGateway;
-        } else if (subtype == "nutanixvirtualizationmachine") {
+        } else if (subtype == "nutanix.virtualization.machine") {
             return Subtype_NutanixVirtualizationMachine;
         } else if (subtype == "n_a" || subtype == "N_A" || subtype.empty()) {
             return Subtype_N_A;
@@ -477,19 +477,19 @@ namespace fty {
             return Subtype_UPS;
         } else if (subtype == "vm") {
             return Subtype_VM;
-        } else if (subtype == "vmwarecluster") {
+        } else if (subtype == "vmware.cluster") {
             return Subtype_VMWareCluster;
-        } else if (subtype == "vmwareesxi") {
+        } else if (subtype == "vmware.esxi") {
             return Subtype_VMWareESXI;
-        } else if (subtype == "vmwarestandaloneesxi") {
+        } else if (subtype == "vmware.standalone.esxi") {
             return Subtype_VMWareStandaloneESXI;
-        } else if (subtype == "vmwaretask") {
+        } else if (subtype == "vmware.task") {
             return Subtype_VMWareTask;
-        } else if (subtype == "vmwarevapp") {
+        } else if (subtype == "vmware.vapp") {
             return Subtype_VMWareVApp;
-        } else if (subtype == "vmwarevcenter") {
+        } else if (subtype == "vmware.vcenter") {
             return Subtype_VMWareVCenter;
-        } else if (subtype == "vmwarevm") {
+        } else if (subtype == "vmware.vm") {
             return Subtype_VMWareVM;
         } else if (subtype == "pcu") {
             return Subtype_PCU;
