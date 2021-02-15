@@ -43,45 +43,20 @@ namespace fty
             enum Status {
                 Active, Nonactive
             };
-            /// List of valid asset types
-            enum Type {
-                Type_Cluster, Type_Datacenter, Type_Device, Type_Group, Type_Hypervisor, Type_Rack, Type_Room, Type_Row,
-                Type_Storage, Type_VApp, Type_VirtuService, Type_VM,
-                Type_COPS
-            };
-            /// List of valid asset subtypes
-            enum Subtype {
-                Subtype_Appliance, Subtype_Chassis,
-                Subtype_CitrixPool, Subtype_CitrixTask, Subtype_CitrixVApp, Subtype_CitrixVM, Subtype_CitrixXenserver,
-                Subtype_EPDU, Subtype_Feed, Subtype_Genset, Subtype_GPO,
-                Subtype_HPITManager, Subtype_HPITManagerService, Subtype_HPITRack, Subtype_HPITServer,
-                Subtype_IPMInfraServer, Subtype_IPMInfraService,
-                Subtype_MicrosoftCluster, Subtype_MicrosoftHyperV, Subtype_MicrosoftServer, Subtype_MicrosoftTask,
-                Subtype_MicrosoftVirtualizationMachine, Subtype_MicrosoftVM, Subtype_MicrosoftWindowsServer,
-                Subtype_NetAppCluster, Subtype_NetAppNode, Subtype_NetAppOntapNode, Subtype_NetAppOntapSystem,
-                Subtype_NetAppServer,
-                Subtype_NutanixCluster, Subtype_NutanixNode, Subtype_NutanixPrismGateway, Subtype_NutanixVirtualizationMachine,
-                Subtype_N_A, Subtype_Other, Subtype_PatchPanel, Subtype_PDU, Subtype_RackController, Subtype_Router,
-                Subtype_Sensor, Subtype_SensorGPIO, Subtype_Server, Subtype_Sink, Subtype_Storage, Subtype_STS, Subtype_Switch, Subtype_UPS,
-                Subtype_VM,
-                Subtype_VMWareCluster, Subtype_VMWareESXI, Subtype_VMWareStandaloneESXI, Subtype_VMWareTask, Subtype_VMWareVApp,
-                Subtype_VMWareVCenter, Subtype_VMWareVM,
-                Subtype_PCU
-            };
         protected:
             /// internal identification string (iname)
             std::string id_;
             Status status_;
-            std::pair<Type, Subtype> type_subtype_;
+            std::pair<uint16_t, uint16_t> type_subtype_;
         private:
             /// asset types string reprezentation
-            std::string typeToString (Type type) const;
+            std::string typeToString (uint16_t type) const;
             /// asset types from string reprezentation
-            Type stringToType (const std::string & type) const;
+            uint16_t stringToType (const std::string & type) const;
             /// asset subtypes string reprezentation
-            std::string subtypeToString (Subtype subtype) const;
+            std::string subtypeToString (uint16_t subtype) const;
             /// asset subtypes from string reprezentation
-            Subtype stringToSubtype (const std::string & subtype) const;
+            uint16_t stringToSubtype (const std::string & subtype) const;
             /// asset statuses string reprezentation
             std::string statusToString (Status status) const;
             /// asset statuses from string reprezentation
@@ -108,9 +83,9 @@ namespace fty
             std::string getId () const;
             Status getStatus () const;
             std::string getStatusString () const;
-            Type getType () const;
+            uint16_t getType () const;
             std::string getTypeString () const;
-            Subtype getSubtype () const;
+            uint16_t getSubtype () const;
             std::string getSubtypeString () const;
             void setStatus (const std::string & status);
             void setType (const std::string & type);
