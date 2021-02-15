@@ -31,6 +31,7 @@
 #include <cxxtools/jsonserializer.h>
 #include <cxxtools/jsondeserializer.h>
 #include <fty_common_mlm.h>
+#include <fty_common_asset_types.h>
 #include <fty_log.h>
 #include <ftyproto.h>
 #include <fty/convert.h>
@@ -157,7 +158,7 @@ namespace fty {
         return statusToString (status_);
     }
 
-    BasicAsset::Type BasicAsset::getType () const
+    uint16_t BasicAsset::getType () const
     {
         return type_subtype_.first;
     }
@@ -167,7 +168,7 @@ namespace fty {
         return typeToString (type_subtype_.first);
     }
 
-    BasicAsset::Subtype BasicAsset::getSubtype () const
+    uint16_t BasicAsset::getSubtype () const
     {
         return type_subtype_.second;
     }
@@ -192,310 +193,24 @@ namespace fty {
         type_subtype_.second = stringToSubtype (subtype);
     }
 
-    std::string BasicAsset::typeToString (BasicAsset::Type type) const
+    std::string BasicAsset::typeToString (uint16_t type) const
     {
-        switch (type) {
-            case Type_Cluster:
-                return "cluster";
-            case Type_Datacenter:
-                return "datacenter";
-            case Type_Device:
-                return "device";
-            case Type_Group:
-                return "group";
-            case Type_Hypervisor:
-                return "hypervisor";
-            case Type_Rack:
-                return "rack";
-            case Type_Room:
-                return "room";
-            case Type_Row:
-                return "row";
-            case Type_Storage:
-                return "storage";
-            case Type_VApp:
-                return "vapp";
-            case Type_VirtuService:
-                return "virtuservice";
-            case Type_VM:
-                return "vm";
-            case Type_COPS:
-                return "cops";
-            default:
-                throw std::invalid_argument ("type id is not known value");
-        }
+        return persist::typeid_to_type(type);
     }
 
-    BasicAsset::Type BasicAsset::stringToType (const std::string & type) const
+    uint16_t BasicAsset::stringToType (const std::string & type) const
     {
-        if (type == "cluster") {
-            return Type_Cluster;
-        } else if (type == "datacenter") {
-            return Type_Datacenter;
-        } else if (type == "device") {
-            return Type_Device;
-        } else if (type == "group") {
-            return Type_Group;
-        } else if (type == "hypervisor") {
-            return Type_Hypervisor;
-        } else if (type == "rack") {
-            return Type_Rack;
-        } else if (type == "room") {
-            return Type_Room;
-        } else if (type == "row") {
-            return Type_Row;
-        } else if (type == "storage") {
-            return Type_Storage;
-        } else if (type == "vapp") {
-            return Type_VApp;
-        } else if (type == "virtuservice") {
-            return Type_VirtuService;
-        } else if (type == "vm") {
-            return Type_VM;
-        } else if (type == "cops") {
-            return Type_COPS;
-        } else {
-            throw std::invalid_argument ("type is not known value");
-        }
+        return persist::type_to_typeid(type);
     }
 
-    std::string BasicAsset::subtypeToString (BasicAsset::Subtype subtype) const
+    std::string BasicAsset::subtypeToString (uint16_t subtype) const
     {
-        switch (subtype) {
-            case Subtype_Appliance:
-                return "appliance";
-            case Subtype_Chassis:
-                return "chassis";
-            case Subtype_CitrixPool:
-                return "citrix.pool";
-            case Subtype_CitrixTask:
-                return "citrix.task";
-            case Subtype_CitrixVApp:
-                return "citrix.vapp";
-            case Subtype_CitrixVM:
-                return "citrix.vm";
-            case Subtype_CitrixXenserver:
-                return "citrix.xenserver";
-            case Subtype_EPDU:
-                return "epdu";
-            case Subtype_Feed:
-                return "feed";
-            case Subtype_Genset:
-                return "genset";
-            case Subtype_GPO:
-                return "gpo";
-            case Subtype_HPITManager:
-                return "hp.it.manager";
-            case Subtype_HPITManagerService:
-                return "hp.it.manager.service";
-            case Subtype_HPITRack:
-                return "hp.it.rack";
-            case Subtype_HPITServer:
-                return "hp.it.server";
-            case Subtype_IPMInfraServer:
-                return "ipminfra.server";
-            case Subtype_IPMInfraService:
-                return "ipminfra.service";
-            case Subtype_MicrosoftCluster:
-                return "microsoft.cluster";
-            case Subtype_MicrosoftHyperV:
-                return "microsoft.hyperv";
-            case Subtype_MicrosoftServer:
-                return "microsoft.server";
-            case Subtype_MicrosoftTask:
-                return "microsoft.task";
-            case Subtype_MicrosoftVirtualizationMachine:
-                return "microsoft.virtualization.machine";
-            case Subtype_MicrosoftVM:
-                return "microsoft.vm";
-            case Subtype_MicrosoftWindowsServer:
-                return "microsoft.windows.server";
-            case Subtype_NetAppCluster:
-                return "netapp.cluster";
-            case Subtype_NetAppNode:
-                return "netapp.node";
-            case Subtype_NetAppOntapNode:
-                return "netapp.ontap.node";
-            case Subtype_NetAppOntapSystem:
-                return "netapp.ontap.system";
-            case Subtype_NetAppServer:
-                return "netapp.server";
-            case Subtype_NutanixCluster:
-                return "nutanix.cluster";
-            case Subtype_NutanixNode:
-                return "nutanix.node";
-            case Subtype_NutanixPrismGateway:
-                return "nutanix.prism.gateway";
-            case Subtype_NutanixVirtualizationMachine:
-                return "nutanix.virtualization.machine";
-            case Subtype_N_A:
-                return "n_a";
-            case Subtype_Other:
-                return "other";
-            case Subtype_PatchPanel:
-                return "patchpanel";
-            case Subtype_PDU:
-                return "pdu";
-            case Subtype_RackController:
-                return "rackcontroller";
-            case Subtype_Router:
-                return "router";
-            case Subtype_Sensor:
-                return "sensor";
-            case Subtype_SensorGPIO:
-                return "sensorgpio";
-            case Subtype_Server:
-                return "server";
-            case Subtype_Sink:
-                return "sink";
-            case Subtype_Storage:
-                return "storage";
-            case Subtype_STS:
-                return "sts";
-            case Subtype_Switch:
-                return "switch";
-            case Subtype_UPS:
-                return "ups";
-            case Subtype_VM:
-                return "vm";
-            case Subtype_VMWareCluster:
-                return "vmware.cluster";
-            case Subtype_VMWareESXI:
-                return "vmware.esxi";
-            case Subtype_VMWareStandaloneESXI:
-                return "vmware.standaloneesxi";
-            case Subtype_VMWareTask:
-                return "vmware.task";
-            case Subtype_VMWareVApp:
-                return "vmware.vapp";
-            case Subtype_VMWareVCenter:
-                return "vmware.vcenter";
-            case Subtype_VMWareVM:
-                return "vmware.vm";
-            case Subtype_PCU:
-                return "pcu";
-            default:
-                throw std::invalid_argument ("subtype id is not known value");
-        }
+        return persist::subtypeid_to_subtype(subtype);
     }
 
-    BasicAsset::Subtype BasicAsset::stringToSubtype (const std::string & subtype) const
+    uint16_t BasicAsset::stringToSubtype (const std::string & subtype) const
     {
-        if (subtype == "appliance") {
-            return Subtype_Appliance;
-        } else if (subtype == "chassis") {
-            return Subtype_Chassis;
-        } else if (subtype == "citrix.pool") {
-            return Subtype_CitrixPool;
-        } else if (subtype == "citrix.task") {
-            return Subtype_CitrixTask;
-        } else if (subtype == "citrix.vapp") {
-            return Subtype_CitrixVApp;
-        } else if (subtype == "citrix.vm") {
-            return Subtype_CitrixVM;
-        } else if (subtype == "citrix.xenserver") {
-            return Subtype_CitrixXenserver;
-        } else if (subtype == "epdu") {
-            return Subtype_EPDU;
-        } else if (subtype == "feed") {
-            return Subtype_Feed;
-        } else if (subtype == "genset") {
-            return Subtype_Genset;
-        } else if (subtype == "gpo") {
-            return Subtype_GPO;
-        } else if (subtype == "hp.it.manager") {
-            return Subtype_HPITManager;
-        } else if (subtype == "hp.it.manager.service") {
-            return Subtype_HPITManagerService;
-        } else if (subtype == "hp.itrack") {
-            return Subtype_HPITRack;
-        } else if (subtype == "hp.it.server") {
-            return Subtype_HPITServer;
-        } else if (subtype == "ipminfra.server") {
-            return Subtype_IPMInfraServer;
-        } else if (subtype == "ipminfra.service") {
-            return Subtype_IPMInfraService;
-        } else if (subtype == "microsoft.cluster") {
-            return Subtype_MicrosoftCluster;
-        } else if (subtype == "microsoft.hyperv") {
-            return Subtype_MicrosoftHyperV;
-        } else if (subtype == "microsoft.server") {
-            return Subtype_MicrosoftServer;
-        } else if (subtype == "microsoft.task") {
-            return Subtype_MicrosoftTask;
-        } else if (subtype == "microsoft.virtualization.machine") {
-            return Subtype_MicrosoftVirtualizationMachine;
-        } else if (subtype == "microsoft.vm") {
-            return Subtype_MicrosoftVM;
-        } else if (subtype == "microsoft.windows.server") {
-            return Subtype_MicrosoftWindowsServer;
-        } else if (subtype == "netapp.cluster") {
-            return Subtype_NetAppCluster;
-        } else if (subtype == "netapp.node") {
-            return Subtype_NetAppNode;
-        } else if (subtype == "netapp.ontap.node") {
-            return Subtype_NetAppOntapNode;
-        } else if (subtype == "netapp.ontap.system") {
-            return Subtype_NetAppOntapSystem;
-        } else if (subtype == "netapp.server") {
-            return Subtype_NetAppServer;
-        } else if (subtype == "nutanix.cluster") {
-            return Subtype_NutanixCluster;
-        } else if (subtype == "nutanix.node") {
-            return Subtype_NutanixNode;
-        } else if (subtype == "nutanix.prism.gateway") {
-            return Subtype_NutanixPrismGateway;
-        } else if (subtype == "nutanix.virtualization.machine") {
-            return Subtype_NutanixVirtualizationMachine;
-        } else if (subtype == "n_a" || subtype == "N_A" || subtype.empty()) {
-            return Subtype_N_A;
-        } else if (subtype == "other") {
-            return Subtype_Other;
-        } else if (subtype == "patchpanel" || subtype == "patch panel") {
-            return Subtype_PatchPanel;
-        } else if (subtype == "pdu") {
-            return Subtype_PDU;
-        } else if (subtype == "rackcontroller" || subtype == "rack controller") {
-            return Subtype_RackController;
-        } else if (subtype == "router") {
-            return Subtype_Router;
-        } else if (subtype == "sensor") {
-            return Subtype_Sensor;
-        } else if (subtype == "sensorgpio") {
-            return Subtype_SensorGPIO;
-        } else if (subtype == "server") {
-            return Subtype_Server;
-        } else if (subtype == "sink") {
-            return Subtype_Sink;
-        } else if (subtype == "storage") {
-            return Subtype_Storage;
-        } else if (subtype == "sts") {
-            return Subtype_STS;
-        } else if (subtype == "switch") {
-            return Subtype_Switch;
-        } else if (subtype == "ups") {
-            return Subtype_UPS;
-        } else if (subtype == "vm") {
-            return Subtype_VM;
-        } else if (subtype == "vmware.cluster") {
-            return Subtype_VMWareCluster;
-        } else if (subtype == "vmware.esxi") {
-            return Subtype_VMWareESXI;
-        } else if (subtype == "vmware.standalone.esxi") {
-            return Subtype_VMWareStandaloneESXI;
-        } else if (subtype == "vmware.task") {
-            return Subtype_VMWareTask;
-        } else if (subtype == "vmware.vapp") {
-            return Subtype_VMWareVApp;
-        } else if (subtype == "vmware.vcenter") {
-            return Subtype_VMWareVCenter;
-        } else if (subtype == "vmware.vm") {
-            return Subtype_VMWareVM;
-        } else if (subtype == "pcu") {
-            return Subtype_PCU;
-        } else {
-            throw std::invalid_argument ("subtype is not known value");
-        }
+        return persist::subtype_to_subtypeid(subtype);
     }
 
     std::string BasicAsset::statusToString (BasicAsset::Status status) const
@@ -533,9 +248,9 @@ namespace fty {
 
     bool BasicAsset::isPowerAsset () const
     {
-        Type type = type_subtype_.first;
-        Subtype subtype = type_subtype_.second;
-        return (type == Type_Device && (subtype == Subtype_EPDU || subtype == Subtype_Genset || subtype == Subtype_PDU || subtype == Subtype_STS || subtype == Subtype_UPS));
+        uint16_t type = type_subtype_.first;
+        uint16_t subtype = type_subtype_.second;
+        return (type == persist::asset_type::DEVICE && (subtype == persist::asset_subtype::EPDU || subtype == persist::asset_subtype::GENSET || subtype == persist::asset_subtype::PDU || subtype == persist::asset_subtype::STS || subtype == persist::asset_subtype::UPS));
     }
 
     ExtendedAsset::ExtendedAsset ()
@@ -951,24 +666,24 @@ fty_common_asset_test (bool /* verbose */)
         fty::BasicAsset b ("id-1", "active", "device", "rackcontroller");
         assert (b.getId () == "id-1");
         assert (b.getStatus () == fty::BasicAsset::Status::Active);
-        assert (b.getType () == fty::BasicAsset::Type::Type_Device);
-        assert (b.getSubtype () == fty::BasicAsset::Subtype::Subtype_RackController);
+        assert (b.getType () == persist::asset_type::DEVICE);
+        assert (b.getSubtype () == persist::asset_subtype::RACKCONTROLLER);
         assert (b.getStatusString () == "active");
         assert (b.getTypeString () == "device");
         assert (b.getSubtypeString () == "rackcontroller");
         b.setStatus ("nonactive");
         assert (b.getStatus () == fty::BasicAsset::Status::Nonactive);
         b.setType ("vm");
-        assert (b.getType () == fty::BasicAsset::Type::Type_VM);
+        assert (b.getType () == persist::asset_type::VIRTUAL_MACHINE);
         b.setSubtype ("vmwarevm");
-        assert (b.getSubtype () == fty::BasicAsset::Subtype::Subtype_VMWareVM);
+        assert (b.getSubtype () == persist::asset_subtype::VMWARE_VM);
         fty::BasicAsset bb (b);
         assert (b == bb);
         assert (bb.getId () == "id-1");
-        assert (bb.getType () == fty::BasicAsset::Type::Type_VM);
+        assert (bb.getType () == persist::asset_type::VIRTUAL_MACHINE);
         bb.setType ("device");
-        assert (bb.getType () == fty::BasicAsset::Type::Type_Device);
-        assert (b.getType () == fty::BasicAsset::Type::Type_VM);
+        assert (bb.getType () == persist::asset_type::DEVICE);
+        assert (b.getType () == persist::asset_type::VIRTUAL_MACHINE);
         assert (b != bb);
 
         fty::BasicAsset bJson1 ("id-1", "active", "device", "rackcontroller");
