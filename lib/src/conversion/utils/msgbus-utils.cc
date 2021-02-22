@@ -26,26 +26,40 @@
 #include <fty_common_messagebus.h>
 #include <fty/convert.h>
 #include <iostream>
+#include <time.h>
 
 #define RECV_TIMEOUT 5  // messagebus request timeout
 
 static constexpr const char *ASSET_AGENT = "asset-agent-ng";
 static constexpr const char *ASSET_AGENT_QUEUE = "FTY.Q.ASSET.QUERY";
-static constexpr const char *ACCESSOR_NAME = "fty-asset-conversion";
+static constexpr const char *ACCESSOR_NAME = "fty-asset-conversion-";
 static constexpr const char *ENDPOINT = "ipc://@/malamute";
 
 static messagebus::Message sendCommand(const std::string& command, messagebus::UserData data)
 {
-    std::unique_ptr<messagebus::MessageBus> interface(messagebus::MlmMessageBus(ENDPOINT, ACCESSOR_NAME));
+    // generate unique ID interface
+    timeval t;
+    gettimeofday(&t, nullptr);
+    srand(static_cast<unsigned int>(t.tv_sec * t.tv_usec));
+    // generate 8 digit random integer
+    unsigned long index = static_cast<unsigned long>(rand()) % static_cast<unsigned long>(100000000);
+
+    std::string indexStr = std::to_string(index);
+    // create 8 digit index with leading zeros
+    indexStr = std::string(8 - indexStr.length(), '0') + indexStr;
+
+    std::string clientName = ACCESSOR_NAME + indexStr;
+
+    std::unique_ptr<messagebus::MessageBus> interface(messagebus::MlmMessageBus(ENDPOINT, clientName));
     messagebus::Message msg;
 
     interface->connect();
 
     msg.metaData().emplace(messagebus::Message::CORRELATION_ID, messagebus::generateUuid());
     msg.metaData().emplace(messagebus::Message::SUBJECT, command);
-    msg.metaData().emplace(messagebus::Message::FROM, ACCESSOR_NAME);
+    msg.metaData().emplace(messagebus::Message::FROM, clientName);
     msg.metaData().emplace(messagebus::Message::TO, ASSET_AGENT);
-    msg.metaData().emplace(messagebus::Message::REPLY_TO, ACCESSOR_NAME);
+    msg.metaData().emplace(messagebus::Message::REPLY_TO, clientName);
 
     msg.userData() = data;
 
