@@ -26,8 +26,10 @@
 #include <fty_common.h>
 #include <fty_common_messagebus.h>
 #include <fty/convert.h>
+#include <iomanip>
 #include <iostream>
-#include <time.h>
+#include <sstream>
+#include <thread>
 
 #define RECV_TIMEOUT 5  // messagebus request timeout
 
@@ -35,24 +37,17 @@ namespace fty
 {
     static constexpr const char *ASSET_AGENT = "asset-agent-ng";
     static constexpr const char *ASSET_AGENT_QUEUE = "FTY.Q.ASSET.QUERY";
-    static constexpr const char *ACCESSOR_NAME = "fty-asset-accessor-";
+    static constexpr const char *ACCESSOR_NAME = "fty-asset-accessor";
     static constexpr const char *ENDPOINT = "ipc://@/malamute";
 
     /// static helper to send a MessageBus command
     static messagebus::Message sendCommand(const std::string& command, messagebus::UserData data)
     {
         // generate unique ID interface
-        timeval t;
-        gettimeofday(&t, nullptr);
-        srand(static_cast<unsigned int>(t.tv_sec * t.tv_usec));
-        // generate 8 digit random integer
-        unsigned long index = static_cast<unsigned long>(rand()) % static_cast<unsigned long>(100000000);
+        std::stringstream ss;
+        ss << ACCESSOR_NAME << "-" << std::setfill('0') << std::setw(sizeof(pid_t)*2) << std::hex << std::this_thread::get_id();
 
-        std::string indexStr = std::to_string(index);
-        // create 8 digit index with leading zeros
-        indexStr = std::string(8 - indexStr.length(), '0') + indexStr;
-
-        std::string clientName = ACCESSOR_NAME + indexStr;
+        std::string clientName = ss.str();
 
         std::unique_ptr<messagebus::MessageBus> interface(messagebus::MlmMessageBus(ENDPOINT, clientName));
         messagebus::Message msg;
