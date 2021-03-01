@@ -25,7 +25,9 @@
 #include <fty_common.h>
 #include <fty_common_messagebus.h>
 #include <fty/convert.h>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 
 #define RECV_TIMEOUT 5  // messagebus request timeout
 
@@ -36,16 +38,22 @@ static constexpr const char *ENDPOINT = "ipc://@/malamute";
 
 static messagebus::Message sendCommand(const std::string& command, messagebus::UserData data)
 {
-    std::unique_ptr<messagebus::MessageBus> interface(messagebus::MlmMessageBus(ENDPOINT, ACCESSOR_NAME));
+    // generate unique ID interface
+    std::stringstream ss;
+    ss << ACCESSOR_NAME << "-" << std::setfill('0') << std::setw(sizeof(pid_t)*2) << std::hex << std::this_thread::get_id();
+
+    std::string clientName = ss.str();
+
+    std::unique_ptr<messagebus::MessageBus> interface(messagebus::MlmMessageBus(ENDPOINT, clientName));
     messagebus::Message msg;
 
     interface->connect();
 
     msg.metaData().emplace(messagebus::Message::CORRELATION_ID, messagebus::generateUuid());
     msg.metaData().emplace(messagebus::Message::SUBJECT, command);
-    msg.metaData().emplace(messagebus::Message::FROM, ACCESSOR_NAME);
+    msg.metaData().emplace(messagebus::Message::FROM, clientName);
     msg.metaData().emplace(messagebus::Message::TO, ASSET_AGENT);
-    msg.metaData().emplace(messagebus::Message::REPLY_TO, ACCESSOR_NAME);
+    msg.metaData().emplace(messagebus::Message::REPLY_TO, clientName);
 
     msg.userData() = data;
 
