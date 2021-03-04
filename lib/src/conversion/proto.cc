@@ -133,7 +133,8 @@ namespace fty { namespace conversion {
             asset.setExtEntry("ip.1", asset.getExtEntry("ip.1"), false);
             // all endpoint attribs are RW
             for(const auto& att : asset.getExt()) {
-                if(auto x = att.first.find("endpoint"); x != std::string::npos) {
+                //An endpoint is always "endpoint.<params>" 
+                if(att.first.find("endpoint.") == 0) {
                     asset.setExtEntry(att.first, att.second.getValue(), false);
                 }
             }
