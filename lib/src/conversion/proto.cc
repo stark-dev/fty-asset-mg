@@ -126,11 +126,20 @@ namespace fty { namespace conversion {
             asset.setExtEntry(zhash_cursor(hash), static_cast<const char*>(item), extAttributeReadOnly);
         }
 
-        // PQSWPRG-7607 HOTFIX: force RW for friendly name ('name' ext. attribute) and also for ip.1
+        // force RW for specific attributes (if default is read only)
         if (extAttributeReadOnly) {
+            // PQSWPRG-7607 HOTFIX: force RW for friendly name ('name' ext. attribute) and also for ip.1
             asset.setExtEntry("name", asset.getExtEntry("name"), false);
             asset.setExtEntry("ip.1", asset.getExtEntry("ip.1"), false);
+            // all endpoint attribs are RW
+            for(const auto& att : asset.getExt()) {
+                //An endpoint is always "endpoint.<params>" 
+                if(att.first.find("endpoint.") == 0) {
+                    asset.setExtEntry(att.first, att.second.getValue(), false);
+                }
+            }
         }//
+
     }
 
 }} // namespace fty::conversion
