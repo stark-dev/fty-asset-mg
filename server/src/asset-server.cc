@@ -854,26 +854,9 @@ void AssetServer::notifyAsset(const messagebus::Message& msg)
             m_agentNameNg, "", messagebus::STATUS_OK, newAsset.getInternalName());
         sendNotification(notification_l);
 
-        // create response (ok)
-        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_NOTIFY,
-            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK, "");
-
-        // send response
-        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
-        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
     } catch (std::exception& e) {
         log_error(e.what());
-        // create response (error)
-        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_NOTIFY,
-            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_KO,
-            TRANSLATE_ME(e.what()));
-
-        // send response
-        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
-        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
     }
 }
 

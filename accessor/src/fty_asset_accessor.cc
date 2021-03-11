@@ -40,8 +40,8 @@ namespace fty
     static constexpr const char *ACCESSOR_NAME = "fty-asset-accessor";
     static constexpr const char *ENDPOINT = "ipc://@/malamute";
 
-    /// static helper to send a MessageBus command
-    static messagebus::Message sendCommand(const std::string& command, messagebus::UserData data)
+    /// static helper to send a MessageBus synchronous request
+    static messagebus::Message sendSyncReq(const std::string& command, messagebus::UserData data)
     {
         // generate unique ID interface
         std::stringstream ss;
@@ -65,6 +65,31 @@ namespace fty
         return interface->request(ASSET_AGENT_QUEUE, msg, RECV_TIMEOUT);
     }
 
+    /// static helper to send a MessageBus asynch request
+    static void sendAsyncReq(const std::string& command, messagebus::UserData data)
+    {
+        // generate unique ID interface
+        std::stringstream ss;
+        ss << ACCESSOR_NAME << "-" << std::setfill('0') << std::setw(sizeof(pid_t)*2) << std::hex << std::this_thread::get_id();
+
+        std::string clientName = ss.str();
+
+        std::unique_ptr<messagebus::MessageBus> interface(messagebus::MlmMessageBus(ENDPOINT, clientName));
+        messagebus::Message msg;
+
+        interface->connect();
+
+        msg.metaData().emplace(messagebus::Message::CORRELATION_ID, messagebus::generateUuid());
+        msg.metaData().emplace(messagebus::Message::SUBJECT, command);
+        msg.metaData().emplace(messagebus::Message::FROM, clientName);
+        msg.metaData().emplace(messagebus::Message::TO, ASSET_AGENT);
+        msg.metaData().emplace(messagebus::Message::REPLY_TO, clientName);
+
+        msg.userData() = data;
+
+        return interface->sendRequest(ASSET_AGENT_QUEUE, msg);
+    }
+
     /// returns the asset database ID, given the internal name
     fty::Expected<uint32_t> AssetAccessor::assetInameToID(const std::string &iname)
     {
@@ -72,7 +97,7 @@ namespace fty
 
         try
         {
-            ret = sendCommand("GET_ID", {iname});
+            ret = sendSyncReq("GET_ID", {iname});
         }
         catch (messagebus::MessageBusException &e)
         {
@@ -101,7 +126,7 @@ namespace fty
 
         try
         {
-            ret = sendCommand("GET", {iname});
+            ret = sendSyncReq("GET", {iname});
         }
         catch (messagebus::MessageBusException &e)
         {
@@ -146,6 +171,6 @@ namespace fty
 
         std::string json = JSON::writeToString(si, false);
 
-        ret = sendCommand("NOTIFY", {json});
+        sendAsyncReq("NOTIFY", {json});
     }
 } // namespace fty
