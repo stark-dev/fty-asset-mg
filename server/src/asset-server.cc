@@ -180,6 +180,7 @@ void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
         { FTY_ASSET_SUBJECT_LIST,         [&](const messagebus::Message& message){ listAsset(message); } },
         { FTY_ASSET_SUBJECT_GET_ID,       [&](const messagebus::Message& message){ getAssetID(message); } },
         { FTY_ASSET_SUBJECT_GET_INAME,    [&](const messagebus::Message& message){ getAssetIname(message); } },
+        { FTY_ASSET_SUBJECT_STATUS_UPD,   [&](const messagebus::Message& message){ notifyStatusUpdate(message); } },
         { FTY_ASSET_SUBJECT_NOTIFY,       [&](const messagebus::Message& message){ notifyAsset(message); } }
     };
     // clang-format on
@@ -819,6 +820,34 @@ void AssetServer::getAssetIname(const messagebus::Message& msg)
         // send response
         log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+    }
+}
+
+void AssetServer::notifyStatusUpdate(const messagebus::Message& msg)
+{
+    log_debug("subject STATUS_UPDATE");
+
+    try {
+        std::string iname;
+        std::string status;
+
+        const auto& json = msg.userData().front();
+        cxxtools::SerializationInfo si;
+        JSON::readFromString(json, si);
+
+        si.getMember("iname") >>= iname;
+        si.getMember("status") >>= status;
+
+        AssetStatus st = stringToAssetStatus(status);
+
+        AssetImpl asset(iname);
+        if(st != AssetStatus::Unknown && asset.getAssetStatus() != st) {
+            log_debug("Sending notification for asset %s", asset.getInternalName().c_str());
+            asset.setAssetStatus(st);
+            asset.update();
+        }
+    } catch (std::exception& e) {
+        log_error(e.what());
     }
 }
 

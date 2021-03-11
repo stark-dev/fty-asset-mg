@@ -145,10 +145,31 @@ namespace fty
     }
 
     /// triggers an update notification. It receives the DTOs of the asset before and after the update
+    void AssetAccessor::notifyStatusUpdate(const std::string& iname, const std::string& status)
+    {
+        if(!iname.empty() && !status.empty()) {
+            cxxtools::SerializationInfo si;
+            si.setCategory(cxxtools::SerializationInfo::Category::Object);
+
+            auto &inameSi = si.addMember("");
+            inameSi <<= iname;
+            inameSi.setName("iname");
+
+            auto &statusSi = si.addMember("");
+            statusSi <<= status;
+            statusSi.setName("status");
+
+            std::string json = JSON::writeToString(si, false);
+
+            sendAsyncReq("STATUS_UPDATE", {json});
+        } else {
+            log_error("Invalid data. Update status notification will not be requested");
+        }
+    }
+
+    /// triggers an update notification. It receives the DTOs of the asset before and after the update
     void AssetAccessor::notifyAssetUpdate(const Asset& oldAsset, const Asset& newAsset)
     {
-        messagebus::Message ret;
-
         cxxtools::SerializationInfo si;
 
         // before update

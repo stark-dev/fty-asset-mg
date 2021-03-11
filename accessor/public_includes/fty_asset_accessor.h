@@ -33,6 +33,7 @@ namespace fty
     public:
         static fty::Expected<uint32_t> assetInameToID(const std::string& iname);
         static fty::Expected<fty::Asset> getAsset(const std::string& iname);
+        static void notifyStatusUpdate(const std::string& iname, const std::string& status);
         static void notifyAssetUpdate(const Asset& oldAsset, const Asset& newAsset);
     };
 

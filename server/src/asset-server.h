@@ -36,6 +36,7 @@ static constexpr const char* FTY_ASSET_SUBJECT_GET_BY_UUID = "GET_BY_UUID";
 static constexpr const char* FTY_ASSET_SUBJECT_LIST        = "LIST";
 static constexpr const char* FTY_ASSET_SUBJECT_GET_ID      = "GET_ID";
 static constexpr const char* FTY_ASSET_SUBJECT_GET_INAME   = "GET_INAME";
+static constexpr const char* FTY_ASSET_SUBJECT_STATUS_UPD  = "STATUS_UPDATE";
 static constexpr const char* FTY_ASSET_SUBJECT_NOTIFY      = "NOTIFY";
 
 // new interface topics
@@ -197,6 +198,7 @@ private:
     void listAsset(const messagebus::Message& msg);
     void getAssetID(const messagebus::Message& msg);
     void getAssetIname(const messagebus::Message& msg);
+    void notifyStatusUpdate(const messagebus::Message& msg);
     void notifyAsset(const messagebus::Message& msg);
 
     // SRR
