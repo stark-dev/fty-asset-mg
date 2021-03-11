@@ -201,6 +201,9 @@ private:
     void notifyStatusUpdate(const messagebus::Message& msg);
     void notifyAsset(const messagebus::Message& msg);
 
+    // notifications
+    void notifyAssetUpdate(const Asset& before, const Asset& after);
+
     // SRR
     cxxtools::SerializationInfo saveAssets(bool saveVirtualAssets = false);
     void                        restoreAssets(const cxxtools::SerializationInfo& si, bool tryActivate = true);

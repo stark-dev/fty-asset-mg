@@ -145,9 +145,9 @@ namespace fty
     }
 
     /// triggers an update notification. It receives the DTOs of the asset before and after the update
-    void AssetAccessor::notifyStatusUpdate(const std::string& iname, const std::string& status)
+    void AssetAccessor::notifyStatusUpdate(const std::string& iname, const std::string& oldStatus, const std::string& newStatus)
     {
-        if(!iname.empty() && !status.empty()) {
+        if(!iname.empty() && !oldStatus.empty() && !newStatus.empty()) {
             cxxtools::SerializationInfo si;
             si.setCategory(cxxtools::SerializationInfo::Category::Object);
 
@@ -155,9 +155,13 @@ namespace fty
             inameSi <<= iname;
             inameSi.setName("iname");
 
-            auto &statusSi = si.addMember("");
-            statusSi <<= status;
-            statusSi.setName("status");
+            auto &oldStatusSi = si.addMember("");
+            oldStatusSi <<= oldStatus;
+            oldStatusSi.setName("oldStatus");
+
+            auto &newStatusSi = si.addMember("");
+            newStatusSi <<= newStatus;
+            newStatusSi.setName("newStatus");
 
             std::string json = JSON::writeToString(si, false);
 
