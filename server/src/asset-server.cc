@@ -180,6 +180,7 @@ void AssetServer::handleAssetManipulationReq(const messagebus::Message& msg)
         { FTY_ASSET_SUBJECT_LIST,         [&](const messagebus::Message& message){ listAsset(message); } },
         { FTY_ASSET_SUBJECT_GET_ID,       [&](const messagebus::Message& message){ getAssetID(message); } },
         { FTY_ASSET_SUBJECT_GET_INAME,    [&](const messagebus::Message& message){ getAssetIname(message); } },
+        { FTY_ASSET_SUBJECT_STATUS_UPD,   [&](const messagebus::Message& message){ notifyStatusUpdate(message); } },
         { FTY_ASSET_SUBJECT_NOTIFY,       [&](const messagebus::Message& message){ notifyAsset(message); } }
     };
     // clang-format on
@@ -521,29 +522,6 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
         // update data from db
         asset.load();
 
-        // build message
-        // serialization info which contains asset before and after update
-        cxxtools::SerializationInfo si;
-
-        // before update
-        cxxtools::SerializationInfo tmpSi;
-
-        tmpSi <<= currentAsset;
-
-        cxxtools::SerializationInfo& before = si.addMember("");
-        before.setCategory(cxxtools::SerializationInfo::Category::Object);
-        before = tmpSi;
-        before.setName("before");
-
-        // after update
-        tmpSi.clear();
-        tmpSi <<= asset;
-
-        cxxtools::SerializationInfo& after = si.addMember("");
-        after.setCategory(cxxtools::SerializationInfo::Category::Object);
-        after = tmpSi;
-        after.setName("after");
-
         // create response (ok)
         auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATE,
             msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
@@ -554,15 +532,7 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
         log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
         m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
-        // full notification
-        messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATED, "",
-            m_agentNameNg, "", messagebus::STATUS_OK, JSON::writeToString(si, false));
-        sendNotification(notification);
-
-        // light notification
-        messagebus::Message notification_l = assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATED_L, "",
-            m_agentNameNg, "", messagebus::STATUS_OK, asset.getInternalName());
-        sendNotification(notification_l);
+        notifyAssetUpdate(currentAsset, asset);
     } catch (const std::exception& e) {
         log_error(e.what());
         // create response (error)
@@ -822,6 +792,47 @@ void AssetServer::getAssetIname(const messagebus::Message& msg)
     }
 }
 
+void AssetServer::notifyStatusUpdate(const messagebus::Message& msg)
+{
+    log_debug("subject STATUS_UPDATE");
+
+    try {
+        std::string iname;
+        std::string oldStatus;
+        std::string newStatus;
+
+        const auto& json = msg.userData().front();
+        cxxtools::SerializationInfo si;
+        JSON::readFromString(json, si);
+
+        si.getMember("iname") >>= iname;
+        si.getMember("oldStatus") >>= oldStatus;
+        si.getMember("newStatus") >>= newStatus;
+
+        AssetStatus oldSt = stringToAssetStatus(oldStatus);
+        AssetStatus newSt = stringToAssetStatus(newStatus);
+
+        if(oldSt != AssetStatus::Unknown && newSt != AssetStatus::Unknown) {
+            // notify only if status changed
+            if(oldSt != newSt) {
+                AssetImpl after(iname);
+                log_debug("Sending notification for asset %s", after.getInternalName().c_str());
+
+                if(after.getAssetStatus() != newSt) {
+                    throw std::runtime_error("Current asset status does not match requested notification");
+                }
+
+                AssetImpl before(after);
+                before.setAssetStatus(oldSt);
+
+                notifyAssetUpdate(before, after);
+            }
+        }
+    } catch (std::exception& e) {
+        log_error(e.what());
+    }
+}
+
 void AssetServer::notifyAsset(const messagebus::Message& msg)
 {
     log_debug("subject NOTIFY");
@@ -854,26 +865,48 @@ void AssetServer::notifyAsset(const messagebus::Message& msg)
             m_agentNameNg, "", messagebus::STATUS_OK, newAsset.getInternalName());
         sendNotification(notification_l);
 
-        // create response (ok)
-        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_NOTIFY,
-            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_OK, "");
-
-        // send response
-        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
-        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
 
     } catch (std::exception& e) {
         log_error(e.what());
-        // create response (error)
-        auto response = assetutils::createMessage(FTY_ASSET_SUBJECT_NOTIFY,
-            msg.metaData().find(messagebus::Message::CORRELATION_ID)->second, m_agentNameNg,
-            msg.metaData().find(messagebus::Message::FROM)->second, messagebus::STATUS_KO,
-            TRANSLATE_ME(e.what()));
+    }
+}
 
-        // send response
-        log_debug("sending response to %s", msg.metaData().find(messagebus::Message::FROM)->second.c_str());
-        m_assetMsgQueue->sendReply(msg.metaData().find(messagebus::Message::REPLY_TO)->second, response);
+void AssetServer::notifyAssetUpdate(const Asset& before, const Asset& after)
+{
+    try {
+
+        cxxtools::SerializationInfo si;
+
+        // before update
+        cxxtools::SerializationInfo tmpSi;
+        tmpSi <<= before;
+
+        cxxtools::SerializationInfo& beforeSi = si.addMember("");
+        beforeSi.setCategory(cxxtools::SerializationInfo::Category::Object);
+        beforeSi = tmpSi;
+        beforeSi.setName("before");
+
+        // after update
+        tmpSi.clear();
+        tmpSi <<= after;
+
+        cxxtools::SerializationInfo& afterSi = si.addMember("");
+        afterSi.setCategory(cxxtools::SerializationInfo::Category::Object);
+        afterSi = tmpSi;
+        afterSi.setName("after");
+
+        // full notification
+        messagebus::Message notification = assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATED, "",
+            m_agentNameNg, "", messagebus::STATUS_OK, JSON::writeToString(si, false));
+        sendNotification(notification);
+
+        // light notification
+        messagebus::Message notification_l = assetutils::createMessage(FTY_ASSET_SUBJECT_UPDATED_L, "",
+            m_agentNameNg, "", messagebus::STATUS_OK, after.getInternalName());
+        sendNotification(notification_l);
+
+    } catch (std::exception& e) {
+        log_error(e.what());
     }
 }
 
