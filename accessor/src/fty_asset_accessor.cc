@@ -40,8 +40,8 @@ namespace fty
     static constexpr const char *ACCESSOR_NAME = "fty-asset-accessor";
     static constexpr const char *ENDPOINT = "ipc://@/malamute";
 
-    /// static helper to send a MessageBus command
-    static messagebus::Message sendCommand(const std::string& command, messagebus::UserData data)
+    /// static helper to send a MessageBus synchronous request
+    static messagebus::Message sendSyncReq(const std::string& command, messagebus::UserData data)
     {
         // generate unique ID interface
         std::stringstream ss;
@@ -65,6 +65,31 @@ namespace fty
         return interface->request(ASSET_AGENT_QUEUE, msg, RECV_TIMEOUT);
     }
 
+    /// static helper to send a MessageBus asynch request
+    static void sendAsyncReq(const std::string& command, messagebus::UserData data)
+    {
+        // generate unique ID interface
+        std::stringstream ss;
+        ss << ACCESSOR_NAME << "-" << std::setfill('0') << std::setw(sizeof(pid_t)*2) << std::hex << std::this_thread::get_id();
+
+        std::string clientName = ss.str();
+
+        std::unique_ptr<messagebus::MessageBus> interface(messagebus::MlmMessageBus(ENDPOINT, clientName));
+        messagebus::Message msg;
+
+        interface->connect();
+
+        msg.metaData().emplace(messagebus::Message::CORRELATION_ID, messagebus::generateUuid());
+        msg.metaData().emplace(messagebus::Message::SUBJECT, command);
+        msg.metaData().emplace(messagebus::Message::FROM, clientName);
+        msg.metaData().emplace(messagebus::Message::TO, ASSET_AGENT);
+        msg.metaData().emplace(messagebus::Message::REPLY_TO, clientName);
+
+        msg.userData() = data;
+
+        return interface->sendRequest(ASSET_AGENT_QUEUE, msg);
+    }
+
     /// returns the asset database ID, given the internal name
     fty::Expected<uint32_t> AssetAccessor::assetInameToID(const std::string &iname)
     {
@@ -72,7 +97,7 @@ namespace fty
 
         try
         {
-            ret = sendCommand("GET_ID", {iname});
+            ret = sendSyncReq("GET_ID", {iname});
         }
         catch (messagebus::MessageBusException &e)
         {
@@ -101,7 +126,7 @@ namespace fty
 
         try
         {
-            ret = sendCommand("GET", {iname});
+            ret = sendSyncReq("GET", {iname});
         }
         catch (messagebus::MessageBusException &e)
         {
@@ -120,10 +145,35 @@ namespace fty
     }
 
     /// triggers an update notification. It receives the DTOs of the asset before and after the update
+    void AssetAccessor::notifyStatusUpdate(const std::string& iname, const std::string& oldStatus, const std::string& newStatus)
+    {
+        if(!iname.empty() && !oldStatus.empty() && !newStatus.empty()) {
+            cxxtools::SerializationInfo si;
+            si.setCategory(cxxtools::SerializationInfo::Category::Object);
+
+            auto &inameSi = si.addMember("");
+            inameSi <<= iname;
+            inameSi.setName("iname");
+
+            auto &oldStatusSi = si.addMember("");
+            oldStatusSi <<= oldStatus;
+            oldStatusSi.setName("oldStatus");
+
+            auto &newStatusSi = si.addMember("");
+            newStatusSi <<= newStatus;
+            newStatusSi.setName("newStatus");
+
+            std::string json = JSON::writeToString(si, false);
+
+            sendAsyncReq("STATUS_UPDATE", {json});
+        } else {
+            log_error("Invalid data. Update status notification will not be requested");
+        }
+    }
+
+    /// triggers an update notification. It receives the DTOs of the asset before and after the update
     void AssetAccessor::notifyAssetUpdate(const Asset& oldAsset, const Asset& newAsset)
     {
-        messagebus::Message ret;
-
         cxxtools::SerializationInfo si;
 
         // before update
@@ -146,6 +196,6 @@ namespace fty
 
         std::string json = JSON::writeToString(si, false);
 
-        ret = sendCommand("NOTIFY", {json});
+        sendAsyncReq("NOTIFY", {json});
     }
 } // namespace fty
