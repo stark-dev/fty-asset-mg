@@ -492,6 +492,8 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
 
         bool requestActivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
                                   asset.getAssetStatus() == fty::AssetStatus::Active);
+        bool requestDeactivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Active &&
+                                  asset.getAssetStatus() == fty::AssetStatus::Nonactive);
 
         // if status changes from nonactive to active, request activation
         if (requestActivation && !asset.isActivable()) {
@@ -517,6 +519,8 @@ void AssetServer::updateAsset(const messagebus::Message& msg)
                 asset.update();
                 throw std::runtime_error(e.what());
             }
+        } else if(requestDeactivation) {
+            asset.deactivate();
         }
 
         // update data from db

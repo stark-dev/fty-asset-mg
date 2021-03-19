@@ -1023,6 +1023,8 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
 
             bool requestActivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Nonactive &&
                                       asset.getAssetStatus() == fty::AssetStatus::Active);
+            bool requestDeactivation = (currentAsset.getAssetStatus() == fty::AssetStatus::Active &&
+                                  asset.getAssetStatus() == fty::AssetStatus::Nonactive);
 
             // tryUpdate is not supported in old interface
             if (!asset.isActivable()) {
@@ -1042,6 +1044,8 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
                     asset.update();
                     throw std::runtime_error(e.what());
                 }
+            } else if(requestDeactivation) {
+                asset.deactivate();
             }
 
             asset.load();
