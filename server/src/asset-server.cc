@@ -41,6 +41,7 @@
 #include <fty_common.h>
 
 #include "utilspp.h"
+#include "fty-lock.h"
 
 using namespace std::placeholders;
 
@@ -241,7 +242,7 @@ dto::srr::SaveResponse AssetServer::handleSave(const dto::srr::SaveQuery& query)
         if (featureName == FTY_ASSET_SRR_NAME) {
             f1.set_version(SRR_ACTIVE_VERSION);
             try {
-                std::unique_lock<std::mutex> lock(m_srrLock);
+                Lock lock(m_srrLock);
                 auto savedAssets = saveAssets();
                 f1.set_data(JSON::writeToString(savedAssets, false));
                 fs1.mutable_status()->set_status(Status::SUCCESS);
@@ -279,7 +280,7 @@ dto::srr::RestoreResponse AssetServer::handleRestore(const dto::srr::RestoreQuer
 
         if (featureName == FTY_ASSET_SRR_NAME) {
             try {
-                std::unique_lock<std::mutex> lock(m_srrLock);
+                Lock lock(m_srrLock);
 
                 cxxtools::SerializationInfo si;
                 JSON::readFromString(feature.data(), si);
