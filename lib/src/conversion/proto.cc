@@ -30,12 +30,13 @@
 namespace fty { namespace conversion {
 
     // fty-proto/Asset conversion
+    // return a valid fty_proto_t* object, else throw excemption
     fty_proto_t* toFtyProto(const fty::Asset& asset, const std::string& operation, bool test)
     {
         fty_proto_t* proto = fty_proto_new(FTY_PROTO_ASSET);
         if (!proto) {
             log_error("fty_proto_new() failed");
-            return NULL;
+            throw std::runtime_error("Memory allocation failed");
         }
 
         std::string priority = std::to_string(asset.getPriority());
@@ -60,6 +61,7 @@ namespace fty { namespace conversion {
                 parent = std::to_string(*parentId);
             }
             catch (const std::exception& e) {
+                fty_proto_destroy(&proto);
                 log_error("Invalid conversion from Asset to fty_proto_t : %s", e.what());
                 throw std::runtime_error("Invalid conversion from Asset to fty_proto_t : " + std::string(e.what()));
             }
