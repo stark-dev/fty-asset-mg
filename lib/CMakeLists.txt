@@ -10,7 +10,6 @@ etn_target(shared ${PROJECT_NAME}
         src/conversion/full-asset.cc
         src/conversion/json.cc
         src/conversion/proto.cc
-        src/conversion/utils/msgbus-utils.cc
     INCLUDE_DIRS
         include
     PUBLIC_INCLUDE_DIR
@@ -24,6 +23,7 @@ etn_target(shared ${PROJECT_NAME}
         fty_proto
         cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
         fty_common
+        fty_common_db
         fty_common_logging
         fty_common_messagebus
         fty_common_mlm
