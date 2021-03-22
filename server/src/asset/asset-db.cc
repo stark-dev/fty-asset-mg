@@ -30,6 +30,7 @@
 
 #include <cassert>
 
+#include "fty-lock.h"
 namespace fty {
 
 // static helpers
@@ -79,11 +80,11 @@ void DB::loadAsset(const std::string& nameId, Asset& asset)
     // clang-format on
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         row = q.selectRow();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -127,11 +128,11 @@ void DB::loadExtMap(Asset& asset)
     tntdb::Result res;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.select();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -164,11 +165,11 @@ std::vector<std::string> DB::getChildren(const Asset& asset)
     tntdb::Result res;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.select();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -198,16 +199,16 @@ fty::Expected<uint32_t> DB::getID(const std::string& internalName)
     uint32_t assetID = 0;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         auto v = q.selectValue();
-        m_conn_lock.unlock();
+        
 
         assetID = static_cast<uint32_t>(v.getInt32());
     } catch (tntdb::NotFound&) {
-        m_conn_lock.unlock();
+        
         return fty::unexpected("Internal name {} not found", internalName);
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -231,15 +232,15 @@ uint32_t DB::getTypeID(const std::string& type)
     uint32_t typeID = 0;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         auto v = q.selectValue();
-        m_conn_lock.unlock();
+        
 
         typeID = static_cast<uint32_t>(v.getInt32());
     } catch (tntdb::NotFound&) {
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -262,15 +263,15 @@ uint32_t DB::getSubtypeID(const std::string& subtype)
     uint32_t subtypeID = 0;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         auto v = q.selectValue();
-        m_conn_lock.unlock();
+        
 
         subtypeID = static_cast<uint32_t>(v.getInt32());
     } catch (tntdb::NotFound&) {
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -292,11 +293,11 @@ bool DB::verifyID(std::string& id) {
 
     int res;
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.selectValue().getInt();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -364,15 +365,15 @@ uint32_t DB::getLinkID(const uint32_t destId, const AssetLink& l)
     q.set("linkType", l.linkType());
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         auto v = q.selectValue();
-        m_conn_lock.unlock();
+        
 
         linkID = v.getUnsigned32();
     } catch (tntdb::NotFound&) {
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -400,11 +401,11 @@ void DB::loadLinkExtMap(const uint32_t linkID, AssetLink& link)
     tntdb::Result res;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.select();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -445,11 +446,11 @@ void DB::saveLinkExtMap(const uint32_t linkID, const AssetLink& link)
     tntdb::Result res;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.select();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -492,11 +493,11 @@ void DB::saveLinkExtMap(const uint32_t linkID, const AssetLink& link)
                 q_ext_link.set("readOnly", it.second.isReadOnly());
                 q_ext_link.set("linkId", linkID);
                 try {
-                    m_conn_lock.lock();
+                    Lock lock(m_conn_lock);
                     q_ext_link.execute();
-                    m_conn_lock.unlock();
+                    
                 } catch (std::exception& e) {
-                    m_conn_lock.unlock();
+                    
                     throw std::runtime_error("database error - " + std::string(e.what()));
                 }
             }
@@ -520,11 +521,11 @@ void DB::saveLinkExtMap(const uint32_t linkID, const AssetLink& link)
                 q_ext_link.set("extId", std::get<0>(*found));
 
                 try {
-                    m_conn_lock.lock();
+                    Lock lock(m_conn_lock);
                     q_ext_link.execute();
-                    m_conn_lock.unlock();
+                    
                 } catch (std::exception& e) {
-                    m_conn_lock.unlock();
+                    
                     throw std::runtime_error("database error - " + std::string(e.what()));
                 }
             } else {
@@ -543,11 +544,11 @@ void DB::saveLinkExtMap(const uint32_t linkID, const AssetLink& link)
         q_ext_link.set("extId", std::get<0>(toRem));
 
         try {
-            m_conn_lock.lock();
+            Lock lock(m_conn_lock);
             q_ext_link.execute();
-            m_conn_lock.unlock();
+            
         } catch (std::exception& e) {
-            m_conn_lock.unlock();
+            
             throw std::runtime_error("database error - " + std::string(e.what()));
         }
     }
@@ -581,11 +582,11 @@ void DB::loadLinkedAssets(Asset& asset)
     tntdb::Result res;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.select();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -637,11 +638,11 @@ void DB::saveLinkedAssets(Asset& asset)
 
     tntdb::Result res;
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.select();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -710,11 +711,11 @@ bool DB::hasLinkedAssets(const Asset& asset)
 
     int linkedAssets;
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         linkedAssets = q.selectValue().getInt();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -756,12 +757,12 @@ void DB::saveLink(const uint32_t destId, const AssetLink& l)
     q1.set("linkType", l.linkType());
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         q1.execute();
         linkId = static_cast<uint32_t>(m_conn.lastInsertId());
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -789,11 +790,11 @@ void DB::removeLink(const uint32_t destId, const AssetLink& l)
         q_ext_attrib.set("link_id", linkId);
 
         try {
-            m_conn_lock.lock();
+            Lock lock(m_conn_lock);
             q_ext_attrib.execute();
-            m_conn_lock.unlock();
+            
         } catch (std::exception& e) {
-            m_conn_lock.unlock();
+            
             throw std::runtime_error("database error - " + std::string(e.what()));
         }
 
@@ -809,11 +810,11 @@ void DB::removeLink(const uint32_t destId, const AssetLink& l)
         q_link.set("link_id", linkId);
 
         try {
-            m_conn_lock.lock();
+            Lock lock(m_conn_lock);
             q_link.execute();
-            m_conn_lock.unlock();
+            
         } catch (std::exception& e) {
-            m_conn_lock.unlock();
+            
             throw std::runtime_error("database error - " + std::string(e.what()));
         }
     }
@@ -858,11 +859,11 @@ bool DB::isLastDataCenter(Asset& asset)
     int numDatacentersAfterDelete = -1;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         numDatacentersAfterDelete = q.selectValue().getInt();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -887,11 +888,11 @@ void DB::removeFromGroups(Asset& asset)
     q.set("asset_id", *assetID);
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         q.execute();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
@@ -914,11 +915,11 @@ void DB::removeFromRelations(Asset& asset)
     q.set("asset_id", *assetID);
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         q.execute();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error(std::string(e.what()));
     }
 }
@@ -941,11 +942,11 @@ void DB::removeAsset(Asset& asset)
     q.set("asset_id", *assetID);
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         q.execute();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
@@ -968,11 +969,11 @@ void DB::removeExtMap(Asset& asset)
     q.set("assetId", *assetID);
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         q.execute();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
@@ -995,34 +996,34 @@ void DB::clearGroup(Asset& asset)
     q.set("grp", *assetID);
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         q.execute();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
 
 void DB::beginTransaction()
 {
-    m_conn_lock.lock();
+    Lock lock(m_conn_lock);
     m_conn.beginTransaction();
-    m_conn_lock.unlock();
+    
 }
 
 void DB::rollbackTransaction()
 {
-    m_conn_lock.lock();
+    Lock lock(m_conn_lock);
     m_conn.rollbackTransaction();
-    m_conn_lock.unlock();
+    
 }
 
 void DB::commitTransaction()
 {
-    m_conn_lock.lock();
+    Lock lock(m_conn_lock);
     m_conn.commitTransaction();
-    m_conn_lock.unlock();
+    
 }
 
 void DB::update(Asset& asset)
@@ -1066,11 +1067,11 @@ void DB::update(Asset& asset)
     asset.getSecondaryID().empty() ? q.setNull("idSecondary") : q.set("idSecondary", asset.getSecondaryID());
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         q.execute();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
@@ -1117,11 +1118,11 @@ void DB::insert(Asset& asset)
     asset.getSecondaryID().empty() ? q.setNull("idSecondary") : q.set("idSecondary", asset.getSecondaryID());
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         q.execute();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 }
@@ -1138,11 +1139,11 @@ std::string DB::inameById(uint32_t id)
     q.set("assetId", id);
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.selectRow().getString("name");
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -1172,11 +1173,11 @@ std::string DB::inameByUuid(const std::string& uuid)
     // clang-format on
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.selectRow().getString("name");
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -1213,11 +1214,11 @@ void DB::saveExtMap(Asset& asset)
     tntdb::Result res;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.select();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -1260,11 +1261,11 @@ void DB::saveExtMap(Asset& asset)
                 q1.set("readOnly", it.second.isReadOnly());
                 q1.set("assetId", *assetID);
                 try {
-                    m_conn_lock.lock();
+                    Lock lock(m_conn_lock);
                     q1.execute();
-                    m_conn_lock.unlock();
+                    
                 } catch (std::exception& e) {
-                    m_conn_lock.unlock();
+                    
                     throw std::runtime_error("database error - " + std::string(e.what()));
                 }
             }
@@ -1288,11 +1289,11 @@ void DB::saveExtMap(Asset& asset)
                 q1.set("extId", std::get<0>(*found));
 
                 try {
-                    m_conn_lock.lock();
+                    Lock lock(m_conn_lock);
                     q1.execute();
-                    m_conn_lock.unlock();
+                    
                 } catch (std::exception& e) {
-                    m_conn_lock.unlock();
+                    
                     throw std::runtime_error("database error - " + std::string(e.what()));
                 }
             } else {
@@ -1311,11 +1312,11 @@ void DB::saveExtMap(Asset& asset)
         q1.set("extId", std::get<0>(toRem));
 
         try {
-            m_conn_lock.lock();
+            Lock lock(m_conn_lock);
             q1.execute();
-            m_conn_lock.unlock();
+            
         } catch (std::exception& e) {
-            m_conn_lock.unlock();
+            
             throw std::runtime_error("database error - " + std::string(e.what()));
         }
     }
@@ -1372,11 +1373,11 @@ std::vector<std::string> DB::listAssets(std::map<std::string, std::vector<std::s
     tntdb::Result res;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.select();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
@@ -1406,11 +1407,11 @@ std::vector<std::string> DB::listAllAssets()
     tntdb::Result res;
 
     try {
-        m_conn_lock.lock();
+        Lock lock(m_conn_lock);
         res = q.select();
-        m_conn_lock.unlock();
+        
     } catch (std::exception& e) {
-        m_conn_lock.unlock();
+        
         throw std::runtime_error("database error - " + std::string(e.what()));
     }
 
