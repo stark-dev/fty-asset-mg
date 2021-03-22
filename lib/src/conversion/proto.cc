@@ -29,62 +29,49 @@
 
 namespace fty { namespace conversion {
 
-    static zhash_t* extMapToZhash(const fty::Asset::ExtMap& map)
-    {
-        zhash_t* hash = zhash_new();
-        for (const auto& i : map) {
-            zhash_insert(hash, i.first.c_str(),
-                const_cast<void*>(reinterpret_cast<const void*>(i.second.getValue().c_str())));
-        }
-
-        return hash;
-    }
-
     // fty-proto/Asset conversion
+    // return a valid fty_proto_t* object, else throw excemption
     fty_proto_t* toFtyProto(const fty::Asset& asset, const std::string& operation, bool test)
     {
         fty_proto_t* proto = fty_proto_new(FTY_PROTO_ASSET);
-
-        // no need to free, as fty_proto_set_aux transfers ownership to caller
-        zhash_t* aux = zhash_new();
-        zhash_autofree(aux);
+        if (!proto) {
+            log_error("fty_proto_new() failed");
+            throw std::runtime_error("Memory allocation failed");
+        }
 
         std::string priority = std::to_string(asset.getPriority());
-        zhash_insert(aux, "priority", const_cast<void*>(reinterpret_cast<const void*>(priority.c_str())));
-        zhash_insert(
-            aux, "type", const_cast<void*>(reinterpret_cast<const void*>(asset.getAssetType().c_str())));
-        zhash_insert(aux, "subtype",
-            const_cast<void*>(reinterpret_cast<const void*>(asset.getAssetSubtype().c_str())));
-        if (test) {
-            zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>("0")));
-        } else {
-            if (!asset.getParentIname().empty()) {
-                try {
-                    auto parentId = assetInameToID(asset.getParentIname());
-                    if(!parentId) {
-                        log_error("Invalid conversion from Asset to fty_proto_t : %s", parentId.error());
-                        throw std::runtime_error("Invalid conversion from Asset to fty_proto_t : " + std::string(parentId.error()));    
-                    }
-                    zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>(fty::convert<std::string>(*parentId).c_str())));
-                } catch (const std::exception& e) {
-                    log_error("Invalid conversion from Asset to fty_proto_t : %s", e.what());
-                    throw std::runtime_error("Invalid conversion from Asset to fty_proto_t : " + std::string(e.what()));
-                }
-            } else {
-                zhash_insert(aux, "parent", const_cast<void*>(reinterpret_cast<const void*>("0")));
-            }
-        }
-        zhash_insert(aux, "status",
-            const_cast<void*>(
-                reinterpret_cast<const void*>(assetStatusToString(asset.getAssetStatus()).c_str())));
 
-        // no need to free, as fty_proto_set_ext transfers ownership to caller
-        zhash_t* ext = extMapToZhash(asset.getExt());
-
-        fty_proto_set_aux(proto, &aux);
         fty_proto_set_name(proto, "%s", asset.getInternalName().c_str());
         fty_proto_set_operation(proto, "%s", operation.c_str());
-        fty_proto_set_ext(proto, &ext);
+
+        fty_proto_aux_insert(proto, "priority", "%s", priority.c_str());
+        fty_proto_aux_insert(proto, "type", "%s", asset.getAssetType().c_str());
+        fty_proto_aux_insert(proto, "subtype", "%s", asset.getAssetSubtype().c_str());
+        fty_proto_aux_insert(proto, "status", "%s", assetStatusToString(asset.getAssetStatus()).c_str());
+
+        // aux/parent
+        std::string parent{"0"};
+        if (!test && !asset.getParentIname().empty()) {
+            try {
+                auto parentId = assetInameToID(asset.getParentIname());
+                if(!parentId) {
+                    log_error("Invalid conversion from Asset to fty_proto_t : %s", parentId.error());
+                    throw std::runtime_error("Invalid conversion from Asset to fty_proto_t : " + std::string(parentId.error()));
+                }
+                parent = std::to_string(*parentId);
+            }
+            catch (const std::exception& e) {
+                fty_proto_destroy(&proto);
+                log_error("Invalid conversion from Asset to fty_proto_t : %s", e.what());
+                throw std::runtime_error("Invalid conversion from Asset to fty_proto_t : " + std::string(e.what()));
+            }
+        }
+        fty_proto_aux_insert(proto, "parent", "%s", parent.c_str());
+
+        // extended attributes
+        for (const auto& i : asset.getExt()) {
+            fty_proto_ext_insert(proto, i.first.c_str(), "%s", i.second.getValue().c_str());
+        }
 
         return proto;
     }
@@ -109,7 +96,7 @@ namespace fty { namespace conversion {
                     auto parentIname = assetIDToIname(fty::convert<uint32_t>(parentId));
                     if(!parentIname) {
                         log_error("Invalid conversion from fty_proto_t to Asset: %s", parentIname.error());
-                        throw std::runtime_error("Invalid conversion from fty_proto_t to Asset: " + std::string(parentIname.error()));    
+                        throw std::runtime_error("Invalid conversion from fty_proto_t to Asset: " + std::string(parentIname.error()));
                     }
                     asset.setParentIname(*parentIname);
                 } catch (const std::exception& e) {
@@ -133,7 +120,7 @@ namespace fty { namespace conversion {
             asset.setExtEntry("ip.1", asset.getExtEntry("ip.1"), false);
             // all endpoint attribs are RW
             for(const auto& att : asset.getExt()) {
-                //An endpoint is always "endpoint.<params>" 
+                //An endpoint is always "endpoint.<params>"
                 if(att.first.find("endpoint.") == 0) {
                     asset.setExtEntry(att.first, att.second.getValue(), false);
                 }
