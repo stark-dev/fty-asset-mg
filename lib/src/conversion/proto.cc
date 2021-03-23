@@ -21,9 +21,9 @@
 
 #include "conversion/proto.h"
 
-#include "conversion/utils/msgbus-utils.h"
-
 #include <fty_asset_dto.h>
+#include <fty_common_db.h>
+#include <fty/convert.h>
 #include <fty_proto.h>
 #include <string>
 
@@ -53,12 +53,12 @@ namespace fty { namespace conversion {
         std::string parent{"0"};
         if (!test && !asset.getParentIname().empty()) {
             try {
-                auto parentId = assetInameToID(asset.getParentIname());
-                if(!parentId) {
-                    log_error("Invalid conversion from Asset to fty_proto_t : %s", parentId.error());
-                    throw std::runtime_error("Invalid conversion from Asset to fty_proto_t : " + std::string(parentId.error()));
+                auto parentId = DBAssets::name_to_asset_id(asset.getParentIname());
+                if(parentId < 0) {
+                    log_error("Invalid conversion from Asset to fty_proto_t : could not find parent ID from iname %s", asset.getParentIname().c_str());
+                    throw std::runtime_error("Invalid conversion from Asset to fty_proto_t : could not find parent ID from iname " + asset.getParentIname());
                 }
-                parent = std::to_string(*parentId);
+                parent = std::to_string(parentId);
             }
             catch (const std::exception& e) {
                 fty_proto_destroy(&proto);
@@ -93,12 +93,12 @@ namespace fty { namespace conversion {
             std::string parentId(fty_proto_aux_string(proto, "parent", ""));
             if(parentId != "0") {
                 try {
-                    auto parentIname = assetIDToIname(fty::convert<uint32_t>(parentId));
-                    if(!parentIname) {
-                        log_error("Invalid conversion from fty_proto_t to Asset: %s", parentIname.error());
-                        throw std::runtime_error("Invalid conversion from fty_proto_t to Asset: " + std::string(parentIname.error()));
+                    auto parentIname = DBAssets::id_to_name_ext_name(fty::convert<uint32_t>(parentId)).first;
+                    if(parentIname.empty()) {
+                        log_error("Invalid conversion from fty_proto_t to Asset: could not get internal name from ID %s", parentId.c_str());
+                        throw std::runtime_error("Invalid conversion from fty_proto_t to Asset: could not get internal name from ID " + parentId);
                     }
-                    asset.setParentIname(*parentIname);
+                    asset.setParentIname(parentIname);
                 } catch (const std::exception& e) {
                     log_error("Invalid conversion from fty_proto_t to Asset: %s", e.what());
                     throw std::runtime_error("Invalid conversion from fty_proto_t to Asset: " + std::string(e.what()));
