@@ -708,7 +708,16 @@ static zmsg_t* s_publish_create_or_update_asset_msg(const std::string& client_na
     bool /*read_only*/)
 {
     zhash_t* aux = zhash_new();
+    zhash_t* ext = zhash_new();
+    if (!(aux && ext)) {
+        log_error("%s:\tMemory allocation failed", client_name.c_str());
+        zhash_destroy(&aux);
+        zhash_destroy(&ext);
+        return NULL;
+    }
     zhash_autofree(aux);
+    zhash_autofree(ext);
+
     uint32_t asset_id = 0;
 
     std::function<void(const tntdb::Row&)> cb1 = [aux, &asset_id, asset_name](const tntdb::Row& row) {
@@ -745,11 +754,9 @@ static zmsg_t* s_publish_create_or_update_asset_msg(const std::string& client_na
     if (rv != 0) {
         log_warning("%s:\tCannot select info about '%s'", client_name.c_str(), asset_name.c_str());
         zhash_destroy(&aux);
+        zhash_destroy(&ext);
         return NULL;
     }
-
-    zhash_t* ext = zhash_new();
-    zhash_autofree(ext);
 
     std::function<void(const tntdb::Row&)> cb2 = [ext](const tntdb::Row& row) {
         std::string keytag;
@@ -758,6 +765,7 @@ static zmsg_t* s_publish_create_or_update_asset_msg(const std::string& client_na
         row["value"].get(value);
         zhash_insert(ext, keytag.c_str(), static_cast<void*>( const_cast<char*>(value.c_str())));
     };
+
     // select ext attributes
     rv = select_ext_attributes(asset_id, cb2, test_mode);
     if (rv != 0) {
@@ -775,22 +783,27 @@ static zmsg_t* s_publish_create_or_update_asset_msg(const std::string& client_na
         const char* type   = static_cast<const char*>(zhash_lookup(aux, "type"));
         if (!type)
             type = "";
-        fty_uuid_t* uuid    = fty_uuid_new();
-        zhash_t*    ext_new = zhash_new();
+
+        fty_uuid_t* uuid = fty_uuid_new();
+        zhash_t* ext_new = zhash_new();
 
         if (serial && model && mfr) {
             // we have all information => create uuid
             const char* uuid_new = fty_uuid_calculate(uuid, mfr, model, serial);
             zhash_insert(ext, "uuid", static_cast<void*>( const_cast<char*>(uuid_new)));
             zhash_insert(ext_new, "uuid", static_cast<void*>( const_cast<char*>(uuid_new)));
+
             process_insert_inventory(asset_name.c_str(), ext_new, true, test_mode);
-        } else {
+        }
+        else {
             // generate random uuid and save it
             const char* uuid_new = fty_uuid_generate(uuid);
             zhash_insert(ext, "uuid", static_cast<void*>( const_cast<char*>(uuid_new)));
             zhash_insert(ext_new, "uuid", static_cast<void*>( const_cast<char*>(uuid_new)));
+
             process_insert_inventory(asset_name.c_str(), ext_new, true, test_mode);
         }
+
         fty_uuid_destroy(&uuid);
         zhash_destroy(&ext_new);
     }
@@ -825,6 +838,7 @@ static zmsg_t* s_publish_create_or_update_asset_msg(const std::string& client_na
                 zhash_insert(aux, hash_name.c_str(), static_cast<void*>( const_cast<char*>(foo.c_str())));
         }
     };
+
     // select "physical topology"
     rv = select_asset_element_super_parent(asset_id, cb3, test_mode);
     if (rv != 0) {
@@ -834,18 +848,23 @@ static zmsg_t* s_publish_create_or_update_asset_msg(const std::string& client_na
             "%s:\tselect_asset_element_super_parent ('%s') failed.", client_name.c_str(), asset_name.c_str());
         return NULL;
     }
+
     // other information like, groups, power chain for now are not included in the message
     const char* type = static_cast<const char*>(zhash_lookup(aux, "type"));
-    subject          = (type == NULL) ? "unknown" : type;
-    subject.append(".");
     const char* subtype = static_cast<const char*>(zhash_lookup(aux, "subtype"));
+
+    subject = (type == NULL) ? "unknown" : type;
+    subject.append(".");
     subject.append((subtype == NULL) ? "unknown" : subtype);
     subject.append("@");
     subject.append(asset_name);
     log_debug("notifying ASSETS %s %s ..", operation, subject.c_str());
+
     zmsg_t* msg = fty_proto_encode_asset(aux, asset_name.c_str(), operation, ext);
+
     zhash_destroy(&ext);
     zhash_destroy(&aux);
+
     return msg;
 }
 
@@ -951,6 +970,7 @@ static void s_handle_subject_asset_manipulation(const fty::AssetServer& server, 
         zmsg_destroy(&reply);
         return;
     }
+
     fty_proto_t* proto = fty_proto_decode(zmessage_p);
     if (!proto) {
         log_error("%s:\tASSET_MANIPULATION: failed to decode message", client_name.c_str());
