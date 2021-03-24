@@ -30,7 +30,7 @@
 namespace fty { namespace conversion {
 
     // fty-proto/Asset conversion
-    // return a valid fty_proto_t* object, else throw excemption
+    // return a valid fty_proto_t* object, else throw exception
     fty_proto_t* toFtyProto(const fty::Asset& asset, const std::string& operation, bool test)
     {
         fty_proto_t* proto = fty_proto_new(FTY_PROTO_ASSET);
@@ -39,12 +39,10 @@ namespace fty { namespace conversion {
             throw std::runtime_error("Memory allocation failed");
         }
 
-        std::string priority = std::to_string(asset.getPriority());
-
         fty_proto_set_name(proto, "%s", asset.getInternalName().c_str());
         fty_proto_set_operation(proto, "%s", operation.c_str());
 
-        fty_proto_aux_insert(proto, "priority", "%s", priority.c_str());
+        fty_proto_aux_insert(proto, "priority", "%s", std::to_string(asset.getPriority()).c_str());
         fty_proto_aux_insert(proto, "type", "%s", asset.getAssetType().c_str());
         fty_proto_aux_insert(proto, "subtype", "%s", asset.getAssetSubtype().c_str());
         fty_proto_aux_insert(proto, "status", "%s", assetStatusToString(asset.getAssetStatus()).c_str());
@@ -54,9 +52,9 @@ namespace fty { namespace conversion {
         if (!test && !asset.getParentIname().empty()) {
             try {
                 auto parentId = DBAssets::name_to_asset_id(asset.getParentIname());
-                if(parentId < 0) {
-                    log_error("Invalid conversion from Asset to fty_proto_t : could not find parent ID from iname %s", asset.getParentIname().c_str());
-                    throw std::runtime_error("Invalid conversion from Asset to fty_proto_t : could not find parent ID from iname " + asset.getParentIname());
+                if (parentId < 0) {
+                    log_error("Could not find parent ID from iname %s", asset.getParentIname().c_str());
+                    throw std::runtime_error("Could not find parent ID from iname " + asset.getParentIname());
                 }
                 parent = std::to_string(parentId);
             }
@@ -79,33 +77,39 @@ namespace fty { namespace conversion {
     void fromFtyProto(fty_proto_t* proto, fty::Asset& asset, bool extAttributeReadOnly, bool test)
     {
         if (fty_proto_id(proto) != FTY_PROTO_ASSET) {
+            log_error("proto is not a FTY_PROTO_ASSET");
             throw std::invalid_argument("Wrong message type");
         }
-        asset.setInternalName(fty_proto_name(proto));
 
         std::string assetStatus(fty_proto_aux_string(proto, "status", "active"));
+
+        asset.setInternalName(fty_proto_name(proto));
         asset.setAssetStatus(fty::stringToAssetStatus(assetStatus));
         asset.setAssetType(fty_proto_aux_string(proto, "type", ""));
         asset.setAssetSubtype(fty_proto_aux_string(proto, "subtype", ""));
+        asset.setPriority(static_cast<int>(fty_proto_aux_number(proto, "priority", 5)));
+
+        //parent
         if (test) {
             asset.setParentIname("test-parent");
-        } else {
+        }
+        else {
             std::string parentId(fty_proto_aux_string(proto, "parent", ""));
             if(parentId != "0") {
                 try {
                     auto parentIname = DBAssets::id_to_name_ext_name(fty::convert<uint32_t>(parentId)).first;
-                    if(parentIname.empty()) {
-                        log_error("Invalid conversion from fty_proto_t to Asset: could not get internal name from ID %s", parentId.c_str());
-                        throw std::runtime_error("Invalid conversion from fty_proto_t to Asset: could not get internal name from ID " + parentId);
+                    if (parentIname.empty()) {
+                        log_error("Could not get internal name from ID %s", parentId.c_str());
+                        throw std::runtime_error("Could not get internal name from ID " + parentId);
                     }
                     asset.setParentIname(parentIname);
-                } catch (const std::exception& e) {
+                }
+                catch (const std::exception& e) {
                     log_error("Invalid conversion from fty_proto_t to Asset: %s", e.what());
                     throw std::runtime_error("Invalid conversion from fty_proto_t to Asset: " + std::string(e.what()));
                 }
             }
         }
-        asset.setPriority(static_cast<int>(fty_proto_aux_number(proto, "priority", 5)));
 
         zhash_t* hash = fty_proto_ext(proto);
 
@@ -126,7 +130,6 @@ namespace fty { namespace conversion {
                 }
             }
         }//
-
     }
 
 }} // namespace fty::conversion

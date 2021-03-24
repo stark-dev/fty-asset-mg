@@ -432,7 +432,7 @@ void AssetImpl::create()
     } catch (const std::exception& e) {
         log_error("Failed to update CAM: %s", e.what());
     }
-        
+
 }
 
 void AssetImpl::update()
@@ -603,20 +603,22 @@ void AssetImpl::unlinkAll()
 
 static std::vector<fty::Asset> buildParentsList(const std::string iname)
 {
-    // avoid infinite loop
-    const unsigned short maxLevels = 255;
-
     std::vector<fty::Asset> parents;
 
     fty::AssetImpl a(iname);
 
-    unsigned short level = 0;
+    while (!a.getParentIname().empty())
+    {
+        if (a.getParentIname() == a.getInternalName()) {
+            log_error("Self parent detected (%s)", a.getInternalName().c_str());
+            break;
+        }
 
-    while ((!a.getParentIname().empty()) && (level < maxLevels)) {
         a = fty::AssetImpl(a.getParentIname());
         parents.push_back(a);
 
-        level++;
+        // secure, avoid infinite loop
+        if (parents.size() > 32) break;
     }
 
     return parents;
