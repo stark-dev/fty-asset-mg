@@ -23,18 +23,11 @@ etn_target(shared ${PROJECT_NAME}-accessor
 
 
 ##############################################################################################################
-# Create a target for the tests
-if(BUILD_TESTING)
-    enable_testing()
 
-    # Create a target for the tests
-    etn_test(${PROJECT_NAME}-accessor-test
-        SOURCES
-            test/*.cpp
-        USES
-            ${PROJECT_NAME}-accessor
-            Catch2::Catch2 
-            cxxtools
-    )
-    
-endif()
+# etn_test_target(${PROJECT_NAME}-accessor
+#     SOURCES
+#         test/*.cpp
+#     USES
+#         cxxtools
+#         fty_common_logging
+# )

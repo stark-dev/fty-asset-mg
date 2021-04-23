@@ -35,8 +35,6 @@ etn_target(shared ${PROJECT_NAME}
 
 if(BUILD_TESTING)
     enable_testing()
-
-    # Create a target for the tests
     etn_test(${PROJECT_NAME}-test
         SOURCES
             test/*.cpp
@@ -45,5 +43,4 @@ if(BUILD_TESTING)
             Catch2::Catch2
             cxxtools 
     )
-    
 endif()
