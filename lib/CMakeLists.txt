@@ -33,15 +33,17 @@ etn_target(shared ${PROJECT_NAME}
 
 ##############################################################################################################
 
-etn_test_target(${PROJECT_NAME}
-    SOURCES
-        test/*.cpp
-    USES
-        Catch2::Catch2
-        cxxtools
+if(BUILD_TESTING)
+    etn_test_target(${PROJECT_NAME}
+        SOURCES
+            test/*.cpp
+        USES
+            Catch2::Catch2
+            cxxtools
     )
 
-## manual set of include dirs, can't be set in the etn_target_test macro
-get_target_property(INCLUDE_DIRS_TARGET ${PROJECT_NAME} INCLUDE_DIRECTORIES)
-target_include_directories(${PROJECT_NAME}-test PRIVATE ${INCLUDE_DIRS_TARGET})
-target_include_directories(${PROJECT_NAME}-coverage PRIVATE ${INCLUDE_DIRS_TARGET})
+    ## manual set of include dirs, can't be set in the etn_target_test macro
+    get_target_property(INCLUDE_DIRS_TARGET ${PROJECT_NAME} INCLUDE_DIRECTORIES)
+    target_include_directories(${PROJECT_NAME}-test PRIVATE ${INCLUDE_DIRS_TARGET})
+    target_include_directories(${PROJECT_NAME}-coverage PRIVATE ${INCLUDE_DIRS_TARGET})
+endif()
