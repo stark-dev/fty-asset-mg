@@ -17,30 +17,31 @@ etn_target(shared ${PROJECT_NAME}
     PUBLIC
         fty_asset_dto.h
         fty_common_asset.h
-#    USES_PUBLIC
-#        fty_proto
-    USES_PRIVATE
-        fty_proto
+        USES_PRIVATE
+        czmq
         cxxtools  # cxxtools cannot be use as public because we do not have the cmake package yet
         fty_common
         fty_common_db
         fty_common_logging
         fty_common_messagebus
         fty_common_mlm
+        fty_proto
         fty-utils
+        tntdb
 )
 
 
 ##############################################################################################################
 
-if(BUILD_TESTING)
-    enable_testing()
-    etn_test(${PROJECT_NAME}-test
-        SOURCES
-            test/*.cpp
-        USES
-            ${PROJECT_NAME}
-            Catch2::Catch2
-            cxxtools 
+etn_test_target(${PROJECT_NAME}
+    SOURCES
+        test/*.cpp
+    USES
+        Catch2::Catch2
+        cxxtools
     )
-endif()
+
+## manual set of include dirs, can't be set in the etn_target_test macro
+get_target_property(INCLUDE_DIRS_TARGET ${PROJECT_NAME} INCLUDE_DIRECTORIES)
+target_include_directories(${PROJECT_NAME}-test PRIVATE ${INCLUDE_DIRS_TARGET})
+target_include_directories(${PROJECT_NAME}-coverage PRIVATE ${INCLUDE_DIRS_TARGET})
