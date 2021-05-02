@@ -1,2 +1,2 @@
 usr/bin/fty-asset-server
-etc/systemd/system/fty-asset.service
+usr/lib/systemd/system/fty-asset.service
