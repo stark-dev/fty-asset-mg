@@ -20,7 +20,7 @@ etn_target(exe ${PROJECT_NAME}-server
         src/asset/conversion
         include
     USES_PUBLIC
-        fty_common 
+        fty_common
     USES_PRIVATE
         ${PROJECT_NAME}
         cxxtools
@@ -48,7 +48,7 @@ configure_file(fty-asset.service.in
 
 install(FILES
   "${PROJECT_BINARY_DIR}/fty-asset.service"
-  DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/systemd/system/"
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system/
 )
 
 
