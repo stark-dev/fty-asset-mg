@@ -3,7 +3,7 @@
 #include <thread>
 #include <mutex>
 
-#include "fty_common_logging_library.h"
+#include "fty_log.h"
 
 namespace fty
 {
