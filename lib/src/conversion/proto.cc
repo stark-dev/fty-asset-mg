@@ -23,6 +23,7 @@
 
 #include <fty_asset_dto.h>
 #include <fty_common_db.h>
+#include <fty_log.h>
 #include <fty/convert.h>
 #include <fty_proto.h>
 #include <string>
