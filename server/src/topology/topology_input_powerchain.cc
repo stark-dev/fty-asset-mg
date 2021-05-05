@@ -52,6 +52,7 @@
 #include "utilspp.h"
 
 #include <fty_common_db.h>
+#include <fty_common.h>
 #include "assettopology.h"
 
 
