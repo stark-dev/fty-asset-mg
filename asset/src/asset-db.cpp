@@ -3,9 +3,9 @@
 #include <fty/string-utils.h>
 #include <fty/translate.h>
 #include <fty_common_asset_types.h>
-#include <sys/time.h>
-#include <fty_log.h>
 #include <fty_common_db_connection.h>
+#include <fty_log.h>
+#include <sys/time.h>
 
 #define MAX_CREATE_RETRY 10
 
@@ -125,7 +125,7 @@ Expected<std::string> nameToExtName(std::string assetName)
 
     try {
         fty::db::Connection conn;
-        auto            res = conn.selectRow(sql, "asset_name"_p = assetName);
+        auto                res = conn.selectRow(sql, "asset_name"_p = assetName);
         return res.get("value");
     } catch (const fty::db::NotFound&) {
         return unexpected(error(Errors::ElementNotFound).format(assetName));
@@ -313,6 +313,33 @@ Expected<WebAssetElement> selectAssetElementWebByName(const std::string& name)
 
 // =====================================================================================================================
 
+Expected<std::vector<WebAssetElement>> selectAssetElementsByType(uint16_t type_id, const std::string& status)
+{
+    std::vector<WebAssetElement>           items;
+
+    static const std::string sql = webAssetSql() + R"(
+        WHERE
+            v.id_type = :typeid AND v.status = :vstatus
+    )";
+
+    try {
+        fty::db::Connection db;
+
+        auto result = db.select(sql, "typeid"_p = type_id, "vstatus"_p = status);
+
+        for (const auto& row : result) {
+            WebAssetElement asset;
+            fetchWebAsset(row, asset);
+            items.push_back(asset);
+        }
+        return items;
+    } catch (const std::exception& e) {
+        return unexpected(error(Errors::ExceptionForElement).format(e.what(), type_id));
+    }
+}
+
+// =====================================================================================================================
+
 Expected<Attributes> selectExtAttributes(uint32_t elementId)
 {
     static const std::string sql = R"(
@@ -382,8 +409,8 @@ Expected<std::map<uint32_t, std::string>> selectAssetElementGroups(uint32_t elem
 
 // =====================================================================================================================
 
-Expected<uint> updateAssetElement(fty::db::Connection& db, uint32_t elementId, uint32_t parentId, const std::string& status,
-    uint16_t priority, const std::string& assetTag)
+Expected<uint> updateAssetElement(fty::db::Connection& db, uint32_t elementId, uint32_t parentId,
+    const std::string& status, uint16_t priority, const std::string& assetTag)
 {
     static const std::string sql = R"(
         UPDATE
@@ -766,7 +793,8 @@ Expected<int64_t> insertIntoAssetLink(fty::db::Connection& conn, const AssetLink
 
 // =====================================================================================================================
 
-Expected<uint16_t> insertIntoMonitorDevice(fty::db::Connection& conn, uint16_t deviceTypeId, const std::string& deviceName)
+Expected<uint16_t> insertIntoMonitorDevice(
+    fty::db::Connection& conn, uint16_t deviceTypeId, const std::string& deviceName)
 {
     static const std::string sql = R"(
         INSERT INTO t_bios_discovered_device
@@ -1155,7 +1183,7 @@ Expected<std::map<uint32_t, std::string>> selectShortElements(uint16_t typeId, u
 
     try {
         fty::db::Connection conn;
-        auto            st = conn.prepare(sql);
+        auto                st = conn.prepare(sql);
         st.bind("typeid"_p = typeId);
         if (subtypeId) {
             st.bind("subtypeid"_p = subtypeId);
@@ -1214,7 +1242,7 @@ Expected<uint16_t> convertAssetToMonitor(uint32_t assetElementId)
 
     try {
         fty::db::Connection conn;
-        auto            res = conn.selectRow(sql, "id"_p = assetElementId);
+        auto                res = conn.selectRow(sql, "id"_p = assetElementId);
         return res.get<uint16_t>("id_discovered_device");
     } catch (const fty::db::NotFound&) {
         return 0;
@@ -1290,7 +1318,7 @@ Expected<std::vector<uint32_t>> selectAssetsByParent(uint32_t parentId)
     )";
 
     try {
-        fty::db::Connection       conn;
+        fty::db::Connection   conn;
         std::vector<uint32_t> ids;
         for (const auto& it : conn.select(sql, "parentId"_p = parentId)) {
             ids.emplace_back(it.get<uint32_t>("id"));
@@ -1316,7 +1344,7 @@ Expected<std::vector<uint32_t>> selectAssetDeviceLinksSrc(uint32_t elementId)
             id_asset_device_src = :src
     )";
     try {
-        fty::db::Connection       conn;
+        fty::db::Connection   conn;
         std::vector<uint32_t> ids;
         for (const auto& it : conn.select(sql, "src"_p = elementId)) {
             ids.emplace_back(it.get<uint32_t>("id_asset_device_dest"));
@@ -1341,7 +1369,7 @@ Expected<uint32_t> maxNumberOfPowerLinks()
 
     try {
         fty::db::Connection conn;
-        auto            res = conn.selectRow(sql);
+        auto                res = conn.selectRow(sql);
         return res.get<uint32_t>("maxCount");
     } catch (const std::exception& e) {
         return unexpected(error(Errors::InternalError).format(e.what()));
@@ -1362,7 +1390,7 @@ Expected<uint32_t> maxNumberOfAssetGroups()
 
     try {
         fty::db::Connection conn;
-        auto            res = conn.selectRow(sql);
+        auto                res = conn.selectRow(sql);
         return res.get<uint32_t>("maxCount");
     } catch (const std::exception& e) {
         return unexpected(error(Errors::InternalError).format(e.what()));
@@ -1384,7 +1412,7 @@ Expected<std::vector<std::string>> selectExtRwAttributesKeytags()
     )";
 
     try {
-        fty::db::Connection          conn;
+        fty::db::Connection      conn;
         std::vector<std::string> ret;
         for (const auto& row : conn.select(sql)) {
             ret.push_back(row.get("keytag"));
@@ -1413,9 +1441,9 @@ Expected<std::vector<WebAssetElement>> selectAssetElementAll(const std::optional
     }
 
     try {
-        fty::db::Connection              db;
+        fty::db::Connection          db;
         std::vector<WebAssetElement> list;
-        fty::db::Rows                    result;
+        fty::db::Rows                result;
         if (dc) {
             result = db.select(sql, "containerid"_p = *dc);
         } else {

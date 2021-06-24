@@ -8,7 +8,7 @@
 namespace fty::db {
 class Connection;
 class Row;
-} // namespace tnt
+} // namespace fty::db
 
 namespace fty::asset::db {
 
@@ -132,6 +132,8 @@ Expected<Attributes> selectExtAttributes(uint32_t elementId); //! test
 /// @return groups map or error
 Expected<std::map<uint32_t, std::string>> selectAssetElementGroups(uint32_t elementId); //! test
 
+/// select_asset_elements_by_type: returns assets for given type
+Expected<std::vector<WebAssetElement>> selectAssetElementsByType(uint16_t type_id, const std::string& status);
 
 /// Updates asset element
 /// @param conn database established connection
