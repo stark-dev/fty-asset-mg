@@ -1450,7 +1450,7 @@ Expected<std::vector<WebAssetElement>> selectAssetElementAll(const std::optional
             result = db.select(sql);
         }
 
-        for (const auto& row : db.select(sql)) {
+        for (const auto& row : result) {
             WebAssetElement& asset = list.emplace_back();
             fetchWebAsset(row, asset);
         }
